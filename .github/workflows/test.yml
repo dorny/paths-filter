@@ -19,7 +19,7 @@ jobs:
     - uses: ./
       with:
         githubToken: ${{ github.token }}
-        filter: |
+        filters: |
           src:
             - src/**/*
           tests:
