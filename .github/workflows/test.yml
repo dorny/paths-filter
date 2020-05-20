@@ -18,7 +18,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: ./
       with:
-        githubToken: ${{ secrets.GITHUB_TOKEN }}
+        githubToken: ${{ github.token }}
         filter: |
           src:
             - src/**/*
