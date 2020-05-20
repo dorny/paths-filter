@@ -25,10 +25,15 @@
   "author": "YourNameOrOrganization",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.2.0"
+    "@actions/core": "^1.2.0",
+    "@actions/github": "^2.2.0",
+    "@octokit/webhooks": "^7.6.1",
+    "minimatch": "^3.0.4"
   },
   "devDependencies": {
     "@types/jest": "^24.0.23",
+    "@types/js-yaml": "^3.12.4",
+    "@types/minimatch": "^3.0.3",
     "@types/node": "^12.7.12",
     "@typescript-eslint/parser": "^2.8.0",
     "@zeit/ncc": "^0.20.5",
@@ -41,5 +46,8 @@
     "prettier": "^1.19.1",
     "ts-jest": "^24.2.0",
     "typescript": "^3.6.4"
-  }
+  },
+  "jest": {
+    "testEnvironment": "node"
+ }
 }

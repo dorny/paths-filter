@@ -1,27 +1,73 @@
-import {wait} from '../src/wait'
-import * as process from 'process'
-import * as cp from 'child_process'
-import * as path from 'path'
+import Filter from '../src/filter'
 
-test('throws invalid number', async () => {
-  const input = parseInt('foo', 10)
-  await expect(wait(input)).rejects.toThrow('milliseconds not a number')
+describe('yaml filter parsing tests', () => {
+  test('throws if yaml is not a dictionary', () => {
+    const yaml = 'not a dictionary'
+    const t = () => new Filter(yaml)
+    expect(t).toThrow(/^Invalid filter.*/)
+  })
+  test('throws on invalid yaml', () => {
+    const yaml = `
+    src:
+      src/**/*.js
+    `
+    const t = () => new Filter(yaml)
+    expect(t).toThrow(/^Invalid filter.*/)
+  })
+  test('throws if pattern is not a string', () => {
+    const yaml = `
+    src:
+      - src/**/*.js
+      - dict:
+          some: value
+    `
+    const t = () => new Filter(yaml)
+    expect(t).toThrow(/^Invalid filter.*/)
+  })
 })
 
-test('wait 500 ms', async () => {
-  const start = new Date()
-  await wait(500)
-  const end = new Date()
-  var delta = Math.abs(end.getTime() - start.getTime())
-  expect(delta).toBeGreaterThan(450)
-})
+describe('matching tests', () => {
+  test('matches single rule in single group', () => {
+    const yaml = `
+    src:
+      - src/**/*.js
+    `
+    const filter = new Filter(yaml)
+    const match = filter.match(['src/app/module/file.js'])
+    expect(match.src).toBeTruthy()
+  })
 
-// shows how the runner will run a javascript action with env / stdout protocol
-test('test runs', () => {
-  process.env['INPUT_MILLISECONDS'] = '500'
-  const ip = path.join(__dirname, '..', 'lib', 'main.js')
-  const options: cp.ExecSyncOptions = {
-    env: process.env
-  }
-  console.log(cp.execSync(`node ${ip}`, options).toString())
+  test('no match when file is in different folder', () => {
+    const yaml = `
+    src:
+      - src/**/*.js
+    `
+    const filter = new Filter(yaml)
+    const match = filter.match(['not_src/other_file.js'])
+    expect(match.src).toBeFalsy()
+  })
+
+  test('match only within second groups ', () => {
+    const yaml = `
+    src:
+      - src/**/*.js
+    test:
+      - test/**/*.js
+    `
+    const filter = new Filter(yaml)
+    const match = filter.match(['test/test.js'])
+    expect(match.src).toBeFalsy()
+    expect(match.test).toBeTruthy()
+  })
+
+  test('match only withing second rule of single group', () => {
+    const yaml = `
+    src:
+      - src/**/*.js
+      - test/**/*.js
+    `
+    const filter = new Filter(yaml)
+    const match = filter.match(['test/test.js'])
+    expect(match.src).toBeTruthy()
+  })
 })
