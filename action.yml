@@ -3,7 +3,7 @@ description: 'Enables conditional execution of workflow job steps considering wh
 author: 'Michal Dorner <dorner.michal@gmail.com>'
 inputs:
   githubToken:
-    description: 'GitHub Access Token - use ${{ github.token }}'
+    description: 'GitHub Access Token'
     required: true
   filters:
     description: 'YAML dictionary where keys specifies rule names and values are lists of (globbing) file path patterns'

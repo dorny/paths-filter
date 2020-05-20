@@ -70,4 +70,14 @@ describe('matching tests', () => {
     const match = filter.match(['test/test.js'])
     expect(match.src).toBeTruthy()
   })
+
+  test('matches anything', () => {
+    const yaml = `
+    any:
+      - "**/*"
+    `
+    const filter = new Filter(yaml)
+    const match = filter.match(['test/test.js'])
+    expect(match.any).toBeTruthy()
+  })
 })
