@@ -6,7 +6,7 @@ import Filter from './filter'
 
 async function run(): Promise<void> {
   try {
-    const token = core.getInput('github-token', {required: true})
+    const token = core.getInput('githubToken', {required: true})
     const filterYaml = core.getInput('filter', {required: true})
     const client = new github.GitHub(token)
 

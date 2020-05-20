@@ -21,8 +21,8 @@ Corresponding output variable will be created to indicate if there's a changed f
 Output variables can be later used in the `if` clause to conditionally run specific steps.
 
 ### Inputs
-- **`repo-token`**: GitHub Access Token - use `${{ github.token }}`
-- **`filters`**: YAML dictionary where keys specifies rule names and values are lists of path patterns
+- **`githubToken`**: GitHub Access Token - use `${{ github.token }}`
+- **`filters`**: YAML dictionary where keys specifies rule names and values are lists of file path patterns
 
 ### Outputs
 - For each rule it sets output variable named by the rule to text:
@@ -51,7 +51,7 @@ jobs:
     - uses: dorny/pr-changed-files-filter@v1
       id: filter
       with:
-        github-token: ${{ github.token }}
+        githubToken: ${{ github.token }}
         filters: |
           backend:
             - 'backend/**/*'
@@ -76,7 +76,7 @@ jobs:
 
 ## How it works
 
-1. Required inputs are checked (`github-token` & `filters`)
+1. Required inputs are checked (`githubToken` & `filters`)
 2. Provided access token is used to fetch list of changed files.
 3. For each filter rule it checks if there is any matching file
 4. Output variables are set

@@ -4117,7 +4117,7 @@ const filter_1 = __importDefault(__webpack_require__(235));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const token = core.getInput('github-token', { required: true });
+            const token = core.getInput('githubToken', { required: true });
             const filterYaml = core.getInput('filter', { required: true });
             const client = new github.GitHub(token);
             if (github.context.eventName !== 'pull_request') {
