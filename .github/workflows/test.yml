@@ -5,17 +5,18 @@ on: # rebuild any PRs
       - master
 
 jobs:
-  build: # make sure build/ci work properly
+  build-and-test:
+    name: Build and self-test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+
+    # build, test & pack
     - run: |
         npm install
         npm run all
-  test: # make sure the action works by testing it on itself
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
+
+    # make sure the action works by testing it on itself
     - uses: ./
       with:
         githubToken: ${{ github.token }}
