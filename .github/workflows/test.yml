@@ -3,7 +3,6 @@ on: # rebuild any PRs and main branch changes
   pull_request:
     types:
       - opened
-      - edited
       - synchronize
     branches:
       - master
