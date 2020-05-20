@@ -17,6 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: ./
+      name: filter
       with:
         githubToken: ${{ github.token }}
         filters: |
@@ -24,3 +25,8 @@ jobs:
             - src/**/*
           tests:
             - __tests__/**/*
+          any:
+            - ./**/*
+    - name: filter-test
+      if: steps.filter.outputs.any != 'true'
+      run: exit 1

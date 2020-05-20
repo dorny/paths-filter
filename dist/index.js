@@ -4118,7 +4118,7 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const token = core.getInput('githubToken', { required: true });
-            const filterYaml = core.getInput('filter', { required: true });
+            const filterYaml = core.getInput('filters', { required: true });
             const client = new github.GitHub(token);
             if (github.context.eventName !== 'pull_request') {
                 core.setFailed('This action can be triggered only by pull_request event');
