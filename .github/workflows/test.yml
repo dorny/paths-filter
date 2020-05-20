@@ -1,25 +1,24 @@
 name: "build-test"
-on: # rebuild any PRs
+on: # rebuild any PRs and main branch changes
   pull_request:
     branches:
       - master
 
 jobs:
-  build-and-test:
-    name: Build and self-test
+  build: # make sure build/ci work properly
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-
-    # build, test & pack
     - run: |
         npm install
         npm run all
-
-    # make sure the action works by testing it on itself
+  test: # make sure the action works on a clean machine without building
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
     - uses: ./
       with:
-        githubToken: ${{ github.token }}
+        githubToken: ${{ secrets.GITHUB_TOKEN }}
         filter: |
           src:
             - src/**/*
