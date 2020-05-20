@@ -1,101 +1,97 @@
 <p align="center">
-  <a href="https://github.com/actions/typescript-action/actions"><img alt="typescript-action status" src="https://github.com/actions/typescript-action/workflows/build-test/badge.svg"></a>
+  <a href="https://github.com/dorny/pr-changed-files-filter/actions"><img alt="typescript-action status" src="https://github.com/dorny/pr-changed-files-filter/workflows/build-test/badge.svg"></a>
 </p>
 
-# Create a JavaScript Action using TypeScript
+**CAUTION**: This action can be only used in a workflow triggered by `pull_request` event.
 
-Use this template to bootstrap the creation of a JavaScript action.:rocket:
+# Pull request changed files filter
 
-This template includes compilication support, tests, a validation workflow, publishing, and versioning guidance.  
+This [Github Action](https://github.com/features/actions) enables conditional execution of workflow job steps considering which files are modified by a pull request.
 
-If you are new, there's also a simpler introduction.  See the [Hello World JavaScript Action](https://github.com/actions/hello-world-javascript-action)
+It saves time and resources especially in monorepo setups, where you can run slow tasks (e.g. integration tests) only for changed components.
+Github workflows built-in
+[path filters](https://help.github.com/en/actions/referenceworkflow-syntax-for-github-actions#onpushpull_requestpaths)
+doesn't allow this because they doesn't work on a level of individual jobs or steps.
 
-## Create an action from this template
+## Usage
 
-Click the `Use this Template` and provide the new repo details for your action
+The action accepts filter rules in the YAML format.
+Each filter rule is a list of [glob expressions](https://github.com/isaacs/minimatch).
+Corresponding output variable will be created to indicate if there's a changed file matching any of the rule glob expressions.
+Output variables can be later used in the `if` clause to conditionally run specific steps.
 
-## Code in Master
+### Inputs
+- **`repo-token`**: GitHub Access Token - use `${{ github.token }}`
+- **`filters`**: YAML dictionary where keys specifies rule names and values are lists of path patterns
 
-Install the dependencies  
-```bash
-$ npm install
-```
+### Outputs
+- For each rule it sets output variable named by the rule to text:
+   - `'true'` - if **any** of changed files matches any of rule patterns
+   - `'false'` - if **none** of changed files matches any of rule patterns
 
-Build the typescript and package it for distribution
-```bash
-$ npm run build && npm run pack
-```
 
-Run the tests :heavy_check_mark:  
-```bash
-$ npm test
-
- PASS  ./index.test.js
-  ✓ throws invalid number (3ms)
-  ✓ wait 500 ms (504ms)
-  ✓ test runs (95ms)
-
-...
-```
-
-## Change action.yml
-
-The action.yml contains defines the inputs and output for your action.
-
-Update the action.yml with your name, description, inputs and outputs for your action.
-
-See the [documentation](https://help.github.com/en/articles/metadata-syntax-for-github-actions)
-
-## Change the Code
-
-Most toolkit and CI/CD operations involve async operations so the action is run in an async function.
-
-```javascript
-import * as core from '@actions/core';
-...
-
-async function run() {
-  try { 
-      ...
-  } 
-  catch (error) {
-    core.setFailed(error.message);
-  }
-}
-
-run()
-```
-
-See the [toolkit documentation](https://github.com/actions/toolkit/blob/master/README.md#packages) for the various packages.
-
-## Publish to a distribution branch
-
-Actions are run from GitHub repos so we will checkin the packed dist folder. 
-
-Then run [ncc](https://github.com/zeit/ncc) and push the results:
-```bash
-$ npm run pack
-$ git add dist
-$ git commit -a -m "prod dependencies"
-$ git push origin releases/v1
-```
-
-Your action is now published! :rocket: 
-
-See the [versioning documentation](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
-
-## Validate
-
-You can now validate the action by referencing `./` in a workflow in your repo (see [test.yml](.github/workflows/test.yml)])
-
+### Sample workflow
 ```yaml
-uses: ./
-with:
-  milliseconds: 1000
+...
+name: Build verification
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+    branches:
+      - master
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: dorny/pr-changed-files-filter@v1
+      id: filter
+      with:
+        github-token: ${{ github.token }}
+        filters: |
+          backend:
+            - 'backend/**/*'
+          frontend:
+            - 'frontend/**/*'
+
+    # run only if 'backend' files were changed
+    - name: backend unit tests
+      if: steps.filter.outputs.backend == 'true'
+      run: ...
+
+    # run only if 'frontend' files were changed
+    - name: frontend unit tests
+      if: steps.filter.outputs.frontend == 'true'
+      run: ...
+
+    # run if 'backend' or 'frontend' files were changed
+    - name: e2e tests
+      if: steps.filter.outputs.backend == 'true' || steps.filter.outputs.frontend == 'true'
+      run: ...
 ```
 
-See the [actions tab](https://github.com/actions/javascript-action/actions) for runs of this action! :rocket:
+## How it works
 
-## Usage:
+1. Required inputs are checked (`github-token` & `filters`)
+2. Provided access token is used to fetch list of changed files.
+3. For each filter rule it checks if there is any matching file
+4. Output variables are set
 
-After testing you can [create a v1 tag](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md) to reference the stable and latest V1 action
+## Difference from related projects:
+
+- [Has Changed Path](https://github.com/MarceloPrado/has-changed-path)
+  - detects changes from previous commit
+  - you have to configure `checkout` action to fetch some number of previous commits
+  - `git diff` is used for change detection
+  - outputs only single `true` / `false` value if any of provided paths contains changes
+- [Changed Files Exporter](https://github.com/futuratrepadeira/changed-files)
+  - outputs lists with paths of created, updated and deleted files
+  - output is not directly usable in the `if` clause
+- [Changed File Filter](https://github.com/tony84727/changed-file-filter)
+  - allows change detection between any refs or commits
+  - fetches whole history of your git repository
+  - might have negative performance impact on big repositories (github by default fetches only single commit)

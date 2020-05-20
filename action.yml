@@ -1,10 +1,16 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Pull request changed files filter'
+description: 'Enables conditional execution of workflow job steps considering which files are modified by a pull request.'
+author: 'Michal Dorner <dorner.michal@gmail.com>'
 inputs:
-  myInput:              # change this
-    description: 'input description here'
-    default: 'default value if applicable'
+  github-token:
+    description: 'GitHub Access Token - use ${{ github.token }}'
+    required: true
+  filters:
+    description: 'YAML dictionary where keys specifies rule names and values are lists of (globbing) file path patterns'
+    required: true
 runs:
   using: 'node12'
   main: 'dist/index.js'
+branding:
+  color: blue
+  icon: filter
