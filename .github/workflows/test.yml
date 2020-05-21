@@ -14,7 +14,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: backup existing 'dist/index.js'
-      run: mv dist/index.js dist/index.orig.js
+      run: mv dist/index.js ./index.orig.js
 
     - name: run npm build & test scripts
       run: |
@@ -22,7 +22,7 @@ jobs:
         npm run all
 
     - name: test if we get same 'dist/index.js' as the original file checked in the repository
-      run: cmp --quiet dist/index.js dist/index.orig.js || exit 1
+      run: cmp --quiet dist/index.js ./index.orig.js || exit 1
 
   test:
     runs-on: ubuntu-latest
