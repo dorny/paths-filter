@@ -15,5 +15,6 @@ const linuxPath = `${absPath}/node_modules/@actions/github`
 const fixedContent = content
   .replace(windowsPath, fixedPath)
   .replace(linuxPath, fixedPath)
+  .replace(/\r\n/g, '\n')
 
 fs.writeFileSync(distIndexPath, fixedContent)
