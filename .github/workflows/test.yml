@@ -19,7 +19,7 @@ jobs:
         npm run all
 
     - name: test if we get same 'dist/index.js' as the original file checked in the repository
-      run: git diff-index --quiet dist/index.js || exit 1
+      run: git diff --quiet dist/index.js || exit 1
 
   test:
     runs-on: ubuntu-latest
