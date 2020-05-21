@@ -1,5 +1,5 @@
 name: "build-test"
-on: # rebuild any PRs and main branch changes
+on:
   pull_request:
     types:
       - opened
@@ -8,14 +8,23 @@ on: # rebuild any PRs and main branch changes
       - master
 
 jobs:
-  build: # make sure build/ci work properly
+  build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: |
+
+    - name: backup existing 'dist/index.js'
+      run: mv dist/index.js dist/index.orig.js
+
+    - name: run npm build & test scripts
+      run: |
         npm install
         npm run all
-  test: # make sure the action works without building
+
+    - name: test if we get same 'dist/index.js' as the original file checked in the repository
+      run: cmp --quiet dist/index.js dist/index.orig.js || exit 1
+
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
