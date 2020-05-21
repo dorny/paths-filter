@@ -1,15 +1,15 @@
 {
-  "name": "typescript-action",
-  "version": "0.0.0",
+  "name": "pr-changed-files-filter",
+  "version": "1.0.0",
   "private": true,
-  "description": "TypeScript template action",
+  "description": "Enables conditional execution of workflow job steps considering which files are modified by a pull request.",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
     "format": "prettier --write **/*.ts",
     "format-check": "prettier --check **/*.ts",
     "lint": "eslint src/**/*.ts",
-    "pack": "ncc build",
+    "pack": "ncc build && node ./scripts/fix-index.js",
     "test": "jest",
     "all": "npm run build && npm run format && npm run lint && npm run pack && npm test"
   },
@@ -36,7 +36,7 @@
     "@types/minimatch": "^3.0.3",
     "@types/node": "^12.7.12",
     "@typescript-eslint/parser": "^2.8.0",
-    "@zeit/ncc": "^0.20.5",
+    "@zeit/ncc": "^0.22.0",
     "eslint": "^5.16.0",
     "eslint-plugin-github": "^2.0.0",
     "eslint-plugin-jest": "^22.21.0",
@@ -49,5 +49,5 @@
   },
   "jest": {
     "testEnvironment": "node"
- }
+  }
 }
