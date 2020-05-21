@@ -1,5 +1,5 @@
 name: "build-test"
-on: # rebuild any PRs and main branch changes
+on:
   pull_request:
     types:
       - opened
@@ -8,14 +8,15 @@ on: # rebuild any PRs and main branch changes
       - master
 
 jobs:
-  build: # make sure build/ci work properly
+  build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - run: |
         npm install
         npm run all
-  test: # make sure the action works without building
+
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2

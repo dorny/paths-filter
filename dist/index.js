@@ -19,7 +19,13 @@ module.exports =
 /******/ 		};
 /******/
 /******/ 		// Execute the module function
-/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/ 		var threw = true;
+/******/ 		try {
+/******/ 			modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/ 			threw = false;
+/******/ 		} finally {
+/******/ 			if(threw) delete installedModules[moduleId];
+/******/ 		}
 /******/
 /******/ 		// Flag the module as loaded
 /******/ 		module.l = true;
@@ -296,9 +302,9 @@ module.exports = require("tls");
 /***/ }),
 
 /***/ 18:
-/***/ (function() {
+/***/ (function(module) {
 
-eval("require")("encoding");
+module.exports = eval("require")("encoding");
 
 
 /***/ }),
@@ -4241,6 +4247,9 @@ class Filter {
         if (typeof doc !== 'object') {
             this.throwInvalidFormatError();
         }
+        const opts = {
+            dot: true
+        };
         for (const name of Object.keys(doc)) {
             const patterns = doc[name];
             if (!Array.isArray(patterns)) {
@@ -4249,7 +4258,7 @@ class Filter {
             if (!patterns.every(x => typeof x === 'string')) {
                 this.throwInvalidFormatError();
             }
-            this.rules[name] = patterns.map(x => new minimatch.Minimatch(x));
+            this.rules[name] = patterns.map(x => new minimatch.Minimatch(x, opts));
         }
     }
     // Returns dictionary with match result per rules group
