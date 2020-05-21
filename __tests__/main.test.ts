@@ -80,4 +80,14 @@ describe('matching tests', () => {
     const match = filter.match(['test/test.js'])
     expect(match.any).toBeTruthy()
   })
+
+  test('globbing matches path where file or folder name starts with dot', () => {
+    const yaml = `
+    dot:
+      - "**/*.js"
+    `
+    const filter = new Filter(yaml)
+    const match = filter.match(['.test/.test.js'])
+    expect(match.dot).toBeTruthy()
+  })
 })

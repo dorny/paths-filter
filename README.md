@@ -30,6 +30,10 @@ Output variables can be later used in the `if` clause to conditionally run speci
    - `'false'` - if **none** of changed files matches any of rule patterns
 
 
+### Notes
+- minimatch [dot](https://www.npmjs.com/package/minimatch#dot) option is set to true - therefore
+  globbing will match also paths where file or folder name starts with a dot.
+
 ### Sample workflow
 ```yaml
 ...
@@ -94,4 +98,4 @@ jobs:
 - [Changed File Filter](https://github.com/tony84727/changed-file-filter)
   - allows change detection between any refs or commits
   - fetches whole history of your git repository
-  - might have negative performance impact on big repositories (github by default fetches only single commit)
+  - might have negative performance impact on big repositories (github by default fetches only single com
