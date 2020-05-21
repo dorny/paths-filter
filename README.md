@@ -98,4 +98,4 @@ jobs:
 - [Changed File Filter](https://github.com/tony84727/changed-file-filter)
   - allows change detection between any refs or commits
   - fetches whole history of your git repository
-  - might have negative performance impact on big repositories (github by default fetches only single commit
+  - might have negative performance impact on big repositories (github by default fetches only single commit)
