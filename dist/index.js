@@ -4241,6 +4241,9 @@ class Filter {
         if (typeof doc !== 'object') {
             this.throwInvalidFormatError();
         }
+        const opts = {
+            dot: true
+        };
         for (const name of Object.keys(doc)) {
             const patterns = doc[name];
             if (!Array.isArray(patterns)) {
@@ -4249,7 +4252,7 @@ class Filter {
             if (!patterns.every(x => typeof x === 'string')) {
                 this.throwInvalidFormatError();
             }
-            this.rules[name] = patterns.map(x => new minimatch.Minimatch(x));
+            this.rules[name] = patterns.map(x => new minimatch.Minimatch(x, opts));
         }
     }
     // Returns dictionary with match result per rules group

@@ -10,7 +10,7 @@ export default class Filter {
       this.throwInvalidFormatError()
     }
 
-    const opts : minimatch.IOptions = {
+    const opts: minimatch.IOptions = {
       dot: true
     }
 
