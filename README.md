@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/dorny/pr-changed-files-filter/actions"><img alt="typescript-action status" src="https://github.com/dorny/pr-changed-files-filter/workflows/build/badge.svg"></a>
+  <a href="https://github.com/dorny/pr-changed-files-filter/actions"><img alt="typescript-action status" src="https://github.com/dorny/pr-changed-files-filter/workflows/Build/badge.svg"></a>
 </p>
 
 **CAUTION**: This action can be only used in a workflow triggered by `pull_request` event.
