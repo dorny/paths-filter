@@ -42,7 +42,6 @@ on:
   pull_request:
     types:
       - opened
-      - edited
       - synchronize
     branches:
       - master
