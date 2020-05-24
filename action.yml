@@ -5,6 +5,7 @@ inputs:
   githubToken:
     description: 'GitHub Access Token'
     required: true
+    default: ${{ github.token }}
   filters:
     description: 'YAML dictionary where keys specifies rule names and values are lists of (globbing) file path patterns'
     required: true

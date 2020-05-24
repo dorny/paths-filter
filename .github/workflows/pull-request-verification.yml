@@ -23,7 +23,6 @@ jobs:
     - uses: ./
       id: filter
       with:
-        githubToken: ${{ github.token }}
         filters: |
           src:
             - src/**/*

@@ -21,7 +21,7 @@ Corresponding output variable will be created to indicate if there's a changed f
 Output variables can be later used in the `if` clause to conditionally run specific steps.
 
 ### Inputs
-- **`githubToken`**: GitHub Access Token - use `${{ github.token }}`
+- **`githubToken`**: GitHub Access Token - defaults to `${{ github.token }}`
 - **`filters`**: YAML dictionary where keys specifies rule names and values are lists of file path patterns
 
 ### Outputs
@@ -54,7 +54,6 @@ jobs:
     - uses: dorny/pr-changed-files-filter@v1
       id: filter
       with:
-        githubToken: ${{ github.token }}
         filters: |
           backend:
             - 'backend/**/*'
