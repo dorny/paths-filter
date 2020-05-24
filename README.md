@@ -53,6 +53,7 @@ jobs:
     - uses: dorny/pr-changed-files-filter@v1
       id: filter
       with:
+        # inline YAML or path to separate file (e.g.: .github/filters.yaml)
         filters: |
           backend:
             - 'backend/**/*'

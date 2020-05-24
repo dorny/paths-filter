@@ -23,6 +23,10 @@ jobs:
     - uses: ./
       id: filter
       with:
+        filters: '.github/filters.yml'
+    - uses: ./
+      id: inlineFilter
+      with:
         filters: |
           src:
             - src/**/*
@@ -31,5 +35,5 @@ jobs:
           any:
             - "**/*"
     - name: filter-test
-      if: steps.filter.outputs.any != 'true'
+      if: steps.filter.outputs.any != 'true' || steps.inlineFilter.outputs.any != 'true'
       run: exit 1
