@@ -22,7 +22,7 @@ Output variables can be later used in the `if` clause to conditionally run speci
 
 ### Inputs
 - **`githubToken`**: GitHub Access Token - defaults to `${{ github.token }}`
-- **`filters`**: YAML dictionary where keys specifies rule names and values are lists of file path patterns
+- **`filters`**: Path to the configuration file or directly embedded string in YAML format. Filter configuration is a dictionary, where keys specifies rule names and values are lists of file path patterns.
 
 ### Outputs
 - For each rule it sets output variable named by the rule to text:
@@ -53,6 +53,7 @@ jobs:
     - uses: dorny/pr-changed-files-filter@v1
       id: filter
       with:
+        # inline YAML or path to separate file (e.g.: .github/filters.yaml)
         filters: |
           backend:
             - 'backend/**/*'

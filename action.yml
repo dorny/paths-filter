@@ -7,7 +7,7 @@ inputs:
     required: true
     default: ${{ github.token }}
   filters:
-    description: 'YAML dictionary where keys specifies rule names and values are lists of (globbing) file path patterns'
+    description: 'Path to the configuration file or YAML string with filters definition'
     required: true
 runs:
   using: 'node12'
