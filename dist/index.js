@@ -4129,6 +4129,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const fs = __importStar(__webpack_require__(747));
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 const filter_1 = __importDefault(__webpack_require__(235));
@@ -4136,14 +4137,15 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const token = core.getInput('githubToken', { required: true });
-            const filterYaml = core.getInput('filters', { required: true });
+            const filtersInput = core.getInput('filters', { required: true });
+            const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
             const client = new github.GitHub(token);
             if (github.context.eventName !== 'pull_request') {
                 core.setFailed('This action can be triggered only by pull_request event');
                 return;
             }
             const pr = github.context.payload.pull_request;
-            const filter = new filter_1.default(filterYaml);
+            const filter = new filter_1.default(filtersYaml);
             const files = yield getChangedFiles(client, pr);
             const result = filter.match(files);
             for (const key in result) {
@@ -4154,6 +4156,18 @@ function run() {
             core.setFailed(error.message);
         }
     });
+}
+function isPathInput(text) {
+    return !text.includes('\n');
+}
+function getConfigFileContent(configPath) {
+    if (!fs.existsSync(configPath)) {
+        throw new Error(`Configuration file '${configPath}' not found`);
+    }
+    if (!fs.lstatSync(configPath).isFile()) {
+        throw new Error(`'${configPath}' is not a file.`);
+    }
+    return fs.readFileSync(configPath, { encoding: 'utf8' });
 }
 // Uses github REST api to get list of files changed in PR
 function getChangedFiles(client, pullRequest) {

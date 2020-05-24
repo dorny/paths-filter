@@ -1,18 +1,16 @@
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import { Webhooks } from '@octokit/webhooks'
+import {Webhooks} from '@octokit/webhooks'
 
 import Filter from './filter'
 
 async function run(): Promise<void> {
   try {
-    const token = core.getInput('githubToken', { required: true })
-    const filtersInput = core.getInput('filters', { required: true })
+    const token = core.getInput('githubToken', {required: true})
+    const filtersInput = core.getInput('filters', {required: true})
 
-    const filtersYaml = isPathInput(filtersInput)
-    ? getConfigFileContent(filtersInput)
-    : filtersInput
+    const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
 
     const client = new github.GitHub(token)
 
@@ -34,7 +32,7 @@ async function run(): Promise<void> {
 }
 
 function isPathInput(text: string): boolean {
-  return text.indexOf('\n') === -1
+  return !text.includes('\n')
 }
 
 function getConfigFileContent(configPath: string): string {
@@ -46,7 +44,7 @@ function getConfigFileContent(configPath: string): string {
     throw new Error(`'${configPath}' is not a file.`)
   }
 
-  return fs.readFileSync(configPath, { encoding: 'utf8' })
+  return fs.readFileSync(configPath, {encoding: 'utf8'})
 }
 
 // Uses github REST api to get list of files changed in PR
