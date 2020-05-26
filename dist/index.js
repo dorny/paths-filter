@@ -3802,7 +3802,7 @@ exports.getChangedFiles = exports.fetchBranch = void 0;
 const exec_1 = __webpack_require__(986);
 function fetchBranch(base) {
     return __awaiter(this, void 0, void 0, function* () {
-        const exitCode = yield exec_1.exec('git', ['fetch', '--depth=1', 'origin', `${base}:refs/head/${base}`]);
+        const exitCode = yield exec_1.exec('git', ['fetch', '--depth=1', 'origin', base]);
         if (exitCode !== 0) {
             throw new Error(`Fetching branch ${base} failed, exiting`);
         }
