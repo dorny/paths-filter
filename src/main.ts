@@ -45,7 +45,8 @@ async function getChangedFiles(token: string): Promise<string[]> {
     const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
     return token ? await getChangedFilesFromApi(token, pr) : await getChangedFilesFromGit(pr.base.sha)
   } else if (github.context.eventName === 'push') {
-    const push = github.context.payload.push as Webhooks.WebhookPayloadPush
+    core.info(JSON.stringify(github.context.payload))
+    const push = github.context.payload as Webhooks.WebhookPayloadPush
     return await getChangedFilesFromGit(push.before)
   } else {
     throw new Error('This action can be triggered only by pull_request or push event')
@@ -55,7 +56,7 @@ async function getChangedFiles(token: string): Promise<string[]> {
 // Fetch base branch and use `git diff` to determine changed files
 async function getChangedFilesFromGit(sha: string): Promise<string[]> {
   core.debug('Fetching base branch and using `git diff-index` to determine changed files')
-  await git.fetch(sha)
+  await git.fetchCommit(sha)
   return await git.getChangedFiles(sha)
 }
 

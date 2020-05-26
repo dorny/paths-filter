@@ -3798,17 +3798,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getChangedFiles = exports.fetch = void 0;
+exports.getChangedFiles = exports.fetchCommit = void 0;
 const exec_1 = __webpack_require__(986);
-function fetch(sha) {
+function fetchCommit(sha) {
     return __awaiter(this, void 0, void 0, function* () {
         const exitCode = yield exec_1.exec('git', ['fetch', '--depth=1', 'origin', sha]);
         if (exitCode !== 0) {
-            throw new Error(`Fetching branch ${sha} failed, exiting`);
+            throw new Error(`Fetching commit ${sha} failed`);
         }
     });
 }
-exports.fetch = fetch;
+exports.fetchCommit = fetchCommit;
 function getChangedFiles(sha) {
     return __awaiter(this, void 0, void 0, function* () {
         let output = '';
@@ -3818,7 +3818,7 @@ function getChangedFiles(sha) {
             }
         });
         if (exitCode !== 0) {
-            throw new Error(`Couldn't determine changed files, exiting`);
+            throw new Error(`Couldn't determine changed files`);
         }
         return output
             .split('\n')
@@ -4516,7 +4516,8 @@ function getChangedFiles(token) {
             return token ? yield getChangedFilesFromApi(token, pr) : yield getChangedFilesFromGit(pr.base.sha);
         }
         else if (github.context.eventName === 'push') {
-            const push = github.context.payload.push;
+            core.info(JSON.stringify(github.context.payload));
+            const push = github.context.payload;
             return yield getChangedFilesFromGit(push.before);
         }
         else {
@@ -4528,7 +4529,7 @@ function getChangedFiles(token) {
 function getChangedFilesFromGit(sha) {
     return __awaiter(this, void 0, void 0, function* () {
         core.debug('Fetching base branch and using `git diff-index` to determine changed files');
-        yield git.fetch(sha);
+        yield git.fetchCommit(sha);
         return yield git.getChangedFiles(sha);
     });
 }
