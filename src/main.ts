@@ -4,15 +4,13 @@ import * as github from '@actions/github'
 import {Webhooks} from '@octokit/webhooks'
 
 import Filter from './filter'
+import * as git from './git'
 
 async function run(): Promise<void> {
   try {
-    const token = core.getInput('githubToken', {required: true})
+    const token = core.getInput('token', {required: false})
     const filtersInput = core.getInput('filters', {required: true})
-
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
-
-    const client = new github.GitHub(token)
 
     if (github.context.eventName !== 'pull_request') {
       core.setFailed('This action can be triggered only by pull_request event')
@@ -21,7 +19,8 @@ async function run(): Promise<void> {
 
     const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
     const filter = new Filter(filtersYaml)
-    const files = await getChangedFiles(client, pr)
+    const files = token ? await getChangedFilesFromApi(token, pr) : await getChangedFilesFromGit(pr)
+
     const result = filter.match(files)
     for (const key in result) {
       core.setOutput(key, String(result[key]))
@@ -47,11 +46,21 @@ function getConfigFileContent(configPath: string): string {
   return fs.readFileSync(configPath, {encoding: 'utf8'})
 }
 
+// Fetch base branch and use `git diff` to determine changed files
+async function getChangedFilesFromGit(pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest): Promise<string[]> {
+  core.debug('Fetching base branch and using `git diff-index` to determine changed files')
+  const baseRef = pullRequest.base.ref
+  await git.fetchBranch(baseRef)
+  return await git.getChangedFiles(baseRef)
+}
+
 // Uses github REST api to get list of files changed in PR
-async function getChangedFiles(
-  client: github.GitHub,
+async function getChangedFilesFromApi(
+  token: string,
   pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest
 ): Promise<string[]> {
+  core.debug('Fetching list of modified files from Github API')
+  const client = new github.GitHub(token)
   const pageSize = 100
   const files: string[] = []
   for (let page = 0; page * pageSize < pullRequest.changed_files; page++) {

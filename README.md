@@ -21,7 +21,7 @@ Corresponding output variable will be created to indicate if there's a changed f
 Output variables can be later used in the `if` clause to conditionally run specific steps.
 
 ### Inputs
-- **`githubToken`**: GitHub Access Token - defaults to `${{ github.token }}`
+- **`token`**: GitHub Access Token - defaults to `${{ github.token }}`
 - **`filters`**: Path to the configuration file or directly embedded string in YAML format. Filter configuration is a dictionary, where keys specifies rule names and values are lists of file path patterns.
 
 ### Outputs
@@ -78,10 +78,11 @@ jobs:
 
 ## How it works
 
-1. Required inputs are checked (`githubToken` & `filters`)
-2. Provided access token is used to fetch list of changed files.
-3. For each filter rule it checks if there is any matching file
-4. Output variables are set
+1. Required inputs are checked (`filters`)
+2. If token was provided, it's used to fetch list of changed files from Github API.
+3. If token was not provided, base branch is fetched and changed files are detected using `git diff-index` command.
+4. For each filter rule it checks if there is any matching file
+5. Output variables are set
 
 ## Difference from related projects:
 

@@ -2,9 +2,9 @@ name: 'Pull request changed files filter'
 description: 'Enables conditional execution of workflow job steps considering which files are modified by a pull request.'
 author: 'Michal Dorner <dorner.michal@gmail.com>'
 inputs:
-  githubToken:
+  token:
     description: 'GitHub Access Token'
-    required: true
+    required: false
     default: ${{ github.token }}
   filters:
     description: 'Path to the configuration file or YAML string with filters definition'
