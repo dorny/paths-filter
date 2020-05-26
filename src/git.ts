@@ -1,7 +1,7 @@
 import {exec} from '@actions/exec'
 
 export async function fetchBranch(base: string): Promise<void> {
-  const exitCode = await exec('git', ['fetch', '--depth=1', 'origin', `${base}:refs/head/${base}`])
+  const exitCode = await exec('git', ['fetch', '--depth=1', 'origin', base])
   if (exitCode !== 0) {
     throw new Error(`Fetching branch ${base} failed, exiting`)
   }
