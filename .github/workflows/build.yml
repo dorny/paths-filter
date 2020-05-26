@@ -12,3 +12,15 @@ jobs:
     - run: |
         npm install
         npm run all
+
+  self-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ./
+      id: filter
+      with:
+        filters: '.github/filters.yml'
+    - name: filter-test
+      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+      run: exit 1

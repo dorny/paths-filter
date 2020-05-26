@@ -1,8 +1,5 @@
 name: "Pull Request Verification"
 on:
-  push:
-    branches:
-      - support-push-event
   pull_request:
     types:
       - opened

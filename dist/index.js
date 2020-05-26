@@ -4516,7 +4516,6 @@ function getChangedFiles(token) {
             return token ? yield getChangedFilesFromApi(token, pr) : yield getChangedFilesFromGit(pr.base.sha);
         }
         else if (github.context.eventName === 'push') {
-            core.info(JSON.stringify(github.context.payload));
             const push = github.context.payload;
             return yield getChangedFilesFromGit(push.before);
         }
