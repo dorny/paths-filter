@@ -54,5 +54,5 @@ jobs:
         token: ''
         filters: '.github/filters.yml'
     - name: filter-test
-      if: steps.filter.outputs.any !== 'true' || steps.filter.outputs.error === 'true'
+      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
       run: exit 1
