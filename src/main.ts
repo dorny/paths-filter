@@ -51,7 +51,7 @@ async function getChangedFilesFromGit(pullRequest: Webhooks.WebhookPayloadPullRe
   core.debug('Fetching base branch and using `git diff-index` to determine changed files')
   const baseRef = pullRequest.base.ref
   await git.fetchBranch(baseRef)
-  return await git.getChangedFiles(baseRef)
+  return await git.getChangedFiles(pullRequest.base.sha)
 }
 
 // Uses github REST api to get list of files changed in PR

@@ -4520,7 +4520,7 @@ function getChangedFilesFromGit(pullRequest) {
         core.debug('Fetching base branch and using `git diff-index` to determine changed files');
         const baseRef = pullRequest.base.ref;
         yield git.fetchBranch(baseRef);
-        return yield git.getChangedFiles(baseRef);
+        return yield git.getChangedFiles(pullRequest.base.sha);
     });
 }
 // Uses github REST api to get list of files changed in PR
