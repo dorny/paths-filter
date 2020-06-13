@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: dorny/pr-changed-files-filter@v1
+    - uses: dorny/pr-changed-files-filter@v1.1.0
       id: filter
       with:
         # inline YAML or path to separate file (e.g.: .github/filters.yaml)
