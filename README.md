@@ -2,7 +2,7 @@
   <a href="https://github.com/dorny/pr-changed-files-filter/actions"><img alt="typescript-action status" src="https://github.com/dorny/pr-changed-files-filter/workflows/Build/badge.svg"></a>
 </p>
 
-**CAUTION**: This action can be only used in a workflow triggered by `pull_request` event.
+> **CAUTION**: This action can only be used in a workflow triggered by `pull_request` event.
 
 # Pull request changed files filter
 
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: dorny/pr-changed-files-filter@v1
+    - uses: dorny/pr-changed-files-filter@v1.1.0
       id: filter
       with:
         # inline YAML or path to separate file (e.g.: .github/filters.yaml)
