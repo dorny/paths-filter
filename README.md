@@ -1,21 +1,31 @@
 <p align="center">
-  <a href="https://github.com/dorny/pr-changed-files-filter/actions"><img alt="typescript-action status" src="https://github.com/dorny/pr-changed-files-filter/workflows/Build/badge.svg"></a>
+  <a href="https://github.com/dorny/paths-filter/actions"><img alt="paths-filter status" src="https://github.com/dorny/paths-filter/workflows/Build/badge.svg"></a>
 </p>
 
-> **CAUTION**: This action can only be used in a workflow triggered by `pull_request` event.
+- [Paths filter](#paths-filter)
+  - [Usage](#usage)
+    - [Inputs](#inputs)
+    - [Outputs](#outputs)
+    - [Notes](#notes)
+    - [Example](#example)
+  - [How it works](#how-it-works)
+  - [Difference from related projects:](#difference-from-related-projects)
 
-# Pull request changed files filter
+# Paths filter
 
-This [Github Action](https://github.com/features/actions) enables conditional execution of workflow job steps considering which files are modified by a pull request.
+With this [Github Action](https://github.com/features/actions) you can execute your workflow job steps only if relevant files are modified.
 
-It saves time and resources especially in monorepo setups, where you can run slow tasks (e.g. integration tests) only for changed components.
-Github workflows built-in
-[path filters](https://help.github.com/en/actions/referenceworkflow-syntax-for-github-actions#onpushpull_requestpaths)
+It saves time and resources especially in monorepo setups, where you can run slow tasks (e.g. integration tests or deployments) only for changed components.
+Github workflows built-in [path filters](https://help.github.com/en/actions/referenceworkflow-syntax-for-github-actions#onpushpull_requestpaths)
 doesn't allow this because they doesn't work on a level of individual jobs or steps.
+
+Action supports workflows triggered by:
+- Pull request: changes are detected against the base branch
+- Push: changes are detected against the most recent commit on the same branch before the push
 
 ## Usage
 
-The action accepts filter rules in the YAML format.
+Filter rules are defined using YAML format.
 Each filter rule is a list of [glob expressions](https://github.com/isaacs/minimatch).
 Corresponding output variable will be created to indicate if there's a changed file matching any of the rule glob expressions.
 Output variables can be later used in the `if` clause to conditionally run specific steps.
@@ -29,16 +39,16 @@ Output variables can be later used in the `if` clause to conditionally run speci
    - `'true'` - if **any** of changed files matches any of rule patterns
    - `'false'` - if **none** of changed files matches any of rule patterns
 
-
 ### Notes
 - minimatch [dot](https://www.npmjs.com/package/minimatch#dot) option is set to true - therefore
   globbing will match also paths where file or folder name starts with a dot.
 
-### Sample workflow
+### Example
 ```yaml
-name: Build verification
-
 on:
+  push:
+    branches:
+      - master
   pull_request:
     types:
       - opened
@@ -50,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: dorny/pr-changed-files-filter@v1.1.0
+    - uses: dorny/paths-filter@v2.0.0
       id: filter
       with:
         # inline YAML or path to separate file (e.g.: .github/filters.yaml)
@@ -78,18 +88,19 @@ jobs:
 
 ## How it works
 
-1. Required inputs are checked (`filters`)
-2. If token was provided, it's used to fetch list of changed files from Github API.
-3. If token was not provided, base branch is fetched and changed files are detected using `git diff-index` command.
-4. For each filter rule it checks if there is any matching file
-5. Output variables are set
+1. If action was triggered by pull request:
+   - If access token was provided it's used to fetch list of changed files from Github API.
+   - If access token was not provided, top of the base branch is fetched and changed files are detected using `git diff-index` command.
+2. If action was triggered by push event
+   - Last commit before the push is fetched and changed files are detected using `git diff-index` command.
+3. For each filter rule it checks if there is any matching file
+4. Output variables are set
 
 ## Difference from related projects:
 
 - [Has Changed Path](https://github.com/MarceloPrado/has-changed-path)
   - detects changes from previous commit
   - you have to configure `checkout` action to fetch some number of previous commits
-  - `git diff` is used for change detection
   - outputs only single `true` / `false` value if any of provided paths contains changes
 - [Changed Files Exporter](https://github.com/futuratrepadeira/changed-files)
   - outputs lists with paths of created, updated and deleted files
