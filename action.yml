@@ -1,5 +1,5 @@
-name: 'Pull request changed files filter'
-description: 'Enables conditional execution of workflow job steps considering which files are modified by a pull request.'
+name: 'Paths filter'
+description: 'Execute your workflow steps only if relevant files are modified.'
 author: 'Michal Dorner <dorner.michal@gmail.com>'
 inputs:
   token:

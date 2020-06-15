@@ -1,8 +1,8 @@
 {
-  "name": "pr-changed-files-filter",
+  "name": "paths-filter",
   "version": "1.0.0",
   "private": true,
-  "description": "Enables conditional execution of workflow job steps considering which files are modified by a pull request.",
+  "description": "Execute your workflow steps only if relevant files are modified.",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",

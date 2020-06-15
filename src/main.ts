@@ -12,14 +12,8 @@ async function run(): Promise<void> {
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
 
-    if (github.context.eventName !== 'pull_request') {
-      core.setFailed('This action can be triggered only by pull_request event')
-      return
-    }
-
-    const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
     const filter = new Filter(filtersYaml)
-    const files = token ? await getChangedFilesFromApi(token, pr) : await getChangedFilesFromGit(pr)
+    const files = await getChangedFiles(token)
 
     const result = filter.match(files)
     for (const key in result) {
@@ -46,12 +40,23 @@ function getConfigFileContent(configPath: string): string {
   return fs.readFileSync(configPath, {encoding: 'utf8'})
 }
 
+async function getChangedFiles(token: string): Promise<string[]> {
+  if (github.context.eventName === 'pull_request') {
+    const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
+    return token ? await getChangedFilesFromApi(token, pr) : await getChangedFilesFromGit(pr.base.sha)
+  } else if (github.context.eventName === 'push') {
+    const push = github.context.payload as Webhooks.WebhookPayloadPush
+    return await getChangedFilesFromGit(push.before)
+  } else {
+    throw new Error('This action can be triggered only by pull_request or push event')
+  }
+}
+
 // Fetch base branch and use `git diff` to determine changed files
-async function getChangedFilesFromGit(pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest): Promise<string[]> {
+async function getChangedFilesFromGit(sha: string): Promise<string[]> {
   core.debug('Fetching base branch and using `git diff-index` to determine changed files')
-  const baseRef = pullRequest.base.ref
-  await git.fetchBranch(baseRef)
-  return await git.getChangedFiles(pullRequest.base.sha)
+  await git.fetchCommit(sha)
+  return await git.getChangedFiles(sha)
 }
 
 // Uses github REST api to get list of files changed in PR

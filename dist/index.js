@@ -3798,27 +3798,27 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getChangedFiles = exports.fetchBranch = void 0;
+exports.getChangedFiles = exports.fetchCommit = void 0;
 const exec_1 = __webpack_require__(986);
-function fetchBranch(base) {
+function fetchCommit(sha) {
     return __awaiter(this, void 0, void 0, function* () {
-        const exitCode = yield exec_1.exec('git', ['fetch', '--depth=1', 'origin', base]);
+        const exitCode = yield exec_1.exec('git', ['fetch', '--depth=1', 'origin', sha]);
         if (exitCode !== 0) {
-            throw new Error(`Fetching branch ${base} failed, exiting`);
+            throw new Error(`Fetching commit ${sha} failed`);
         }
     });
 }
-exports.fetchBranch = fetchBranch;
-function getChangedFiles(base) {
+exports.fetchCommit = fetchCommit;
+function getChangedFiles(sha) {
     return __awaiter(this, void 0, void 0, function* () {
         let output = '';
-        const exitCode = yield exec_1.exec('git', ['diff-index', '--name-only', base], {
+        const exitCode = yield exec_1.exec('git', ['diff-index', '--name-only', sha], {
             listeners: {
                 stdout: (data) => (output += data.toString())
             }
         });
         if (exitCode !== 0) {
-            throw new Error(`Couldn't determine changed files, exiting`);
+            throw new Error(`Couldn't determine changed files`);
         }
         return output
             .split('\n')
@@ -4485,13 +4485,8 @@ function run() {
             const token = core.getInput('token', { required: false });
             const filtersInput = core.getInput('filters', { required: true });
             const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
-            if (github.context.eventName !== 'pull_request') {
-                core.setFailed('This action can be triggered only by pull_request event');
-                return;
-            }
-            const pr = github.context.payload.pull_request;
             const filter = new filter_1.default(filtersYaml);
-            const files = token ? yield getChangedFilesFromApi(token, pr) : yield getChangedFilesFromGit(pr);
+            const files = yield getChangedFiles(token);
             const result = filter.match(files);
             for (const key in result) {
                 core.setOutput(key, String(result[key]));
@@ -4514,13 +4509,27 @@ function getConfigFileContent(configPath) {
     }
     return fs.readFileSync(configPath, { encoding: 'utf8' });
 }
+function getChangedFiles(token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (github.context.eventName === 'pull_request') {
+            const pr = github.context.payload.pull_request;
+            return token ? yield getChangedFilesFromApi(token, pr) : yield getChangedFilesFromGit(pr.base.sha);
+        }
+        else if (github.context.eventName === 'push') {
+            const push = github.context.payload;
+            return yield getChangedFilesFromGit(push.before);
+        }
+        else {
+            throw new Error('This action can be triggered only by pull_request or push event');
+        }
+    });
+}
 // Fetch base branch and use `git diff` to determine changed files
-function getChangedFilesFromGit(pullRequest) {
+function getChangedFilesFromGit(sha) {
     return __awaiter(this, void 0, void 0, function* () {
         core.debug('Fetching base branch and using `git diff-index` to determine changed files');
-        const baseRef = pullRequest.base.ref;
-        yield git.fetchBranch(baseRef);
-        return yield git.getChangedFiles(pullRequest.base.sha);
+        yield git.fetchCommit(sha);
+        return yield git.getChangedFiles(sha);
     });
 }
 // Uses github REST api to get list of files changed in PR
