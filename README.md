@@ -7,7 +7,7 @@
 With this [Github Action](https://github.com/features/actions) you can execute your workflow steps only if relevant files are modified.
 
 It saves time and resources especially in monorepo setups, where you can run slow tasks (e.g. integration tests or deployments) only for changed components.
-Github workflows built-in [path filters](https://help.github.com/en/actions/referenceworkflow-syntax-for-github-actions#onpushpull_requestpaths)
+Github workflows built-in [path filters](https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#onpushpull_requestpaths)
 doesn't allow this because they doesn't work on a level of individual jobs or steps.
 
 Action supports workflows triggered by:
