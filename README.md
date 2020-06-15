@@ -9,11 +9,11 @@
     - [Notes](#notes)
     - [Example](#example)
   - [How it works](#how-it-works)
-  - [Difference from related projects:](#difference-from-related-projects)
+  - [Difference from similar projects:](#difference-from-similar-projects)
 
 # Paths filter
 
-With this [Github Action](https://github.com/features/actions) you can execute your workflow job steps only if relevant files are modified.
+With this [Github Action](https://github.com/features/actions) you can execute your workflow steps only if relevant files are modified.
 
 It saves time and resources especially in monorepo setups, where you can run slow tasks (e.g. integration tests or deployments) only for changed components.
 Github workflows built-in [path filters](https://help.github.com/en/actions/referenceworkflow-syntax-for-github-actions#onpushpull_requestpaths)
@@ -96,7 +96,7 @@ jobs:
 3. For each filter rule it checks if there is any matching file
 4. Output variables are set
 
-## Difference from related projects:
+## Difference from similar projects:
 
 - [Has Changed Path](https://github.com/MarceloPrado/has-changed-path)
   - detects changes from previous commit
