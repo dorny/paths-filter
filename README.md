@@ -2,15 +2,6 @@
   <a href="https://github.com/dorny/paths-filter/actions"><img alt="paths-filter status" src="https://github.com/dorny/paths-filter/workflows/Build/badge.svg"></a>
 </p>
 
-- [Paths filter](#paths-filter)
-  - [Usage](#usage)
-    - [Inputs](#inputs)
-    - [Outputs](#outputs)
-    - [Notes](#notes)
-    - [Example](#example)
-  - [How it works](#how-it-works)
-  - [Difference from similar projects:](#difference-from-similar-projects)
-
 # Paths filter
 
 With this [Github Action](https://github.com/features/actions) you can execute your workflow steps only if relevant files are modified.
