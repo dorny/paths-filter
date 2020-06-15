@@ -11,8 +11,8 @@ Github workflows built-in [path filters](https://help.github.com/en/actions/refe
 doesn't allow this because they doesn't work on a level of individual jobs or steps.
 
 Action supports workflows triggered by:
-- Pull request: changes are detected against the base branch
-- Push: changes are detected against the most recent commit on the same branch before the push
+- **[pull_request](https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request)**: changes are detected against the base branch
+- **[push](https://help.github.com/en/actions/reference/events-that-trigger-workflows#push-event-push)**: changes are detected against the most recent commit on the same branch before the push
 
 ## Usage
 
@@ -41,9 +41,6 @@ on:
     branches:
       - master
   pull_request:
-    types:
-      - opened
-      - synchronize
     branches:
       - master
 jobs:
