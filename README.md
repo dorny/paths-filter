@@ -33,6 +33,7 @@ Output variables can be later used in the `if` clause to conditionally run speci
 ### Notes
 - minimatch [dot](https://www.npmjs.com/package/minimatch#dot) option is set to true - therefore
   globbing will match also paths where file or folder name starts with a dot.
+- You can use YAML anchors to reuse path expression(s) inside another rule. See example in the tests.
 
 ### Example
 ```yaml
@@ -48,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: dorny/paths-filter@v2.0.0
+    - uses: dorny/paths-filter@v2.1.0
       id: filter
       with:
         # inline YAML or path to separate file (e.g.: .github/filters.yaml)
