@@ -15,10 +15,11 @@ export default class Filter {
     }
 
     for (const name of Object.keys(doc)) {
-      const patterns = doc[name] as string[]
-      if (!Array.isArray(patterns)) {
+      const patternsNode = doc[name]
+      if (!Array.isArray(patternsNode)) {
         this.throwInvalidFormatError()
       }
+      const patterns = flat(patternsNode) as string[]
       if (!patterns.every(x => typeof x === 'string')) {
         this.throwInvalidFormatError()
       }
@@ -39,4 +40,10 @@ export default class Filter {
   private throwInvalidFormatError(): never {
     throw new Error('Invalid filter YAML format: Expected dictionary of string arrays')
   }
+}
+
+// Creates a new array with all sub-array elements recursively concatenated
+// In future could be replaced by Array.prototype.flat (supported on Node.js 11+)
+function flat(arr: any[]): any[] {
+  return arr.reduce((acc, val) => acc.concat(Array.isArray(val) ? flat(val) : val), [])
 }

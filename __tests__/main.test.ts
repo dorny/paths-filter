@@ -90,4 +90,18 @@ describe('matching tests', () => {
     const match = filter.match(['.test/.test.js'])
     expect(match.dot).toBeTruthy()
   })
+
+  test('matches path based on rules included using YAML anchor', () => {
+    const yaml = `
+    shared: &shared
+      - common/**/*
+      - config/**/*
+    src:
+      - *shared
+      - src/**/*
+    `
+    let filter = new Filter(yaml)
+    const match = filter.match(['config/settings.yml'])
+    expect(match.src).toBeTruthy()
+  })
 })

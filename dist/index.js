@@ -4654,10 +4654,11 @@ class Filter {
             dot: true
         };
         for (const name of Object.keys(doc)) {
-            const patterns = doc[name];
-            if (!Array.isArray(patterns)) {
+            const patternsNode = doc[name];
+            if (!Array.isArray(patternsNode)) {
                 this.throwInvalidFormatError();
             }
+            const patterns = flat(patternsNode);
             if (!patterns.every(x => typeof x === 'string')) {
                 this.throwInvalidFormatError();
             }
@@ -4678,6 +4679,11 @@ class Filter {
     }
 }
 exports.default = Filter;
+// Creates a new array with all sub-array elements recursively concatenated
+// In future could be replaced by Array.prototype.flat (supported on Node.js 11+)
+function flat(arr) {
+    return arr.reduce((acc, val) => acc.concat(Array.isArray(val) ? flat(val) : val), []);
+}
 
 
 /***/ }),
