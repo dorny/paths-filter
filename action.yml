@@ -6,6 +6,13 @@ inputs:
     description: 'GitHub Access Token'
     required: false
     default: ${{ github.token }}
+  base:
+    description: |
+      Git reference (e.g. branch name) against which the changes will be detected.
+      If it references same branch it was pushed to, changes are detected against the previously pushed commit.
+      If it's not provided, action will use repository default branch.
+      This option is ignored if action is triggered by pull_request event.
+    required: false
   filters:
     description: 'Path to the configuration file or YAML string with filters definition'
     required: true
