@@ -10,9 +10,12 @@ It saves time and resources especially in monorepo setups, where you can run slo
 Github workflows built-in [path filters](https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#onpushpull_requestpaths)
 doesn't allow this because they doesn't work on a level of individual jobs or steps.
 
-Action supports workflows triggered by:
-- **[pull_request](https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request)**: changes are detected against the base branch
-- **[push](https://help.github.com/en/actions/reference/events-that-trigger-workflows#push-event-push)**: changes are detected against the most recent commit on the same branch before the push
+Supported workflows:
+- Action triggered by **[pull_request](https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request)** event:
+  - changes detected against the pull request base branch
+- Action triggered by **[push](https://help.github.com/en/actions/reference/events-that-trigger-workflows#push-event-push)** event:
+  - changes detected against the most recent commit on the same branch before the push
+  - changes detected against the top of the configured *base* branch (e.g. master)
 
 ## Usage
 
@@ -22,7 +25,10 @@ Corresponding output variable will be created to indicate if there's a changed f
 Output variables can be later used in the `if` clause to conditionally run specific steps.
 
 ### Inputs
-- **`token`**: GitHub Access Token - defaults to `${{ github.token }}`
+- **`token`**: GitHub Access Token - defaults to `${{ github.token }}` so you don't have to explicitly provide it.
+- **`base`**: Git reference (e.g. branch name) against which the changes will be detected. Defaults to repository default branch (e.g. master).
+              If it references same branch it was pushed to, changes are detected against the most recent commit before the push.
+              This option is ignored if action is triggered by *pull_request* event.
 - **`filters`**: Path to the configuration file or directly embedded string in YAML format. Filter configuration is a dictionary, where keys specifies rule names and values are lists of file path patterns.
 
 ### Outputs
@@ -34,6 +40,8 @@ Output variables can be later used in the `if` clause to conditionally run speci
 - minimatch [dot](https://www.npmjs.com/package/minimatch#dot) option is set to true - therefore
   globbing will match also paths where file or folder name starts with a dot.
 - You can use YAML anchors to reuse path expression(s) inside another rule. See example in the tests.
+- If changes are detected against the previous commit and there is none (i.e. first push of a new branch), all filter rules will report changed files.
+- You can use `base: ${{ github.ref }}` to configure change detection against previous commit for every branch you create.
 
 ### Example
 ```yaml
