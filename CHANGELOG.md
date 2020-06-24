@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.2.0
+- [Improve change detection for feature branches](https://github.com/dorny/paths-filter/pull/16)
+
 ## v2.1.0
 - [Support reusable paths blocks with yaml anchors](https://github.com/dorny/paths-filter/pull/13)
 

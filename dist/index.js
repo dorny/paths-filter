@@ -3798,21 +3798,23 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getChangedFiles = exports.fetchCommit = void 0;
+exports.trimRefsHeads = exports.trimRefs = exports.isTagRef = exports.getChangedFiles = exports.fetchCommit = exports.FETCH_HEAD = exports.NULL_SHA = void 0;
 const exec_1 = __webpack_require__(986);
-function fetchCommit(sha) {
+exports.NULL_SHA = '0000000000000000000000000000000000000000';
+exports.FETCH_HEAD = 'FETCH_HEAD';
+function fetchCommit(ref) {
     return __awaiter(this, void 0, void 0, function* () {
-        const exitCode = yield exec_1.exec('git', ['fetch', '--depth=1', 'origin', sha]);
+        const exitCode = yield exec_1.exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', ref]);
         if (exitCode !== 0) {
-            throw new Error(`Fetching commit ${sha} failed`);
+            throw new Error(`Fetching ${ref} failed`);
         }
     });
 }
 exports.fetchCommit = fetchCommit;
-function getChangedFiles(sha) {
+function getChangedFiles(ref) {
     return __awaiter(this, void 0, void 0, function* () {
         let output = '';
-        const exitCode = yield exec_1.exec('git', ['diff-index', '--name-only', sha], {
+        const exitCode = yield exec_1.exec('git', ['diff-index', '--name-only', ref], {
             listeners: {
                 stdout: (data) => (output += data.toString())
             }
@@ -3827,6 +3829,22 @@ function getChangedFiles(sha) {
     });
 }
 exports.getChangedFiles = getChangedFiles;
+function isTagRef(ref) {
+    return ref.startsWith('refs/tags/');
+}
+exports.isTagRef = isTagRef;
+function trimRefs(ref) {
+    return trimStart(ref, 'refs/');
+}
+exports.trimRefs = trimRefs;
+function trimRefsHeads(ref) {
+    const trimRef = trimStart(ref, 'refs/');
+    return trimStart(trimRef, 'heads/');
+}
+exports.trimRefsHeads = trimRefsHeads;
+function trimStart(ref, start) {
+    return ref.startsWith(start) ? ref.substr(start.length) : ref;
+}
 
 
 /***/ }),
@@ -4487,9 +4505,18 @@ function run() {
             const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
             const filter = new filter_1.default(filtersYaml);
             const files = yield getChangedFiles(token);
-            const result = filter.match(files);
-            for (const key in result) {
-                core.setOutput(key, String(result[key]));
+            if (files === null) {
+                // Change detection was not possible
+                // Set all filter keys to true (i.e. changed)
+                for (const key in filter.rules) {
+                    core.setOutput(key, String(true));
+                }
+            }
+            else {
+                const result = filter.match(files);
+                for (const key in result) {
+                    core.setOutput(key, String(result[key]));
+                }
             }
         }
         catch (error) {
@@ -4516,20 +4543,40 @@ function getChangedFiles(token) {
             return token ? yield getChangedFilesFromApi(token, pr) : yield getChangedFilesFromGit(pr.base.sha);
         }
         else if (github.context.eventName === 'push') {
-            const push = github.context.payload;
-            return yield getChangedFilesFromGit(push.before);
+            return getChangedFilesFromPush();
         }
         else {
             throw new Error('This action can be triggered only by pull_request or push event');
         }
     });
 }
+function getChangedFilesFromPush() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const push = github.context.payload;
+        // No change detection for pushed tags
+        if (git.isTagRef(push.ref))
+            return null;
+        // Get base from input or use repo default branch.
+        // It it starts with 'refs/', it will be trimmed (git fetch refs/heads/<NAME> doesn't work)
+        const baseInput = git.trimRefs(core.getInput('base', { required: false }) || push.repository.default_branch);
+        // If base references same branch it was pushed to, we will do comparison against the previously pushed commit.
+        // Otherwise changes are detected against the base reference
+        const base = git.trimRefsHeads(baseInput) === git.trimRefsHeads(push.ref) ? push.before : baseInput;
+        // There is no previous commit for comparison
+        // e.g. change detection against previous commit of just pushed new branch
+        if (base === git.NULL_SHA)
+            return null;
+        return yield getChangedFilesFromGit(base);
+    });
+}
 // Fetch base branch and use `git diff` to determine changed files
-function getChangedFilesFromGit(sha) {
+function getChangedFilesFromGit(ref) {
     return __awaiter(this, void 0, void 0, function* () {
         core.debug('Fetching base branch and using `git diff-index` to determine changed files');
-        yield git.fetchCommit(sha);
-        return yield git.getChangedFiles(sha);
+        yield git.fetchCommit(ref);
+        // FETCH_HEAD will always point to the just fetched commit
+        // No matter if ref is SHA, branch or tag name or full git ref
+        return yield git.getChangedFiles(git.FETCH_HEAD);
     });
 }
 // Uses github REST api to get list of files changed in PR

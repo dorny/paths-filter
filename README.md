@@ -10,9 +10,12 @@ It saves time and resources especially in monorepo setups, where you can run slo
 Github workflows built-in [path filters](https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#onpushpull_requestpaths)
 doesn't allow this because they doesn't work on a level of individual jobs or steps.
 
-Action supports workflows triggered by:
-- **[pull_request](https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request)**: changes are detected against the base branch
-- **[push](https://help.github.com/en/actions/reference/events-that-trigger-workflows#push-event-push)**: changes are detected against the most recent commit on the same branch before the push
+Supported workflows:
+- Action triggered by **[pull_request](https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request)** event:
+  - changes detected against the pull request base branch
+- Action triggered by **[push](https://help.github.com/en/actions/reference/events-that-trigger-workflows#push-event-push)** event:
+  - changes detected against the most recent commit on the same branch before the push
+  - changes detected against the top of the configured *base* branch (e.g. master)
 
 ## Usage
 
@@ -22,7 +25,10 @@ Corresponding output variable will be created to indicate if there's a changed f
 Output variables can be later used in the `if` clause to conditionally run specific steps.
 
 ### Inputs
-- **`token`**: GitHub Access Token - defaults to `${{ github.token }}`
+- **`token`**: GitHub Access Token - defaults to `${{ github.token }}` so you don't have to explicitly provide it.
+- **`base`**: Git reference (e.g. branch name) against which the changes will be detected. Defaults to repository default branch (e.g. master).
+              If it references same branch it was pushed to, changes are detected against the most recent commit before the push.
+              This option is ignored if action is triggered by *pull_request* event.
 - **`filters`**: Path to the configuration file or directly embedded string in YAML format. Filter configuration is a dictionary, where keys specifies rule names and values are lists of file path patterns.
 
 ### Outputs
@@ -34,6 +40,8 @@ Output variables can be later used in the `if` clause to conditionally run speci
 - minimatch [dot](https://www.npmjs.com/package/minimatch#dot) option is set to true - therefore
   globbing will match also paths where file or folder name starts with a dot.
 - You can use YAML anchors to reuse path expression(s) inside another rule. See example in the tests.
+- If changes are detected against the previous commit and there is none (i.e. first push of a new branch), all filter rules will report changed files.
+- You can use `base: ${{ github.ref }}` to configure change detection against previous commit for every branch you create.
 
 ### Example
 ```yaml
@@ -49,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: dorny/paths-filter@v2.1.0
+    - uses: dorny/paths-filter@v2.2.0
       id: filter
       with:
         # inline YAML or path to separate file (e.g.: .github/filters.yaml)
@@ -75,13 +83,47 @@ jobs:
       run: ...
 ```
 
+If your workflow uses multiple jobs, you can put *paths-filter* into own job and use
+[job outputs](https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjobs_idoutputs)
+in other jobs [if](https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idif) statements:
+```yml
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    # Set job outputs to values from filter step
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+    # For pull requests it's not necessary to checkout the code
+    - uses: dorny/paths-filter@v2.2.0
+      id: filter
+      with:
+        # Filters stored in own yaml file
+        filters: '.github/filters.yml'
+  backend:
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    steps:
+      - ...
+  frontend:
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    steps:
+      - ...
+```
+
 ## How it works
 
 1. If action was triggered by pull request:
    - If access token was provided it's used to fetch list of changed files from Github API.
-   - If access token was not provided, top of the base branch is fetched and changed files are detected using `git diff-index` command.
+   - If access token was not provided, top of the base branch is fetched and changed files are detected using `git diff-index <SHA>` command.
 2. If action was triggered by push event
-   - Last commit before the push is fetched and changed files are detected using `git diff-index` command.
+   - if *base* input parameter references same branch it was pushed to, most recent commit before the push is fetched
+   - If *base* input parameter references other branch, top of that branch is fetched
+   - changed files are detected using `git diff-index FETCH_HEAD` command.
 3. For each filter rule it checks if there is any matching file
 4. Output variables are set
 
