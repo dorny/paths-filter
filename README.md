@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: dorny/paths-filter@v2.1.0
+    - uses: dorny/paths-filter@v2.2.0
       id: filter
       with:
         # inline YAML or path to separate file (e.g.: .github/filters.yaml)
@@ -83,13 +83,47 @@ jobs:
       run: ...
 ```
 
+If your workflow uses multiple jobs, you can put *paths-filter* into own job and use
+[job outputs](https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjobs_idoutputs)
+in other jobs [if](https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idif) statements:
+```yml
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    # Set job outputs to values from filter step
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+    # For pull requests it's not necessary to checkout the code
+    - uses: dorny/paths-filter@v2.2.0
+      id: filter
+      with:
+        # Filters stored in own yaml file
+        filters: '.github/filters.yml'
+  backend:
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    steps:
+      - ...
+  frontend:
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    steps:
+      - ...
+```
+
 ## How it works
 
 1. If action was triggered by pull request:
    - If access token was provided it's used to fetch list of changed files from Github API.
-   - If access token was not provided, top of the base branch is fetched and changed files are detected using `git diff-index` command.
+   - If access token was not provided, top of the base branch is fetched and changed files are detected using `git diff-index <SHA>` command.
 2. If action was triggered by push event
-   - Last commit before the push is fetched and changed files are detected using `git diff-index` command.
+   - if *base* input parameter references same branch it was pushed to, most recent commit before the push is fetched
+   - If *base* input parameter references other branch, top of that branch is fetched
+   - changed files are detected using `git diff-index FETCH_HEAD` command.
 3. For each filter rule it checks if there is any matching file
 4. Output variables are set
 
