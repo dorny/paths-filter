@@ -4500,6 +4500,10 @@ const git = __importStar(__webpack_require__(136));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            const workingDirectory = core.getInput('working-directory', { required: false });
+            if (workingDirectory) {
+                process.chdir(workingDirectory);
+            }
             const token = core.getInput('token', { required: false });
             const filtersInput = core.getInput('filters', { required: true });
             const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
