@@ -6,6 +6,9 @@ inputs:
     description: 'GitHub Access Token'
     required: false
     default: ${{ github.token }}
+  working-directory:
+    description: 'Relative path under $GITHUB_WORKSPACE where the repository was checked out.'
+    required: false
   base:
     description: |
       Git reference (e.g. branch name) against which the changes will be detected. Defaults to repository default branch (e.g. master).

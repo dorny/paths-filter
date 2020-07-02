@@ -54,3 +54,19 @@ jobs:
     - name: filter-test
       if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
       run: exit 1
+
+  test-wd-without-token:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: somewhere
+    - uses: ./somewhere
+      id: filter
+      with:
+        token: ''
+        working-directory: somewhere
+        filters: '.github/filters.yml'
+    - name: filter-test
+      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+      run: exit 1
