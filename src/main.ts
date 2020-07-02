@@ -8,6 +8,11 @@ import * as git from './git'
 
 async function run(): Promise<void> {
   try {
+    const workingDirectory = core.getInput('working-directory', {required: false})
+    if (workingDirectory) {
+      process.chdir(workingDirectory)
+    }
+
     const token = core.getInput('token', {required: false})
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput

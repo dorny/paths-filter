@@ -26,6 +26,7 @@ Output variables can be later used in the `if` clause to conditionally run speci
 
 ### Inputs
 - **`token`**: GitHub Access Token - defaults to `${{ github.token }}` so you don't have to explicitly provide it.
+- **`working-directory`: Relative path under $GITHUB_WORKSPACE where the repository was checked out. Useful only if you checked out your repository under custom path.
 - **`base`**: Git reference (e.g. branch name) against which the changes will be detected. Defaults to repository default branch (e.g. master).
               If it references same branch it was pushed to, changes are detected against the most recent commit before the push.
               This option is ignored if action is triggered by *pull_request* event.
