@@ -20,8 +20,10 @@ Supported workflows:
 ## Usage
 
 Filter rules are defined using YAML format.
-Each filter rule is a list of [glob expressions](https://github.com/isaacs/minimatch).
-Corresponding output variable will be created to indicate if there's a changed file matching any of the rule glob expressions.
+Each filter has a name and set of rules.
+Rule is a [glob expressions](https://github.com/isaacs/minimatch).
+Optionally you specify if the file should be added, modified or deleted to be matched.
+For each filter there will be corresponding output variable to indicate if there's a changed file matching any of the rules.
 Output variables can be later used in the `if` clause to conditionally run specific steps.
 
 ### Inputs
@@ -30,7 +32,7 @@ Output variables can be later used in the `if` clause to conditionally run speci
 - **`base`**: Git reference (e.g. branch name) against which the changes will be detected. Defaults to repository default branch (e.g. master).
               If it references same branch it was pushed to, changes are detected against the most recent commit before the push.
               This option is ignored if action is triggered by *pull_request* event.
-- **`filters`**: Path to the configuration file or directly embedded string in YAML format. Filter configuration is a dictionary, where keys specifies rule names and values are lists of file path patterns.
+- **`filters`**: Path to the configuration file or directly embedded string in YAML format.
 
 ### Outputs
 - For each rule it sets output variable named by the rule to text:

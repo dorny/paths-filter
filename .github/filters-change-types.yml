@@ -1,0 +1,13 @@
+any-inline: "**/*"
+any-item-list:
+  - added: "**/*"
+  - deleted: "**/*"
+  - modified: "**/*"
+  - renamed:  "**/*"
+any-object-list:
+  - added: "**/*"
+    deleted: "**/*"
+    modified: "**/*"
+    renamed:  "**/*"
+any-single:
+  - added|deleted|modified|renamed: "**/*"

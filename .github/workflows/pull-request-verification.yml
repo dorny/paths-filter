@@ -70,3 +70,17 @@ jobs:
     - name: filter-test
       if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
       run: exit 1
+
+  test-change-type:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        filters: .github/filters-change-types.yml
+    - name: filter-test
+      if: |
+        steps.filter.outputs.any-inline != 'true'
+        || steps.filter.outputs.any-item-list != 'true'
+        || steps.filter.outputs.any-object-list != 'true'
+        || steps.filter.outputs.any-single != 'true'
+      run: exit 1

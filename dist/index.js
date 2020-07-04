@@ -3800,6 +3800,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.trimRefsHeads = exports.trimRefs = exports.isTagRef = exports.getChangedFiles = exports.fetchCommit = exports.FETCH_HEAD = exports.NULL_SHA = void 0;
 const exec_1 = __webpack_require__(986);
+const file_1 = __webpack_require__(258);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
 exports.FETCH_HEAD = 'FETCH_HEAD';
 function fetchCommit(ref) {
@@ -3811,10 +3812,10 @@ function fetchCommit(ref) {
     });
 }
 exports.fetchCommit = fetchCommit;
-function getChangedFiles(ref) {
+function getChangedFiles(ref, cmd = exec_1.exec) {
     return __awaiter(this, void 0, void 0, function* () {
         let output = '';
-        const exitCode = yield exec_1.exec('git', ['diff-index', '--name-only', ref], {
+        const exitCode = yield cmd('git', ['diff-index', '--name-status', ref], {
             listeners: {
                 stdout: (data) => (output += data.toString())
             }
@@ -3825,7 +3826,8 @@ function getChangedFiles(ref) {
         return output
             .split('\n')
             .map(s => s.trim())
-            .filter(s => s.length > 0);
+            .filter(s => s.length > 0)
+            .map(parseGitDiffLine);
     });
 }
 exports.getChangedFiles = getChangedFiles;
@@ -3844,6 +3846,19 @@ function trimRefsHeads(ref) {
 exports.trimRefsHeads = trimRefsHeads;
 function trimStart(ref, start) {
     return ref.startsWith(start) ? ref.substr(start.length) : ref;
+}
+const statusMap = {
+    A: file_1.ChangeStatus.Added,
+    C: file_1.ChangeStatus.Copied,
+    D: file_1.ChangeStatus.Deleted,
+    M: file_1.ChangeStatus.Modified,
+    R: file_1.ChangeStatus.Renamed,
+    U: file_1.ChangeStatus.Unmerged
+};
+function parseGitDiffLine(line) {
+    const status = statusMap[line[0]];
+    const filename = line.substr(8);
+    return { filename, status };
 }
 
 
@@ -4496,6 +4511,7 @@ const fs = __importStar(__webpack_require__(747));
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 const filter_1 = __importDefault(__webpack_require__(235));
+const file_1 = __webpack_require__(258);
 const git = __importStar(__webpack_require__(136));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -4599,7 +4615,26 @@ function getChangedFilesFromApi(token, pullRequest) {
                 per_page: pageSize
             });
             for (const row of response.data) {
-                files.push(row.filename);
+                // There's no obvious use-case for detection of renames
+                // Therefore we treat it as if rename detection in git diff was turned off.
+                // Rename is replaced by delete of original filename and add of new filename
+                if (row.status === file_1.ChangeStatus.Renamed) {
+                    files.push({
+                        filename: row.filename,
+                        status: file_1.ChangeStatus.Added
+                    });
+                    files.push({
+                        // 'previous_filename' for some unknown reason isn't in the type definition or documentation
+                        filename: row.previous_filename,
+                        status: file_1.ChangeStatus.Deleted
+                    });
+                }
+                else {
+                    files.push({
+                        filename: row.filename,
+                        status: row.status
+                    });
+                }
             }
         }
         return files;
@@ -4694,47 +4729,91 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsyaml = __importStar(__webpack_require__(414));
 const minimatch = __importStar(__webpack_require__(595));
+// Minimatch options used in all matchers
+const MinimatchOptions = {
+    dot: true
+};
 class Filter {
+    // Creates instance of Filter and load rules from YAML if it's provided
     constructor(yaml) {
         this.rules = {};
-        const doc = jsyaml.safeLoad(yaml);
-        if (typeof doc !== 'object') {
-            this.throwInvalidFormatError();
-        }
-        const opts = {
-            dot: true
-        };
-        for (const name of Object.keys(doc)) {
-            const patternsNode = doc[name];
-            if (!Array.isArray(patternsNode)) {
-                this.throwInvalidFormatError();
-            }
-            const patterns = flat(patternsNode);
-            if (!patterns.every(x => typeof x === 'string')) {
-                this.throwInvalidFormatError();
-            }
-            this.rules[name] = patterns.map(x => new minimatch.Minimatch(x, opts));
+        if (yaml) {
+            this.load(yaml);
         }
     }
-    // Returns dictionary with match result per rules group
-    match(paths) {
+    // Load rules from YAML string
+    load(yaml) {
+        const doc = jsyaml.safeLoad(yaml);
+        if (typeof doc !== 'object') {
+            this.throwInvalidFormatError('Root element is not an object');
+        }
+        for (const [key, item] of Object.entries(doc)) {
+            this.rules[key] = this.parseFilterItemYaml(item);
+        }
+    }
+    // Returns dictionary with match result per rule
+    match(files) {
         const result = {};
         for (const [key, patterns] of Object.entries(this.rules)) {
-            const match = paths.some(fileName => patterns.some(rule => rule.match(fileName)));
+            const match = files.some(file => patterns.some(rule => (rule.status === undefined || rule.status.includes(file.status)) && rule.matcher.match(file.filename)));
             result[key] = match;
         }
         return result;
     }
-    throwInvalidFormatError() {
-        throw new Error('Invalid filter YAML format: Expected dictionary of string arrays');
+    parseFilterItemYaml(item) {
+        if (Array.isArray(item)) {
+            return flat(item.map(i => this.parseFilterItemYaml(i)));
+        }
+        if (typeof item === 'string') {
+            return [{ status: undefined, matcher: new minimatch.Minimatch(item, MinimatchOptions) }];
+        }
+        if (typeof item === 'object') {
+            return Object.entries(item).map(([key, pattern]) => {
+                if (typeof key !== 'string' || typeof pattern !== 'string') {
+                    this.throwInvalidFormatError(`Expected [key:string]= pattern:string, but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`);
+                }
+                return {
+                    status: key
+                        .split('|')
+                        .map(x => x.trim())
+                        .filter(x => x.length > 0)
+                        .map(x => x.toLowerCase()),
+                    matcher: new minimatch.Minimatch(pattern, MinimatchOptions)
+                };
+            });
+        }
+        this.throwInvalidFormatError(`Unexpected element type '${typeof item}'`);
+    }
+    throwInvalidFormatError(message) {
+        throw new Error(`Invalid filter YAML format: ${message}.`);
     }
 }
 exports.default = Filter;
-// Creates a new array with all sub-array elements recursively concatenated
+// Creates a new array with all sub-array elements concatenated
 // In future could be replaced by Array.prototype.flat (supported on Node.js 11+)
 function flat(arr) {
-    return arr.reduce((acc, val) => acc.concat(Array.isArray(val) ? flat(val) : val), []);
+    return arr.reduce((acc, val) => acc.concat(val), []);
 }
+
+
+/***/ }),
+
+/***/ 258:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ChangeStatus = void 0;
+var ChangeStatus;
+(function (ChangeStatus) {
+    ChangeStatus["Added"] = "added";
+    ChangeStatus["Copied"] = "copied";
+    ChangeStatus["Deleted"] = "deleted";
+    ChangeStatus["Modified"] = "modified";
+    ChangeStatus["Renamed"] = "renamed";
+    ChangeStatus["Unmerged"] = "unmerged";
+})(ChangeStatus = exports.ChangeStatus || (exports.ChangeStatus = {}));
 
 
 /***/ }),
