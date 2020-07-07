@@ -7,9 +7,9 @@ describe('parsing of the git diff-index command', () => {
     const files = await git.getChangedFiles(git.FETCH_HEAD, (cmd, args, opts) => {
       const stdout = opts?.listeners?.stdout
       if (stdout) {
-        stdout(Buffer.from('A       LICENSE\n'))
-        stdout(Buffer.from('M       src/index.ts\n'))
-        stdout(Buffer.from('D       src/main.ts\n\n'))
+        stdout(Buffer.from('A\u0000LICENSE\u0000'))
+        stdout(Buffer.from('M\u0000src/index.ts\u0000'))
+        stdout(Buffer.from('D\u0000src/main.ts\u0000'))
       }
       return Promise.resolve(0)
     })

@@ -3815,7 +3815,7 @@ exports.fetchCommit = fetchCommit;
 function getChangedFiles(ref, cmd = exec_1.exec) {
     return __awaiter(this, void 0, void 0, function* () {
         let output = '';
-        const exitCode = yield cmd('git', ['diff-index', '--name-status', ref], {
+        const exitCode = yield cmd('git', ['diff-index', '--name-status', '-z', ref], {
             listeners: {
                 stdout: (data) => (output += data.toString())
             }
@@ -3823,11 +3823,15 @@ function getChangedFiles(ref, cmd = exec_1.exec) {
         if (exitCode !== 0) {
             throw new Error(`Couldn't determine changed files`);
         }
-        return output
-            .split('\n')
-            .map(s => s.trim())
-            .filter(s => s.length > 0)
-            .map(parseGitDiffLine);
+        const tokens = output.split('\u0000').filter(s => s.length > 0);
+        const files = [];
+        for (let i = 0; i + 1 < tokens.length; i += 2) {
+            files.push({
+                status: statusMap[tokens[i]],
+                filename: tokens[i + 1]
+            });
+        }
+        return files;
     });
 }
 exports.getChangedFiles = getChangedFiles;
@@ -3855,11 +3859,6 @@ const statusMap = {
     R: file_1.ChangeStatus.Renamed,
     U: file_1.ChangeStatus.Unmerged
 };
-function parseGitDiffLine(line) {
-    const status = statusMap[line[0]];
-    const filename = line.substr(8);
-    return { filename, status };
-}
 
 
 /***/ }),
