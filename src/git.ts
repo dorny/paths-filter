@@ -1,4 +1,5 @@
 import {exec} from '@actions/exec'
+import * as core from '@actions/core'
 import {File, ChangeStatus} from './file'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
@@ -22,6 +23,11 @@ export async function getChangedFiles(ref: string, cmd = exec): Promise<File[]> 
   if (exitCode !== 0) {
     throw new Error(`Couldn't determine changed files`)
   }
+
+  // Previous command uses NULL as delimiters and output is printed to stdout.
+  // We have to make sure next thing written to stdout will start on new line.
+  // Otherwise things like ::set-output wouldn't work.
+  core.info('')
 
   const tokens = output.split('\u0000').filter(s => s.length > 0)
   const files: File[] = []

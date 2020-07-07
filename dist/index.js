@@ -3788,6 +3788,25 @@ module.exports = require("child_process");
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -3800,6 +3819,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.trimRefsHeads = exports.trimRefs = exports.isTagRef = exports.getChangedFiles = exports.fetchCommit = exports.FETCH_HEAD = exports.NULL_SHA = void 0;
 const exec_1 = __webpack_require__(986);
+const core = __importStar(__webpack_require__(470));
 const file_1 = __webpack_require__(258);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
 exports.FETCH_HEAD = 'FETCH_HEAD';
@@ -3823,6 +3843,10 @@ function getChangedFiles(ref, cmd = exec_1.exec) {
         if (exitCode !== 0) {
             throw new Error(`Couldn't determine changed files`);
         }
+        // Previous command uses NULL as delimiters and output is printed to stdout.
+        // We have to make sure next thing written to stdout will start on new line.
+        // Otherwise things like ::set-output wouldn't work.
+        core.info('');
         const tokens = output.split('\u0000').filter(s => s.length > 0);
         const files = [];
         for (let i = 0; i + 1 < tokens.length; i += 2) {
