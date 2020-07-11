@@ -89,14 +89,15 @@ jobs:
             - modified: "LICENSE"
           any:
             - added|deleted|modified: "*"
-    - run: echo $files-changed
+    - run: echo $files_changed
     - name: filter-test
       if: |
         steps.filter.outputs.add != 'true'
         || steps.filter.outputs.rm != 'true'
         || steps.filter.outputs.modified != 'true'
         || steps.filter.outputs.any != 'true'
-        || !contains(steps.filter.outputs.files-added,'add.txt')
-        || !contains(steps.filter.outputs.files-deleted, 'LICENSE')
-        || !contains(steps.filter.outputs.files-modified, 'LICENSE')
+        || !contains(steps.filter.outputs.files_changed,'add.txt')
+        || !contains(steps.filter.outputs.files_added,'add.txt')
+        || !contains(steps.filter.outputs.files_deleted, 'LICENSE')
+        || !contains(steps.filter.outputs.files_modified, 'LICENSE')
       run: exit 1

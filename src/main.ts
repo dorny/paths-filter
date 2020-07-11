@@ -153,13 +153,13 @@ async function getChangedFilesFromApi(
 
 function exportFiles(files: File[], separator: string): void {
   const allChanged = files.map(f => f.filename).join(separator)
-  core.setOutput('files-changed', allChanged)
+  core.setOutput('files_changed', allChanged)
 
   for (const status of Object.values(ChangeStatus)) {
     const group = files.filter(f => f.status === status)
     if (group.length > 0) {
-      core.startGroup(`${status.toUpperCase()} files:`)
-      const key = `files-${status}`
+      core.startGroup(`${status.toUpperCase()}`)
+      const key = `files_${status}`
       const value = group.join(separator)
       for (const file of group) {
         core.info(file.filename)
@@ -171,7 +171,7 @@ function exportFiles(files: File[], separator: string): void {
 }
 
 function exportResults(results: Results): void {
-  core.startGroup('Results:')
+  core.startGroup('Filters results:')
   for (const [key, value] of Object.entries(results)) {
     core.info(`${key}: ${value}`)
     core.setOutput(key, value)
