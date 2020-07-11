@@ -76,6 +76,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: touch add.txt && rm README.md && echo "TEST" > LICENSE && git add -A
+    - uses: ./
+      id: filter
       with:
         token: ''
         filters: |
