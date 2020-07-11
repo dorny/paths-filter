@@ -4550,6 +4550,7 @@ function run() {
             const files = yield getChangedFiles(token);
             let results;
             if (files === null) {
+                // Change detection was not possible
                 core.info('All filters will be set to true.');
                 results = {};
                 for (const key of Object.keys(filter.rules)) {
@@ -4671,6 +4672,9 @@ function getChangedFilesFromApi(token, pullRequest) {
 function exportFiles(files) {
     var _a;
     const output = {};
+    output[file_1.ChangeStatus.Added] = [];
+    output[file_1.ChangeStatus.Deleted] = [];
+    output[file_1.ChangeStatus.Modified] = [];
     for (const file of files) {
         const arr = (_a = output[file.status]) !== null && _a !== void 0 ? _a : [];
         arr.push(file.filename);

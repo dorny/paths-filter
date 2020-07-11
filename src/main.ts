@@ -30,6 +30,7 @@ async function run(): Promise<void> {
     let results: FilterResults
 
     if (files === null) {
+      // Change detection was not possible
       core.info('All filters will be set to true.')
       results = {}
       for (const key of Object.keys(filter.rules)) {
@@ -155,6 +156,10 @@ async function getChangedFilesFromApi(
 
 function exportFiles(files: File[]): void {
   const output: ActionOutput = {}
+  output[ChangeStatus.Added] = []
+  output[ChangeStatus.Deleted] = []
+  output[ChangeStatus.Modified] = []
+
   for (const file of files) {
     const arr = output[file.status] ?? []
     arr.push(file.filename)
