@@ -7,6 +7,10 @@ import Filter from './filter'
 import {File, ChangeStatus} from './file'
 import * as git from './git'
 
+interface Results {
+  [key: string]: boolean
+}
+
 async function run(): Promise<void> {
   try {
     const workingDirectory = core.getInput('working-directory', {required: false})
@@ -17,22 +21,24 @@ async function run(): Promise<void> {
     const token = core.getInput('token', {required: false})
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
+    const outputSeparator = core.getInput('output-separator', {required: false})
 
     const filter = new Filter(filtersYaml)
     const files = await getChangedFiles(token)
+    let results: Results
 
     if (files === null) {
-      // Change detection was not possible
-      // Set all filter keys to true (i.e. changed)
-      for (const key in filter.rules) {
-        core.setOutput(key, String(true))
+      core.info('All filters will be set to true.')
+      results = {}
+      for (const key of Object.keys(filter.rules)) {
+        results[key] = true
       }
     } else {
-      const result = filter.match(files)
-      for (const key in result) {
-        core.setOutput(key, String(result[key]))
-      }
+      results = filter.match(files)
     }
+
+    exportFiles(files ?? [], outputSeparator)
+    exportResults(results)
   } catch (error) {
     core.setFailed(error.message)
   }
@@ -69,7 +75,10 @@ async function getChangedFilesFromPush(): Promise<File[] | null> {
   const push = github.context.payload as Webhooks.WebhookPayloadPush
 
   // No change detection for pushed tags
-  if (git.isTagRef(push.ref)) return null
+  if (git.isTagRef(push.ref)) {
+    core.info('Workflow is triggered by pushing of tag. Change detection will not run.')
+    return null
+  }
 
   // Get base from input or use repo default branch.
   // It it starts with 'refs/', it will be trimmed (git fetch refs/heads/<NAME> doesn't work)
@@ -81,7 +90,10 @@ async function getChangedFilesFromPush(): Promise<File[] | null> {
 
   // There is no previous commit for comparison
   // e.g. change detection against previous commit of just pushed new branch
-  if (base === git.NULL_SHA) return null
+  if (base === git.NULL_SHA) {
+    core.info('There is no previous commit for comparison. Change detection will not run.')
+    return null
+  }
 
   return await getChangedFilesFromGit(base)
 }
@@ -136,6 +148,34 @@ async function getChangedFilesFromApi(
   }
 
   return files
+}
+
+function exportFiles(files: File[], separator: string): void {
+  const allChanged = files.map(f => f.filename).join(separator)
+  core.setOutput('$all', allChanged)
+
+  for (const status in ChangeStatus) {
+    const group = files.filter(f => f.status === status)
+    if (group.length > 0) {
+      core.startGroup(`${status.toUpperCase()} files:`)
+      const key = `$${status}`
+      const value = group.join(separator)
+      for (const file of group) {
+        core.info(file.filename)
+      }
+      core.setOutput(key, value)
+      core.endGroup()
+    }
+  }
+}
+
+function exportResults(results: Results): void {
+  core.startGroup('Results:')
+  for (const [key, value] of Object.entries(results)) {
+    core.info(`${key}: ${value}`)
+    core.setOutput(key, value)
+  }
+  core.endGroup()
 }
 
 run()

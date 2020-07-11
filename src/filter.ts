@@ -35,6 +35,10 @@ export default class Filter {
 
   // Load rules from YAML string
   load(yaml: string): void {
+    if (!yaml) {
+      return
+    }
+
     const doc = jsyaml.safeLoad(yaml) as FilterYaml
     if (typeof doc !== 'object') {
       this.throwInvalidFormatError('Root element is not an object')

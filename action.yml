@@ -17,7 +17,11 @@ inputs:
     required: false
   filters:
     description: 'Path to the configuration file or YAML string with filters definition'
-    required: true
+    required: false
+  output-separator:
+    description: 'Filename separator used in $all, $added, $modified, $deleted outputs'
+    required: false
+    default: '\n'
 runs:
   using: 'node12'
   main: 'dist/index.js'

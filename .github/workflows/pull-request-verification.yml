@@ -89,10 +89,14 @@ jobs:
             - modified: "LICENSE"
           any:
             - added|deleted|modified: "*"
+    - run: echo ${steps.filter.outputs.$all}
     - name: filter-test
       if: |
         steps.filter.outputs.add != 'true'
         || steps.filter.outputs.rm != 'true'
         || steps.filter.outputs.modified != 'true'
         || steps.filter.outputs.any != 'true'
+        || steps.filter.outputs.$add != 'add.txt'
+        || steps.filter.outputs.$deleted != 'LICENSE'
+        || steps.filter.outputs.$modified != 'LICENSE'
       run: exit 1
