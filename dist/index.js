@@ -4670,12 +4670,12 @@ function getChangedFilesFromApi(token, pullRequest) {
 }
 function exportFiles(files, separator) {
     const allChanged = files.map(f => f.filename).join(separator);
-    core.setOutput('$all', allChanged);
+    core.setOutput('files-changed', allChanged);
     for (const status in file_1.ChangeStatus) {
         const group = files.filter(f => f.status === status);
         if (group.length > 0) {
             core.startGroup(`${status.toUpperCase()} files:`);
-            const key = `$${status}`;
+            const key = `files-${status}`;
             const value = group.join(separator);
             for (const file of group) {
                 core.info(file.filename);
