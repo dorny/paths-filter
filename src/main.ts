@@ -160,7 +160,7 @@ function exportFiles(files: File[]): void {
     arr.push(file.filename)
     output[file.status] = arr
   }
-  core.setOutput('files_changed', JSON.stringify(output))
+  core.setOutput('files_changed', output)
 
   // Files grouped by status
   for (const [status, paths] of Object.entries(output)) {

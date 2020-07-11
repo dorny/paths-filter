@@ -4676,7 +4676,7 @@ function exportFiles(files) {
         arr.push(file.filename);
         output[file.status] = arr;
     }
-    core.setOutput('files_changed', JSON.stringify(output));
+    core.setOutput('files_changed', output);
     // Files grouped by status
     for (const [status, paths] of Object.entries(output)) {
         core.startGroup(`${status.toUpperCase()} files:`);

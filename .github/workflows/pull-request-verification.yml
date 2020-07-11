@@ -90,7 +90,7 @@ jobs:
           any:
             - added|deleted|modified: "*"
     - name: Print changed files
-      run: echo ${{steps.filter.outputs.files_changed}} | jq .
+      run: echo '${{steps.filter.outputs.files_changed}}' | jq .
     - name: filter-test
       if: |
         steps.filter.outputs.add != 'true'
