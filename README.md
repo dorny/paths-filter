@@ -43,6 +43,7 @@ Output variables can be later used in the `if` clause to conditionally run speci
 - minimatch [dot](https://www.npmjs.com/package/minimatch#dot) option is set to true - therefore
   globbing will match also paths where file or folder name starts with a dot.
 - You can use YAML anchors to reuse path expression(s) inside another rule. See example in the tests.
+- It's recommended to put quote your path expressions with `'` or `"`. Otherwise you will get an error if it starts with `*`.
 - If changes are detected against the previous commit and there is none (i.e. first push of a new branch), all filter rules will report changed files.
 - You can use `base: ${{ github.ref }}` to configure change detection against previous commit for every branch you create.
 
