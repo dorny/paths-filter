@@ -4,6 +4,7 @@ import * as github from '@actions/github'
 import {Webhooks} from '@octokit/webhooks'
 
 import Filter from './filter'
+import {File, ChangeStatus} from './file'
 import * as git from './git'
 
 async function run(): Promise<void> {
@@ -53,7 +54,7 @@ function getConfigFileContent(configPath: string): string {
   return fs.readFileSync(configPath, {encoding: 'utf8'})
 }
 
-async function getChangedFiles(token: string): Promise<string[] | null> {
+async function getChangedFiles(token: string): Promise<File[] | null> {
   if (github.context.eventName === 'pull_request') {
     const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
     return token ? await getChangedFilesFromApi(token, pr) : await getChangedFilesFromGit(pr.base.sha)
@@ -64,7 +65,7 @@ async function getChangedFiles(token: string): Promise<string[] | null> {
   }
 }
 
-async function getChangedFilesFromPush(): Promise<string[] | null> {
+async function getChangedFilesFromPush(): Promise<File[] | null> {
   const push = github.context.payload as Webhooks.WebhookPayloadPush
 
   // No change detection for pushed tags
@@ -86,7 +87,7 @@ async function getChangedFilesFromPush(): Promise<string[] | null> {
 }
 
 // Fetch base branch and use `git diff` to determine changed files
-async function getChangedFilesFromGit(ref: string): Promise<string[]> {
+async function getChangedFilesFromGit(ref: string): Promise<File[]> {
   core.debug('Fetching base branch and using `git diff-index` to determine changed files')
   await git.fetchCommit(ref)
   // FETCH_HEAD will always point to the just fetched commit
@@ -98,11 +99,11 @@ async function getChangedFilesFromGit(ref: string): Promise<string[]> {
 async function getChangedFilesFromApi(
   token: string,
   pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest
-): Promise<string[]> {
+): Promise<File[]> {
   core.debug('Fetching list of modified files from Github API')
   const client = new github.GitHub(token)
   const pageSize = 100
-  const files: string[] = []
+  const files: File[] = []
   for (let page = 0; page * pageSize < pullRequest.changed_files; page++) {
     const response = await client.pulls.listFiles({
       owner: github.context.repo.owner,
@@ -112,7 +113,25 @@ async function getChangedFilesFromApi(
       per_page: pageSize
     })
     for (const row of response.data) {
-      files.push(row.filename)
+      // There's no obvious use-case for detection of renames
+      // Therefore we treat it as if rename detection in git diff was turned off.
+      // Rename is replaced by delete of original filename and add of new filename
+      if (row.status === ChangeStatus.Renamed) {
+        files.push({
+          filename: row.filename,
+          status: ChangeStatus.Added
+        })
+        files.push({
+          // 'previous_filename' for some unknown reason isn't in the type definition or documentation
+          filename: (<any>row).previous_filename as string,
+          status: ChangeStatus.Deleted
+        })
+      } else {
+        files.push({
+          filename: row.filename,
+          status: row.status as ChangeStatus
+        })
+      }
     }
   }
 
