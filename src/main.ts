@@ -7,8 +7,11 @@ import Filter from './filter'
 import {File, ChangeStatus} from './file'
 import * as git from './git'
 
-interface Results {
+interface FilterResults {
   [key: string]: boolean
+}
+interface ActionOutput {
+  [key: string]: string[]
 }
 
 async function run(): Promise<void> {
@@ -21,11 +24,10 @@ async function run(): Promise<void> {
     const token = core.getInput('token', {required: false})
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
-    const outputSeparator = core.getInput('output-separator', {required: false})
 
     const filter = new Filter(filtersYaml)
     const files = await getChangedFiles(token)
-    let results: Results
+    let results: FilterResults
 
     if (files === null) {
       core.info('All filters will be set to true.')
@@ -37,7 +39,7 @@ async function run(): Promise<void> {
       results = filter.match(files)
     }
 
-    exportFiles(files ?? [], outputSeparator)
+    exportFiles(files ?? [])
     exportResults(results)
   } catch (error) {
     core.setFailed(error.message)
@@ -100,7 +102,7 @@ async function getChangedFilesFromPush(): Promise<File[] | null> {
 
 // Fetch base branch and use `git diff` to determine changed files
 async function getChangedFilesFromGit(ref: string): Promise<File[]> {
-  return core.group(`Fetching ${ref} and using git \`git diff-index\` to determine changed files`, async () => {
+  return core.group(`Fetching base and using \`git diff-index\` to determine changed files`, async () => {
     await git.fetchCommit(ref)
     // FETCH_HEAD will always point to the just fetched commit
     // No matter if ref is SHA, branch or tag name or full git ref
@@ -113,7 +115,7 @@ async function getChangedFilesFromApi(
   token: string,
   pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest
 ): Promise<File[]> {
-  core.debug('Fetching list of modified files from Github API')
+  core.info(`Fetching list of changed files for PR#${pullRequest.number} from Github API`)
   const client = new github.GitHub(token)
   const pageSize = 100
   const files: File[] = []
@@ -151,26 +153,26 @@ async function getChangedFilesFromApi(
   return files
 }
 
-function exportFiles(files: File[], separator: string): void {
-  const allChanged = files.map(f => f.filename).join(separator)
-  core.setOutput('files_changed', allChanged)
+function exportFiles(files: File[]): void {
+  const output: ActionOutput = {}
+  for (const file of files) {
+    const arr = output[file.status] ?? []
+    arr.push(file.filename)
+    output[file.status] = arr
+  }
+  core.setOutput('files_changed', JSON.stringify(output))
 
-  for (const status of Object.values(ChangeStatus)) {
-    const group = files.filter(f => f.status === status)
-    if (group.length > 0) {
-      core.startGroup(`${status.toUpperCase()}`)
-      const key = `files_${status}`
-      const value = group.join(separator)
-      for (const file of group) {
-        core.info(file.filename)
-      }
-      core.setOutput(key, value)
-      core.endGroup()
+  // Files grouped by status
+  for (const [status, paths] of Object.entries(output)) {
+    core.startGroup(`${status.toUpperCase()} files:`)
+    for (const filename of paths) {
+      core.info(filename)
     }
+    core.endGroup()
   }
 }
 
-function exportResults(results: Results): void {
+function exportResults(results: FilterResults): void {
   core.startGroup('Filters results:')
   for (const [key, value] of Object.entries(results)) {
     core.info(`${key}: ${value}`)

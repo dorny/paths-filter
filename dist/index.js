@@ -4546,7 +4546,6 @@ function run() {
             const token = core.getInput('token', { required: false });
             const filtersInput = core.getInput('filters', { required: true });
             const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
-            const outputSeparator = core.getInput('output-separator', { required: false });
             const filter = new filter_1.default(filtersYaml);
             const files = yield getChangedFiles(token);
             let results;
@@ -4560,7 +4559,7 @@ function run() {
             else {
                 results = filter.match(files);
             }
-            exportFiles(files !== null && files !== void 0 ? files : [], outputSeparator);
+            exportFiles(files !== null && files !== void 0 ? files : []);
             exportResults(results);
         }
         catch (error) {
@@ -4620,7 +4619,7 @@ function getChangedFilesFromPush() {
 // Fetch base branch and use `git diff` to determine changed files
 function getChangedFilesFromGit(ref) {
     return __awaiter(this, void 0, void 0, function* () {
-        return core.group(`Fetching ${ref} and using git \`git diff-index\` to determine changed files`, () => __awaiter(this, void 0, void 0, function* () {
+        return core.group(`Fetching base and using \`git diff-index\` to determine changed files`, () => __awaiter(this, void 0, void 0, function* () {
             yield git.fetchCommit(ref);
             // FETCH_HEAD will always point to the just fetched commit
             // No matter if ref is SHA, branch or tag name or full git ref
@@ -4631,7 +4630,7 @@ function getChangedFilesFromGit(ref) {
 // Uses github REST api to get list of files changed in PR
 function getChangedFilesFromApi(token, pullRequest) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.debug('Fetching list of modified files from Github API');
+        core.info(`Fetching list of changed files for PR#${pullRequest.number} from Github API`);
         const client = new github.GitHub(token);
         const pageSize = 100;
         const files = [];
@@ -4669,21 +4668,22 @@ function getChangedFilesFromApi(token, pullRequest) {
         return files;
     });
 }
-function exportFiles(files, separator) {
-    const allChanged = files.map(f => f.filename).join(separator);
-    core.setOutput('files_changed', allChanged);
-    for (const status of Object.values(file_1.ChangeStatus)) {
-        const group = files.filter(f => f.status === status);
-        if (group.length > 0) {
-            core.startGroup(`${status.toUpperCase()}`);
-            const key = `files_${status}`;
-            const value = group.join(separator);
-            for (const file of group) {
-                core.info(file.filename);
-            }
-            core.setOutput(key, value);
-            core.endGroup();
+function exportFiles(files) {
+    var _a;
+    const output = {};
+    for (const file of files) {
+        const arr = (_a = output[file.status]) !== null && _a !== void 0 ? _a : [];
+        arr.push(file.filename);
+        output[file.status] = arr;
+    }
+    core.setOutput('files_changed', JSON.stringify(output));
+    // Files grouped by status
+    for (const [status, paths] of Object.entries(output)) {
+        core.startGroup(`${status.toUpperCase()} files:`);
+        for (const filename of paths) {
+            core.info(filename);
         }
+        core.endGroup();
     }
 }
 function exportResults(results) {

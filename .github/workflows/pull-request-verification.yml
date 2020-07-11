@@ -89,15 +89,16 @@ jobs:
             - modified: "LICENSE"
           any:
             - added|deleted|modified: "*"
-    - run: echo $files_changed
+    - name: Print changed files
+      run: echo ${{steps.filter.outputs.files_changed}} | jq .
     - name: filter-test
       if: |
         steps.filter.outputs.add != 'true'
         || steps.filter.outputs.rm != 'true'
         || steps.filter.outputs.modified != 'true'
         || steps.filter.outputs.any != 'true'
-        || !contains(steps.filter.outputs.files_changed,'add.txt')
-        || !contains(steps.filter.outputs.files_added,'add.txt')
-        || !contains(steps.filter.outputs.files_deleted, 'LICENSE')
-        || !contains(steps.filter.outputs.files_modified, 'LICENSE')
+        || !contains(fromJSON(steps.filter.outputs.files_changed).*,'add.txt')
+        || !contains(fromJSON(steps.filter.outputs.files_changed).added,'add.txt')
+        || !contains(fromJSON(steps.filter.outputs.files_changed).modified,'LICENSE')
+        || !contains(fromJSON(steps.filter.outputs.files_changed).deleted,'README.md')
       run: exit 1
