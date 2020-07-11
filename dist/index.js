@@ -4548,19 +4548,20 @@ function run() {
             const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
             const filter = new filter_1.default(filtersYaml);
             const files = yield getChangedFiles(token);
+            let results;
             if (files === null) {
                 // Change detection was not possible
-                // Set all filter keys to true (i.e. changed)
-                for (const key in filter.rules) {
-                    core.setOutput(key, String(true));
+                core.info('All filters will be set to true.');
+                results = {};
+                for (const key of Object.keys(filter.rules)) {
+                    results[key] = true;
                 }
             }
             else {
-                const result = filter.match(files);
-                for (const key in result) {
-                    core.setOutput(key, String(result[key]));
-                }
+                results = filter.match(files);
             }
+            exportFiles(files !== null && files !== void 0 ? files : []);
+            exportResults(results);
         }
         catch (error) {
             core.setFailed(error.message);
@@ -4597,8 +4598,10 @@ function getChangedFilesFromPush() {
     return __awaiter(this, void 0, void 0, function* () {
         const push = github.context.payload;
         // No change detection for pushed tags
-        if (git.isTagRef(push.ref))
+        if (git.isTagRef(push.ref)) {
+            core.info('Workflow is triggered by pushing of tag. Change detection will not run.');
             return null;
+        }
         // Get base from input or use repo default branch.
         // It it starts with 'refs/', it will be trimmed (git fetch refs/heads/<NAME> doesn't work)
         const baseInput = git.trimRefs(core.getInput('base', { required: false }) || push.repository.default_branch);
@@ -4607,25 +4610,28 @@ function getChangedFilesFromPush() {
         const base = git.trimRefsHeads(baseInput) === git.trimRefsHeads(push.ref) ? push.before : baseInput;
         // There is no previous commit for comparison
         // e.g. change detection against previous commit of just pushed new branch
-        if (base === git.NULL_SHA)
+        if (base === git.NULL_SHA) {
+            core.info('There is no previous commit for comparison. Change detection will not run.');
             return null;
+        }
         return yield getChangedFilesFromGit(base);
     });
 }
 // Fetch base branch and use `git diff` to determine changed files
 function getChangedFilesFromGit(ref) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.debug('Fetching base branch and using `git diff-index` to determine changed files');
-        yield git.fetchCommit(ref);
-        // FETCH_HEAD will always point to the just fetched commit
-        // No matter if ref is SHA, branch or tag name or full git ref
-        return yield git.getChangedFiles(git.FETCH_HEAD);
+        return core.group(`Fetching base and using \`git diff-index\` to determine changed files`, () => __awaiter(this, void 0, void 0, function* () {
+            yield git.fetchCommit(ref);
+            // FETCH_HEAD will always point to the just fetched commit
+            // No matter if ref is SHA, branch or tag name or full git ref
+            return yield git.getChangedFiles(git.FETCH_HEAD);
+        }));
     });
 }
 // Uses github REST api to get list of files changed in PR
 function getChangedFilesFromApi(token, pullRequest) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.debug('Fetching list of modified files from Github API');
+        core.info(`Fetching list of changed files for PR#${pullRequest.number} from Github API`);
         const client = new github.GitHub(token);
         const pageSize = 100;
         const files = [];
@@ -4662,6 +4668,35 @@ function getChangedFilesFromApi(token, pullRequest) {
         }
         return files;
     });
+}
+function exportFiles(files) {
+    var _a;
+    const output = {};
+    output[file_1.ChangeStatus.Added] = [];
+    output[file_1.ChangeStatus.Deleted] = [];
+    output[file_1.ChangeStatus.Modified] = [];
+    for (const file of files) {
+        const arr = (_a = output[file.status]) !== null && _a !== void 0 ? _a : [];
+        arr.push(file.filename);
+        output[file.status] = arr;
+    }
+    core.setOutput('files', output);
+    // Files grouped by status
+    for (const [status, paths] of Object.entries(output)) {
+        core.startGroup(`${status.toUpperCase()} files:`);
+        for (const filename of paths) {
+            core.info(filename);
+        }
+        core.endGroup();
+    }
+}
+function exportResults(results) {
+    core.startGroup('Filters results:');
+    for (const [key, value] of Object.entries(results)) {
+        core.info(`${key}: ${value}`);
+        core.setOutput(key, value);
+    }
+    core.endGroup();
 }
 run();
 
@@ -4766,6 +4801,9 @@ class Filter {
     }
     // Load rules from YAML string
     load(yaml) {
+        if (!yaml) {
+            return;
+        }
         const doc = jsyaml.safeLoad(yaml);
         if (typeof doc !== 'object') {
             this.throwInvalidFormatError('Root element is not an object');

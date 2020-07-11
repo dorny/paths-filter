@@ -7,6 +7,13 @@ import Filter from './filter'
 import {File, ChangeStatus} from './file'
 import * as git from './git'
 
+interface FilterResults {
+  [key: string]: boolean
+}
+interface ActionOutput {
+  [key: string]: string[]
+}
+
 async function run(): Promise<void> {
   try {
     const workingDirectory = core.getInput('working-directory', {required: false})
@@ -20,19 +27,21 @@ async function run(): Promise<void> {
 
     const filter = new Filter(filtersYaml)
     const files = await getChangedFiles(token)
+    let results: FilterResults
 
     if (files === null) {
       // Change detection was not possible
-      // Set all filter keys to true (i.e. changed)
-      for (const key in filter.rules) {
-        core.setOutput(key, String(true))
+      core.info('All filters will be set to true.')
+      results = {}
+      for (const key of Object.keys(filter.rules)) {
+        results[key] = true
       }
     } else {
-      const result = filter.match(files)
-      for (const key in result) {
-        core.setOutput(key, String(result[key]))
-      }
+      results = filter.match(files)
     }
+
+    exportFiles(files ?? [])
+    exportResults(results)
   } catch (error) {
     core.setFailed(error.message)
   }
@@ -69,7 +78,10 @@ async function getChangedFilesFromPush(): Promise<File[] | null> {
   const push = github.context.payload as Webhooks.WebhookPayloadPush
 
   // No change detection for pushed tags
-  if (git.isTagRef(push.ref)) return null
+  if (git.isTagRef(push.ref)) {
+    core.info('Workflow is triggered by pushing of tag. Change detection will not run.')
+    return null
+  }
 
   // Get base from input or use repo default branch.
   // It it starts with 'refs/', it will be trimmed (git fetch refs/heads/<NAME> doesn't work)
@@ -81,18 +93,22 @@ async function getChangedFilesFromPush(): Promise<File[] | null> {
 
   // There is no previous commit for comparison
   // e.g. change detection against previous commit of just pushed new branch
-  if (base === git.NULL_SHA) return null
+  if (base === git.NULL_SHA) {
+    core.info('There is no previous commit for comparison. Change detection will not run.')
+    return null
+  }
 
   return await getChangedFilesFromGit(base)
 }
 
 // Fetch base branch and use `git diff` to determine changed files
 async function getChangedFilesFromGit(ref: string): Promise<File[]> {
-  core.debug('Fetching base branch and using `git diff-index` to determine changed files')
-  await git.fetchCommit(ref)
-  // FETCH_HEAD will always point to the just fetched commit
-  // No matter if ref is SHA, branch or tag name or full git ref
-  return await git.getChangedFiles(git.FETCH_HEAD)
+  return core.group(`Fetching base and using \`git diff-index\` to determine changed files`, async () => {
+    await git.fetchCommit(ref)
+    // FETCH_HEAD will always point to the just fetched commit
+    // No matter if ref is SHA, branch or tag name or full git ref
+    return await git.getChangedFiles(git.FETCH_HEAD)
+  })
 }
 
 // Uses github REST api to get list of files changed in PR
@@ -100,7 +116,7 @@ async function getChangedFilesFromApi(
   token: string,
   pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest
 ): Promise<File[]> {
-  core.debug('Fetching list of modified files from Github API')
+  core.info(`Fetching list of changed files for PR#${pullRequest.number} from Github API`)
   const client = new github.GitHub(token)
   const pageSize = 100
   const files: File[] = []
@@ -136,6 +152,38 @@ async function getChangedFilesFromApi(
   }
 
   return files
+}
+
+function exportFiles(files: File[]): void {
+  const output: ActionOutput = {}
+  output[ChangeStatus.Added] = []
+  output[ChangeStatus.Deleted] = []
+  output[ChangeStatus.Modified] = []
+
+  for (const file of files) {
+    const arr = output[file.status] ?? []
+    arr.push(file.filename)
+    output[file.status] = arr
+  }
+  core.setOutput('files', output)
+
+  // Files grouped by status
+  for (const [status, paths] of Object.entries(output)) {
+    core.startGroup(`${status.toUpperCase()} files:`)
+    for (const filename of paths) {
+      core.info(filename)
+    }
+    core.endGroup()
+  }
+}
+
+function exportResults(results: FilterResults): void {
+  core.startGroup('Filters results:')
+  for (const [key, value] of Object.entries(results)) {
+    core.info(`${key}: ${value}`)
+    core.setOutput(key, value)
+  }
+  core.endGroup()
 }
 
 run()
