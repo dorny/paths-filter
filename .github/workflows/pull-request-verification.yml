@@ -75,12 +75,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - run: touch add.txt && rm README.md && echo "TEST" > LICENSE && git add -A
       with:
-        filters: .github/filters-change-types.yml
+        token: ''
+        filters: |
+          add:
+            - added: "add.txt"
+          rm:
+            - deleted: "README.md"
+          modified:
+            - modified: "LICENSE"
+          any:
+            - added|deleted|modified: *
     - name: filter-test
       if: |
-        steps.filter.outputs.any-inline != 'true'
-        || steps.filter.outputs.any-item-list != 'true'
-        || steps.filter.outputs.any-object-list != 'true'
-        || steps.filter.outputs.any-single != 'true'
+        steps.filter.outputs.add != 'true'
+        || steps.filter.outputs.rm != 'true'
+        || steps.filter.outputs.modified != 'true'
+        || steps.filter.outputs.any != 'true'
       run: exit 1
