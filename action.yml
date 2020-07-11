@@ -21,7 +21,7 @@ inputs:
   output-separator:
     description: 'Filename separator used in $all, $added, $modified, $deleted outputs'
     required: false
-    default: '\n'
+    default: "\n"
 runs:
   using: 'node12'
   main: 'dist/index.js'

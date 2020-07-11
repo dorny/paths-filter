@@ -100,11 +100,12 @@ async function getChangedFilesFromPush(): Promise<File[] | null> {
 
 // Fetch base branch and use `git diff` to determine changed files
 async function getChangedFilesFromGit(ref: string): Promise<File[]> {
-  core.debug('Fetching base branch and using `git diff-index` to determine changed files')
-  await git.fetchCommit(ref)
-  // FETCH_HEAD will always point to the just fetched commit
-  // No matter if ref is SHA, branch or tag name or full git ref
-  return await git.getChangedFiles(git.FETCH_HEAD)
+  return core.group(`Fetching ${ref} and using git \`git diff-index\` to determine changed files`, async () => {
+    await git.fetchCommit(ref)
+    // FETCH_HEAD will always point to the just fetched commit
+    // No matter if ref is SHA, branch or tag name or full git ref
+    return await git.getChangedFiles(git.FETCH_HEAD)
+  })
 }
 
 // Uses github REST api to get list of files changed in PR
@@ -154,7 +155,7 @@ function exportFiles(files: File[], separator: string): void {
   const allChanged = files.map(f => f.filename).join(separator)
   core.setOutput('files-changed', allChanged)
 
-  for (const status in ChangeStatus) {
+  for (const status of Object.values(ChangeStatus)) {
     const group = files.filter(f => f.status === status)
     if (group.length > 0) {
       core.startGroup(`${status.toUpperCase()} files:`)
