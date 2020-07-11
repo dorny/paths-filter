@@ -89,7 +89,7 @@ jobs:
             - modified: "LICENSE"
           any:
             - added|deleted|modified: "*"
-    - run: echo ${steps.filter.outputs.files-changed}
+    - run: echo ${{steps.filter.outputs.files-changed}}
     - name: filter-test
       if: |
         steps.filter.outputs.add != 'true'
