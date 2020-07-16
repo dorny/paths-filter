@@ -106,10 +106,12 @@ jobs:
         # Filters stored in own yaml file
         filters: '.github/filters.yml'
   backend:
+    needs: changes
     if: ${{ needs.changes.outputs.backend == 'true' }}
     steps:
       - ...
   frontend:
+    needs: changes
     if: ${{ needs.changes.outputs.frontend == 'true' }}
     steps:
       - ...
