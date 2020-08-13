@@ -36,7 +36,7 @@ export default class Filter {
     }
     return result
   }
-  // Returns dictionary with match result per rules group
+  // Returns dictionary with not match result per rules group
   notMatch(paths: string[]): {[key: string]: boolean} {
     const result: {[key: string]: boolean} = {}
     for (const [key, patterns] of Object.entries(this.rules)) {
