@@ -49,7 +49,7 @@ function getConfigFileContent(configPath: string): string {
 }
 
 async function getChangedFiles(token: string): Promise<string[] | null> {
-  if (github.context.eventName === 'pull_request') {
+  if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
     const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
     return token ? await getChangedFilesFromApi(token, pr) : await getChangedFilesFromGit(pr.base.sha)
   } else if (github.context.eventName === 'push') {
