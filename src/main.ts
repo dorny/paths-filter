@@ -9,6 +9,7 @@ import * as git from './git'
 async function run(): Promise<void> {
   try {
     const token = core.getInput('token', {required: false})
+    const notFlag = getNotFlag();
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
 
@@ -22,7 +23,7 @@ async function run(): Promise<void> {
         core.setOutput(key, String(true))
       }
     } else {
-      const result = filter.match(files)
+      const result = notFlag ? filter.notMatch(files) : filter.match(files)
       for (const key in result) {
         core.setOutput(key, String(result[key]))
       }
@@ -30,6 +31,13 @@ async function run(): Promise<void> {
   } catch (error) {
     core.setFailed(error.message)
   }
+}
+
+function getNotFlag(): boolean{
+  let notFlag = core.getInput('not', {required: true});
+  if (notFlag == 'true') return true;
+  if (notFlag == 'false') return false;
+  throw new Error('Input parameter not should be true or false (default value is false)');
 }
 
 function isPathInput(text: string): boolean {

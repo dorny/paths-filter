@@ -36,7 +36,15 @@ export default class Filter {
     }
     return result
   }
-
+  // Returns dictionary with match result per rules group
+  notMatch(paths: string[]): {[key: string]: boolean} {
+    const result: {[key: string]: boolean} = {}
+    for (const [key, patterns] of Object.entries(this.rules)) {
+      const match = paths.some(fileName => patterns.every(rule => !rule.match(fileName)))
+      result[key] = match
+    }
+    return result
+  }
   private throwInvalidFormatError(): never {
     throw new Error('Invalid filter YAML format: Expected dictionary of string arrays')
   }
