@@ -15,6 +15,10 @@ inputs:
   filters:
     description: 'Path to the configuration file or YAML string with filters definition'
     required: true
+  not:
+    description: 'If it is true check does exist modifed files out of filter'
+    required: true
+    default: 'false'
 runs:
   using: 'node12'
   main: 'dist/index.js'
