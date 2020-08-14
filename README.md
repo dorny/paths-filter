@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: dorny/paths-filter@v2.2.0
+    - uses: dorny/paths-filter@v2.2.1
       id: filter
       with:
         # inline YAML or path to separate file (e.g.: .github/filters.yaml)
@@ -104,7 +104,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
     # For pull requests it's not necessary to checkout the code
-    - uses: dorny/paths-filter@v2.2.0
+    - uses: dorny/paths-filter@v2.2.1
       id: filter
       with:
         # Filters stored in own yaml file

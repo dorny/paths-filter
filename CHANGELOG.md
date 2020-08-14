@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.2.1
+- [Add support for pull_request_target](https://github.com/dorny/paths-filter/pull/29)
+
 ## v2.2.0
 - [Improve change detection for feature branches](https://github.com/dorny/paths-filter/pull/16)
 

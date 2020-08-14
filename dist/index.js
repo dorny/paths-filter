@@ -4582,7 +4582,7 @@ function getConfigFileContent(configPath) {
 }
 function getChangedFiles(token) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (github.context.eventName === 'pull_request') {
+        if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
             const pr = github.context.payload.pull_request;
             return token ? yield getChangedFilesFromApi(token, pr) : yield getChangedFilesFromGit(pr.base.sha);
         }
