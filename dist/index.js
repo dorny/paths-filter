@@ -15299,15 +15299,10 @@ module.exports = require("fs");
 
 // Credits to https://github.com/xxorax/node-shell-escape
 Object.defineProperty(exports, "__esModule", { value: true });
-const needEscape = /[^A-Za-z0-9_/:=-]/;
 function shellEscape(value) {
-    if (needEscape.test(value)) {
-        value = `'${value.replace(/'/g, "'\\''")}'`;
-        value = value
-            .replace(/^(?:'')+/g, '') // unduplicate single-quote at the beginning
-            .replace(/\\'''/g, "\\'"); // remove non-escaped single-quote if there are enclosed between 2 escaped
-    }
-    return value;
+    return `'${value.replace(/'/g, "'\\''")}'`
+        .replace(/^(?:'')+/g, '') // unduplicate single-quote at the beginning
+        .replace(/\\'''/g, "\\'"); // remove non-escaped single-quote if there are enclosed between 2 escaped
 }
 exports.default = shellEscape;
 
