@@ -80,6 +80,7 @@ jobs:
       id: filter
       with:
         token: ''
+        list-files: shell
         filters: |
           add:
             - added: "add.txt"
@@ -89,15 +90,13 @@ jobs:
             - modified: "LICENSE"
           any:
             - added|deleted|modified: "*"
-    - name: Print changed files
-      run: echo '${{steps.filter.outputs.files}}' | jq .
     - name: filter-test
       if: |
         steps.filter.outputs.add != 'true'
         || steps.filter.outputs.rm != 'true'
         || steps.filter.outputs.modified != 'true'
         || steps.filter.outputs.any != 'true'
-        || !contains(fromJSON(steps.filter.outputs.files).added,'add.txt')
-        || !contains(fromJSON(steps.filter.outputs.files).modified,'LICENSE')
-        || !contains(fromJSON(steps.filter.outputs.files).deleted,'README.md')
+        || steps.filter.outputs.added_files != 'add.txt'
+        || steps.filter.outputs.modified_files != 'LICENSE'
+        || steps.filter.outputs.rm_files != 'README.md'
       run: exit 1

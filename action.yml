@@ -18,9 +18,10 @@ inputs:
   filters:
     description: 'Path to the configuration file or YAML string with filters definition'
     required: false
-outputs:
-  files:
-    description: 'Changed files grouped by status - added, deleted or modified.'
+  format:
+    description: 'Output format of listed matching files: none | json | shell'
+    required: false
+    default: none
 runs:
   using: 'node12'
   main: 'dist/index.js'

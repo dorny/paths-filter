@@ -4533,9 +4533,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(__webpack_require__(747));
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
-const filter_1 = __importDefault(__webpack_require__(235));
+const filter_1 = __webpack_require__(235);
 const file_1 = __webpack_require__(258);
 const git = __importStar(__webpack_require__(136));
+const shell_escape_1 = __importDefault(__webpack_require__(751));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -4546,22 +4547,17 @@ function run() {
             const token = core.getInput('token', { required: false });
             const filtersInput = core.getInput('filters', { required: true });
             const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
-            const filter = new filter_1.default(filtersYaml);
+            const exportFormat = core.getInput('list-files', { required: false }) || 'none';
+            const filter = new filter_1.Filter(filtersYaml);
             const files = yield getChangedFiles(token);
-            let results;
             if (files === null) {
                 // Change detection was not possible
-                core.info('All filters will be set to true.');
-                results = {};
-                for (const key of Object.keys(filter.rules)) {
-                    results[key] = true;
-                }
+                exportNoMatchingResults(filter);
             }
             else {
-                results = filter.match(files);
+                const results = filter.match(files);
+                exportResults(results, exportFormat);
             }
-            exportFiles(files !== null && files !== void 0 ? files : []);
-            exportResults(results);
         }
         catch (error) {
             core.setFailed(error.message);
@@ -4669,34 +4665,37 @@ function getChangedFilesFromApi(token, pullRequest) {
         return files;
     });
 }
-function exportFiles(files) {
-    var _a;
-    const output = {};
-    output[file_1.ChangeStatus.Added] = [];
-    output[file_1.ChangeStatus.Deleted] = [];
-    output[file_1.ChangeStatus.Modified] = [];
-    for (const file of files) {
-        const arr = (_a = output[file.status]) !== null && _a !== void 0 ? _a : [];
-        arr.push(file.filename);
-        output[file.status] = arr;
-    }
-    core.setOutput('files', output);
-    // Files grouped by status
-    for (const [status, paths] of Object.entries(output)) {
-        core.startGroup(`${status.toUpperCase()} files:`);
-        for (const filename of paths) {
-            core.info(filename);
-        }
-        core.endGroup();
+function exportNoMatchingResults(filter) {
+    core.info('All filters will be set to true but no matched files will be exported.');
+    for (const key of Object.keys(filter.rules)) {
+        core.setOutput(key, true);
     }
 }
-function exportResults(results) {
-    core.startGroup('Filters results:');
-    for (const [key, value] of Object.entries(results)) {
-        core.info(`${key}: ${value}`);
+function exportResults(results, format) {
+    for (const [key, files] of Object.entries(results)) {
+        const value = files.length > 0;
+        core.startGroup(`Filter ${key} = ${value}`);
+        for (const file of files) {
+            core.info(`Matched file: ${file.filename} [${file.status}]`);
+        }
         core.setOutput(key, value);
+        if (format !== 'none') {
+            const filesValue = serializeExport(files, format);
+            core.setOutput(`${key}_files`, filesValue);
+        }
     }
     core.endGroup();
+}
+function serializeExport(files, format) {
+    const fileNames = files.map(file => file.filename);
+    switch (format) {
+        case 'json':
+            return JSON.stringify(fileNames);
+        case 'shell':
+            return fileNames.map(shell_escape_1.default).join(' ');
+        default:
+            return '';
+    }
 }
 run();
 
@@ -4785,6 +4784,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Filter = void 0;
 const jsyaml = __importStar(__webpack_require__(414));
 const minimatch = __importStar(__webpack_require__(595));
 // Minimatch options used in all matchers
@@ -4812,14 +4812,15 @@ class Filter {
             this.rules[key] = this.parseFilterItemYaml(item);
         }
     }
-    // Returns dictionary with match result per rule
     match(files) {
         const result = {};
         for (const [key, patterns] of Object.entries(this.rules)) {
-            const match = files.some(file => patterns.some(rule => (rule.status === undefined || rule.status.includes(file.status)) && rule.matcher.match(file.filename)));
-            result[key] = match;
+            result[key] = files.filter(file => this.isMatch(file, patterns));
         }
         return result;
+    }
+    isMatch(file, patterns) {
+        return patterns.some(rule => (rule.status === undefined || rule.status.includes(file.status)) && rule.matcher.match(file.filename));
     }
     parseFilterItemYaml(item) {
         if (Array.isArray(item)) {
@@ -4849,7 +4850,7 @@ class Filter {
         throw new Error(`Invalid filter YAML format: ${message}.`);
     }
 }
-exports.default = Filter;
+exports.Filter = Filter;
 // Creates a new array with all sub-array elements concatenated
 // In future could be replaced by Array.prototype.flat (supported on Node.js 11+)
 function flat(arr) {
@@ -15287,6 +15288,28 @@ function sync (path, options) {
 /***/ (function(module) {
 
 module.exports = require("fs");
+
+/***/ }),
+
+/***/ 751:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+// Credits to https://github.com/xxorax/node-shell-escape
+Object.defineProperty(exports, "__esModule", { value: true });
+const needEscape = /[^A-Za-z0-9_/:=-]/;
+function shellEscape(value) {
+    if (needEscape.test(value)) {
+        value = `'${value.replace(/'/g, "'\\''")}'`;
+        value = value
+            .replace(/^(?:'')+/g, '') // unduplicate single-quote at the beginning
+            .replace(/\\'''/g, "\\'"); // remove non-escaped single-quote if there are enclosed between 2 escaped
+    }
+    return value;
+}
+exports.default = shellEscape;
+
 
 /***/ }),
 

@@ -3,16 +3,12 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {Webhooks} from '@octokit/webhooks'
 
-import Filter from './filter'
+import {Filter, FilterResults} from './filter'
 import {File, ChangeStatus} from './file'
 import * as git from './git'
+import shellEscape from './shell-escape'
 
-interface FilterResults {
-  [key: string]: boolean
-}
-interface ActionOutput {
-  [key: string]: string[]
-}
+type ExportFormat = 'none' | 'json' | 'shell'
 
 async function run(): Promise<void> {
   try {
@@ -24,24 +20,18 @@ async function run(): Promise<void> {
     const token = core.getInput('token', {required: false})
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
+    const exportFormat = (core.getInput('list-files', {required: false}) as ExportFormat) || 'none'
 
     const filter = new Filter(filtersYaml)
     const files = await getChangedFiles(token)
-    let results: FilterResults
 
     if (files === null) {
       // Change detection was not possible
-      core.info('All filters will be set to true.')
-      results = {}
-      for (const key of Object.keys(filter.rules)) {
-        results[key] = true
-      }
+      exportNoMatchingResults(filter)
     } else {
-      results = filter.match(files)
+      const results = filter.match(files)
+      exportResults(results, exportFormat)
     }
-
-    exportFiles(files ?? [])
-    exportResults(results)
   } catch (error) {
     core.setFailed(error.message)
   }
@@ -154,36 +144,40 @@ async function getChangedFilesFromApi(
   return files
 }
 
-function exportFiles(files: File[]): void {
-  const output: ActionOutput = {}
-  output[ChangeStatus.Added] = []
-  output[ChangeStatus.Deleted] = []
-  output[ChangeStatus.Modified] = []
-
-  for (const file of files) {
-    const arr = output[file.status] ?? []
-    arr.push(file.filename)
-    output[file.status] = arr
-  }
-  core.setOutput('files', output)
-
-  // Files grouped by status
-  for (const [status, paths] of Object.entries(output)) {
-    core.startGroup(`${status.toUpperCase()} files:`)
-    for (const filename of paths) {
-      core.info(filename)
-    }
-    core.endGroup()
+function exportNoMatchingResults(filter: Filter): void {
+  core.info('All filters will be set to true but no matched files will be exported.')
+  for (const key of Object.keys(filter.rules)) {
+    core.setOutput(key, true)
   }
 }
 
-function exportResults(results: FilterResults): void {
-  core.startGroup('Filters results:')
-  for (const [key, value] of Object.entries(results)) {
-    core.info(`${key}: ${value}`)
+function exportResults(results: FilterResults, format: ExportFormat): void {
+  for (const [key, files] of Object.entries(results)) {
+    const value = files.length > 0
+    core.startGroup(`Filter ${key} = ${value}`)
+    for (const file of files) {
+      core.info(`Matched file: ${file.filename} [${file.status}]`)
+    }
+
     core.setOutput(key, value)
+    if (format !== 'none') {
+      const filesValue = serializeExport(files, format)
+      core.setOutput(`${key}_files`, filesValue)
+    }
   }
   core.endGroup()
+}
+
+function serializeExport(files: File[], format: ExportFormat): string {
+  const fileNames = files.map(file => file.filename)
+  switch (format) {
+    case 'json':
+      return JSON.stringify(fileNames)
+    case 'shell':
+      return fileNames.map(shellEscape).join(' ')
+    default:
+      return ''
+  }
 }
 
 run()

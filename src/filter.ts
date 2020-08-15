@@ -23,7 +23,11 @@ interface FilterRuleItem {
   matcher: minimatch.IMinimatch // Matches the filename
 }
 
-export default class Filter {
+export interface FilterResults {
+  [key: string]: File[]
+}
+
+export class Filter {
   rules: {[key: string]: FilterRuleItem[]} = {}
 
   // Creates instance of Filter and load rules from YAML if it's provided
@@ -49,18 +53,18 @@ export default class Filter {
     }
   }
 
-  // Returns dictionary with match result per rule
-  match(files: File[]): {[key: string]: boolean} {
-    const result: {[key: string]: boolean} = {}
+  match(files: File[]): FilterResults {
+    const result: FilterResults = {}
     for (const [key, patterns] of Object.entries(this.rules)) {
-      const match = files.some(file =>
-        patterns.some(
-          rule => (rule.status === undefined || rule.status.includes(file.status)) && rule.matcher.match(file.filename)
-        )
-      )
-      result[key] = match
+      result[key] = files.filter(file => this.isMatch(file, patterns))
     }
     return result
+  }
+
+  private isMatch(file: File, patterns: FilterRuleItem[]): boolean {
+    return patterns.some(
+      rule => (rule.status === undefined || rule.status.includes(file.status)) && rule.matcher.match(file.filename)
+    )
   }
 
   private parseFilterItemYaml(item: FilterItemYaml): FilterRuleItem[] {
