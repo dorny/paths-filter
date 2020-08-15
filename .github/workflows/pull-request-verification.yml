@@ -90,6 +90,12 @@ jobs:
             - modified: "LICENSE"
           any:
             - added|deleted|modified: "*"
+    - name: Print 'added_files'
+      run: echo ${{steps.filter.outputs.added_files}}
+    - name: Print 'modified_files'
+      run: echo ${{steps.filter.outputs.modified_files}}
+    - name: Print 'rm_files'
+      run: echo ${{steps.filter.outputs.rm_files}}
     - name: filter-test
       if: |
         steps.filter.outputs.add != 'true'
