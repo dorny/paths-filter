@@ -80,24 +80,32 @@ jobs:
       id: filter
       with:
         token: ''
+        list-files: shell
         filters: |
-          add:
+          added:
             - added: "add.txt"
-          rm:
+          deleted:
             - deleted: "README.md"
           modified:
             - modified: "LICENSE"
           any:
             - added|deleted|modified: "*"
-    - name: Print changed files
-      run: echo '${{steps.filter.outputs.files}}' | jq .
+    - name: Print 'added_files'
+      run: echo ${{steps.filter.outputs.added_files}}
+    - name: Print 'modified_files'
+      run: echo ${{steps.filter.outputs.modified_files}}
+    - name: Print 'deleted_files'
+      run: echo ${{steps.filter.outputs.deleted_files}}
     - name: filter-test
+      # only single quotes are supported in GH action literal
+      # single quote needs to be escaped with single quote
+      # '''add.txt''' resolves to string 'add.txt'
       if: |
-        steps.filter.outputs.add != 'true'
-        || steps.filter.outputs.rm != 'true'
+        steps.filter.outputs.added != 'true'
+        || steps.filter.outputs.deleted != 'true'
         || steps.filter.outputs.modified != 'true'
         || steps.filter.outputs.any != 'true'
-        || !contains(fromJSON(steps.filter.outputs.files).added,'add.txt')
-        || !contains(fromJSON(steps.filter.outputs.files).modified,'LICENSE')
-        || !contains(fromJSON(steps.filter.outputs.files).deleted,'README.md')
+        || steps.filter.outputs.added_files != '''add.txt'''
+        || steps.filter.outputs.modified_files != '''LICENSE'''
+        || steps.filter.outputs.deleted_files != '''README.md'''
       run: exit 1

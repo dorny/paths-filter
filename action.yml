@@ -18,9 +18,14 @@ inputs:
   filters:
     description: 'Path to the configuration file or YAML string with filters definition'
     required: false
-outputs:
-  files:
-    description: 'Changed files grouped by status - added, deleted or modified.'
+  list-files:
+    description: |
+      Enables listing of files matching the filter:
+        'none'  - Disables listing of matching files (default).
+        'json'  - Matching files paths are serialized as JSON array.
+        'shell' - Matching files paths are escaped and space-delimited. Output is usable as command line argument list in linux shell.
+    required: false
+    default: none
 runs:
   using: 'node12'
   main: 'dist/index.js'
