@@ -4547,7 +4547,11 @@ function run() {
             const token = core.getInput('token', { required: false });
             const filtersInput = core.getInput('filters', { required: true });
             const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
-            const exportFormat = core.getInput('list-files', { required: false }) || 'none';
+            const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
+            if (!isExportFormat(listFiles)) {
+                core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`);
+                return;
+            }
             const filter = new filter_1.Filter(filtersYaml);
             const files = yield getChangedFiles(token);
             if (files === null) {
@@ -4556,7 +4560,7 @@ function run() {
             }
             else {
                 const results = filter.match(files);
-                exportResults(results, exportFormat);
+                exportResults(results, listFiles);
             }
         }
         catch (error) {
@@ -4697,6 +4701,9 @@ function serializeExport(files, format) {
         default:
             return '';
     }
+}
+function isExportFormat(value) {
+    return value === 'none' || value === 'shell' || value === 'json';
 }
 run();
 

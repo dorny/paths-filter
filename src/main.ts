@@ -20,7 +20,12 @@ async function run(): Promise<void> {
     const token = core.getInput('token', {required: false})
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
-    const exportFormat = (core.getInput('list-files', {required: false}) as ExportFormat) || 'none'
+    const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
+
+    if (!isExportFormat(listFiles)) {
+      core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`)
+      return
+    }
 
     const filter = new Filter(filtersYaml)
     const files = await getChangedFiles(token)
@@ -30,7 +35,7 @@ async function run(): Promise<void> {
       exportNoMatchingResults(filter)
     } else {
       const results = filter.match(files)
-      exportResults(results, exportFormat)
+      exportResults(results, listFiles)
     }
   } catch (error) {
     core.setFailed(error.message)
@@ -179,6 +184,10 @@ function serializeExport(files: File[], format: ExportFormat): string {
     default:
       return ''
   }
+}
+
+function isExportFormat(value: string): value is ExportFormat {
+  return value === 'none' || value === 'shell' || value === 'json'
 }
 
 run()
