@@ -3851,12 +3851,14 @@ function getChangesSinceRef(ref, initialFetchDepth = 10) {
         let deepen = initialFetchDepth;
         for (;;) {
             let output = '';
+            let error = '';
             let exitCode;
             try {
                 exitCode = yield exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
                     ignoreReturnCode: true,
                     listeners: {
-                        stdout: (data) => (output += data.toString())
+                        stdout: (data) => (output += data.toString()),
+                        stderr: (data) => (error += data.toString())
                     }
                 });
             }
@@ -3867,7 +3869,7 @@ function getChangesSinceRef(ref, initialFetchDepth = 10) {
                 return parseGitDiffOutput(output);
             }
             // Only acceptable error is when there is no merge base
-            if (!output.includes('no merge base')) {
+            if (!error.includes('no merge base')) {
                 throw new Error('Unexpected failure of `git diff` command');
             }
             // Try to fetch more commits

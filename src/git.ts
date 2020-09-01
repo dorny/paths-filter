@@ -32,12 +32,14 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth = 10): P
   let deepen = initialFetchDepth
   for (;;) {
     let output = ''
+    let error = ''
     let exitCode
     try {
       exitCode = await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
         ignoreReturnCode: true,
         listeners: {
-          stdout: (data: Buffer) => (output += data.toString())
+          stdout: (data: Buffer) => (output += data.toString()),
+          stderr: (data: Buffer) => (error += data.toString())
         }
       })
     } finally {
@@ -49,7 +51,7 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth = 10): P
     }
 
     // Only acceptable error is when there is no merge base
-    if (!output.includes('no merge base')) {
+    if (!error.includes('no merge base')) {
       throw new Error('Unexpected failure of `git diff` command')
     }
 
