@@ -80,11 +80,15 @@ export function parseGitDiffOutput(output: string): File[] {
 
 export async function listAllFilesAsAdded(): Promise<File[]> {
   let output = ''
-  await exec('git', ['ls-files', '-z'], {
-    listeners: {
-      stdout: (data: Buffer) => (output += data.toString())
-    }
-  })
+  try {
+    await exec('git', ['ls-files', '-z'], {
+      listeners: {
+        stdout: (data: Buffer) => (output += data.toString())
+      }
+    })
+  } finally {
+    fixStdOutNullTermination()
+  }
 
   return output
     .split('\u0000')
@@ -109,8 +113,11 @@ export function trimRefsHeads(ref: string): string {
 }
 
 async function tryDeepen(deepen: number): Promise<boolean> {
+  // The only indicator there is no more history I've found.
+  // It forces the progress indicator and checks for 0 items from remote.
+  // If you know something better please open PR with fix.
   let error = ''
-  await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags'], {
+  await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--progress'], {
     listeners: {
       stderr: (data: Buffer) => (error += data.toString())
     }

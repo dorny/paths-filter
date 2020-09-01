@@ -3898,11 +3898,16 @@ exports.parseGitDiffOutput = parseGitDiffOutput;
 function listAllFilesAsAdded() {
     return __awaiter(this, void 0, void 0, function* () {
         let output = '';
-        yield exec_1.exec('git', ['ls-files', '-z'], {
-            listeners: {
-                stdout: (data) => (output += data.toString())
-            }
-        });
+        try {
+            yield exec_1.exec('git', ['ls-files', '-z'], {
+                listeners: {
+                    stdout: (data) => (output += data.toString())
+                }
+            });
+        }
+        finally {
+            fixStdOutNullTermination();
+        }
         return output
             .split('\u0000')
             .filter(s => s.length > 0)
@@ -3928,8 +3933,11 @@ function trimRefsHeads(ref) {
 exports.trimRefsHeads = trimRefsHeads;
 function tryDeepen(deepen) {
     return __awaiter(this, void 0, void 0, function* () {
+        // The only indicator there is no more history I've found.
+        // It forces the progress indicator and checks for 0 items from remote.
+        // If you know something better please open PR with fix.
         let error = '';
-        yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags'], {
+        yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--progress'], {
             listeners: {
                 stderr: (data) => (error += data.toString())
             }
