@@ -75,8 +75,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: touch add.txt && rm README.md && echo "TEST" > LICENSE
-    - run: git add -A && git commit -a -m 'testing this action' --author='John Doe <john@nowhere.local>'
+    - name: configure GIT user
+      run: git config user.email "john@nowhere.local" && git config user.name "John Doe"
+    - name: modify working tree
+      run: touch add.txt && rm README.md && echo "TEST" > LICENSE
+    - name: commit changes
+      run: git add -A && git commit -a -m 'testing this action'
     - uses: ./
       id: filter
       with:
