@@ -3874,7 +3874,8 @@ function getChangesSinceRef(ref, initialFetchDepth = 10) {
             }
             // Try to fetch more commits
             // If there are none, it means there is no common history between base and HEAD
-            if (!tryDeepen(deepen)) {
+            if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(deepen)) {
+                core.info('No merge base found - all files will be listed as added');
                 return listAllFilesAsAdded();
             }
             deepen = deepen * 2;
@@ -3927,13 +3928,13 @@ function trimRefsHeads(ref) {
 exports.trimRefsHeads = trimRefsHeads;
 function tryDeepen(deepen) {
     return __awaiter(this, void 0, void 0, function* () {
-        let output = '';
+        let error = '';
         yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags'], {
             listeners: {
-                stdout: (data) => (output += data.toString())
+                stderr: (data) => (error += data.toString())
             }
         });
-        return !output.includes('remote: Total 0 ');
+        return !error.includes('remote: Total 0 ');
     });
 }
 function trimStart(ref, start) {

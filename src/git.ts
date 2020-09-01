@@ -57,7 +57,8 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth = 10): P
 
     // Try to fetch more commits
     // If there are none, it means there is no common history between base and HEAD
-    if (!tryDeepen(deepen)) {
+    if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(deepen)) {
+      core.info('No merge base found - all files will be listed as added')
       return listAllFilesAsAdded()
     }
 
@@ -108,13 +109,13 @@ export function trimRefsHeads(ref: string): string {
 }
 
 async function tryDeepen(deepen: number): Promise<boolean> {
-  let output = ''
+  let error = ''
   await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags'], {
     listeners: {
-      stdout: (data: Buffer) => (output += data.toString())
+      stderr: (data: Buffer) => (error += data.toString())
     }
   })
-  return !output.includes('remote: Total 0 ')
+  return !error.includes('remote: Total 0 ')
 }
 
 function trimStart(ref: string, start: string): string {
