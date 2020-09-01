@@ -1,18 +1,11 @@
 import * as git from '../src/git'
-import {ExecOptions} from '@actions/exec'
 import {ChangeStatus} from '../src/file'
 
-describe('parsing of the git diff-index command', () => {
-  test('getChangedFiles returns files with correct change status', async () => {
-    const files = await git.getChangedFiles(git.FETCH_HEAD, (cmd, args, opts) => {
-      const stdout = opts?.listeners?.stdout
-      if (stdout) {
-        stdout(Buffer.from('A\u0000LICENSE\u0000'))
-        stdout(Buffer.from('M\u0000src/index.ts\u0000'))
-        stdout(Buffer.from('D\u0000src/main.ts\u0000'))
-      }
-      return Promise.resolve(0)
-    })
+describe('parsing output of the git diff command', () => {
+  test('parseGitDiffOutput returns files with correct change status', async () => {
+    const files = git.parseGitDiffOutput(
+      'A\u0000LICENSE\u0000' + 'M\u0000src/index.ts\u0000' + 'D\u0000src/main.ts\u0000'
+    )
     expect(files.length).toBe(3)
     expect(files[0].filename).toBe('LICENSE')
     expect(files[0].status).toBe(ChangeStatus.Added)
