@@ -3807,70 +3807,57 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.trimRefsHeads = exports.trimRefs = exports.isTagRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceRef = exports.getChangesAgainstSha = exports.NULL_SHA = void 0;
 const exec_1 = __webpack_require__(986);
 const core = __importStar(__webpack_require__(470));
 const file_1 = __webpack_require__(258);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
-function getChangesAgainstSha(sha) {
-    return __awaiter(this, void 0, void 0, function* () {
-        // Fetch single commit
-        yield exec_1.exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', sha]);
-        // Get differences between sha and HEAD
-        let output = '';
-        try {
-            yield exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`], {
-                listeners: {
-                    stdout: (data) => (output += data.toString())
-                }
-            });
-        }
-        finally {
-            fixStdOutNullTermination();
-        }
-        return parseGitDiffOutput(output);
-    });
+async function getChangesAgainstSha(sha) {
+    // Fetch single commit
+    await exec_1.exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', sha]);
+    // Get differences between sha and HEAD
+    let output = '';
+    try {
+        await exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`], {
+            listeners: {
+                stdout: (data) => (output += data.toString())
+            }
+        });
+    }
+    finally {
+        fixStdOutNullTermination();
+    }
+    return parseGitDiffOutput(output);
 }
 exports.getChangesAgainstSha = getChangesAgainstSha;
-function getChangesSinceRef(ref, initialFetchDepth = 10) {
-    return __awaiter(this, void 0, void 0, function* () {
-        // Fetch and add base branch
-        yield exec_1.exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
-        // Fetch older commits until merge-base is found
-        for (let deepen = initialFetchDepth;; deepen *= 2) {
-            const exitCode = yield exec_1.exec('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true });
-            if (exitCode === 0) {
-                // merge-base was found
-                break;
+async function getChangesSinceRef(ref, initialFetchDepth = 10) {
+    // Fetch and add base branch
+    await exec_1.exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
+    // Fetch older commits until merge-base is found
+    for (let deepen = initialFetchDepth;; deepen *= 2) {
+        const exitCode = await exec_1.exec('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true });
+        if (exitCode === 0) {
+            // merge-base was found
+            break;
+        }
+        if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
+            core.info('No merge base found - all files will be listed as added');
+            return listAllFilesAsAdded();
+        }
+    }
+    let output = '';
+    try {
+        await exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
+            listeners: {
+                stdout: (data) => (output += data.toString())
             }
-            if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
-                core.info('No merge base found - all files will be listed as added');
-                return listAllFilesAsAdded();
-            }
-        }
-        let output = '';
-        try {
-            yield exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
-                listeners: {
-                    stdout: (data) => (output += data.toString())
-                }
-            });
-        }
-        finally {
-            fixStdOutNullTermination();
-        }
-        return parseGitDiffOutput(output);
-    });
+        });
+    }
+    finally {
+        fixStdOutNullTermination();
+    }
+    return parseGitDiffOutput(output);
 }
 exports.getChangesSinceRef = getChangesSinceRef;
 function parseGitDiffOutput(output) {
@@ -3885,27 +3872,25 @@ function parseGitDiffOutput(output) {
     return files;
 }
 exports.parseGitDiffOutput = parseGitDiffOutput;
-function listAllFilesAsAdded() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let output = '';
-        try {
-            yield exec_1.exec('git', ['ls-files', '-z'], {
-                listeners: {
-                    stdout: (data) => (output += data.toString())
-                }
-            });
-        }
-        finally {
-            fixStdOutNullTermination();
-        }
-        return output
-            .split('\u0000')
-            .filter(s => s.length > 0)
-            .map(path => ({
-            status: file_1.ChangeStatus.Added,
-            filename: path
-        }));
-    });
+async function listAllFilesAsAdded() {
+    let output = '';
+    try {
+        await exec_1.exec('git', ['ls-files', '-z'], {
+            listeners: {
+                stdout: (data) => (output += data.toString())
+            }
+        });
+    }
+    finally {
+        fixStdOutNullTermination();
+    }
+    return output
+        .split('\u0000')
+        .filter(s => s.length > 0)
+        .map(path => ({
+        status: file_1.ChangeStatus.Added,
+        filename: path
+    }));
 }
 exports.listAllFilesAsAdded = listAllFilesAsAdded;
 function isTagRef(ref) {
@@ -3921,31 +3906,27 @@ function trimRefsHeads(ref) {
     return trimStart(trimRef, 'heads/');
 }
 exports.trimRefsHeads = trimRefsHeads;
-function tryDeepen(ref, deepen) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const headBefore = yield getNumberOfCommits('HEAD');
-        const refBefore = yield getNumberOfCommits(ref);
-        yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc']);
-        const headAfter = yield getNumberOfCommits('HEAD');
-        const refAfter = yield getNumberOfCommits(ref);
-        const headFetched = headAfter - headBefore;
-        const refFetched = refBefore - refAfter;
-        core.info(`HEAD -> ${headFetched} commits fetched.`);
-        core.info(`${ref} -> ${refFetched} commits fetched.`);
-        return headFetched > 0 || refFetched > 0;
-    });
+async function tryDeepen(ref, deepen) {
+    const headBefore = await getNumberOfCommits('HEAD');
+    const refBefore = await getNumberOfCommits(ref);
+    await exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc']);
+    const headAfter = await getNumberOfCommits('HEAD');
+    const refAfter = await getNumberOfCommits(ref);
+    const headFetched = headAfter - headBefore;
+    const refFetched = refBefore - refAfter;
+    core.info(`HEAD -> ${headFetched} commits fetched.`);
+    core.info(`${ref} -> ${refFetched} commits fetched.`);
+    return headFetched > 0 || refFetched > 0;
 }
-function getNumberOfCommits(ref) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let output = '';
-        yield exec_1.exec('git', ['rev-list', `--count`, ref], {
-            listeners: {
-                stdout: (data) => (output += data.toString())
-            }
-        });
-        const count = parseInt(output);
-        return isNaN(count) ? 0 : count;
+async function getNumberOfCommits(ref) {
+    let output = '';
+    await exec_1.exec('git', ['rev-list', `--count`, ref], {
+        listeners: {
+            stdout: (data) => (output += data.toString())
+        }
     });
+    const count = parseInt(output);
+    return isNaN(count) ? 0 : count;
 }
 function trimStart(ref, start) {
     return ref.startsWith(start) ? ref.substr(start.length) : ref;
@@ -4598,15 +4579,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -4618,30 +4590,28 @@ const filter_1 = __webpack_require__(235);
 const file_1 = __webpack_require__(258);
 const git = __importStar(__webpack_require__(136));
 const shell_escape_1 = __importDefault(__webpack_require__(751));
-function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const workingDirectory = core.getInput('working-directory', { required: false });
-            if (workingDirectory) {
-                process.chdir(workingDirectory);
-            }
-            const token = core.getInput('token', { required: false });
-            const filtersInput = core.getInput('filters', { required: true });
-            const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
-            const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
-            if (!isExportFormat(listFiles)) {
-                core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`);
-                return;
-            }
-            const filter = new filter_1.Filter(filtersYaml);
-            const files = yield getChangedFiles(token);
-            const results = filter.match(files);
-            exportResults(results, listFiles);
+async function run() {
+    try {
+        const workingDirectory = core.getInput('working-directory', { required: false });
+        if (workingDirectory) {
+            process.chdir(workingDirectory);
         }
-        catch (error) {
-            core.setFailed(error.message);
+        const token = core.getInput('token', { required: false });
+        const filtersInput = core.getInput('filters', { required: true });
+        const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
+        const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
+        if (!isExportFormat(listFiles)) {
+            core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`);
+            return;
         }
-    });
+        const filter = new filter_1.Filter(filtersYaml);
+        const files = await getChangedFiles(token);
+        const results = filter.match(files);
+        exportResults(results, listFiles);
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
 }
 function isPathInput(text) {
     return !text.includes('\n');
@@ -4655,84 +4625,78 @@ function getConfigFileContent(configPath) {
     }
     return fs.readFileSync(configPath, { encoding: 'utf8' });
 }
-function getChangedFiles(token) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
-            const pr = github.context.payload.pull_request;
-            return token ? yield getChangedFilesFromApi(token, pr) : yield git.getChangesSinceRef(pr.base.ref);
-        }
-        else if (github.context.eventName === 'push') {
-            return getChangedFilesFromPush();
-        }
-        else {
-            throw new Error('This action can be triggered only by pull_request, pull_request_target or push event');
-        }
-    });
+async function getChangedFiles(token) {
+    if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
+        const pr = github.context.payload.pull_request;
+        return token ? await getChangedFilesFromApi(token, pr) : await git.getChangesSinceRef(pr.base.ref);
+    }
+    else if (github.context.eventName === 'push') {
+        return getChangedFilesFromPush();
+    }
+    else {
+        throw new Error('This action can be triggered only by pull_request, pull_request_target or push event');
+    }
 }
-function getChangedFilesFromPush() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const push = github.context.payload;
-        // No change detection for pushed tags
-        if (git.isTagRef(push.ref)) {
-            core.info('Workflow is triggered by pushing of tag - all files will be listed as added');
-            return yield git.listAllFilesAsAdded();
+async function getChangedFilesFromPush() {
+    const push = github.context.payload;
+    // No change detection for pushed tags
+    if (git.isTagRef(push.ref)) {
+        core.info('Workflow is triggered by pushing of tag - all files will be listed as added');
+        return await git.listAllFilesAsAdded();
+    }
+    const baseRef = git.trimRefsHeads(core.getInput('base', { required: false }) || push.repository.default_branch);
+    const pushRef = git.trimRefsHeads(push.ref);
+    // If base references same branch it was pushed to, we will do comparison against the previously pushed commit.
+    if (baseRef === pushRef) {
+        if (push.before === git.NULL_SHA) {
+            core.info('First push of a branch detected - all files will be listed as added');
+            return await git.listAllFilesAsAdded();
         }
-        const baseRef = git.trimRefsHeads(core.getInput('base', { required: false }) || push.repository.default_branch);
-        const pushRef = git.trimRefsHeads(push.ref);
-        // If base references same branch it was pushed to, we will do comparison against the previously pushed commit.
-        if (baseRef === pushRef) {
-            if (push.before === git.NULL_SHA) {
-                core.info('First push of a branch detected - all files will be listed as added');
-                return yield git.listAllFilesAsAdded();
-            }
-            core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`);
-            return yield git.getChangesAgainstSha(push.before);
-        }
-        // Changes introduced by current branch against the base branch
-        core.info(`Changes will be detected against the branch ${baseRef}`);
-        return yield git.getChangesSinceRef(baseRef);
-    });
+        core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`);
+        return await git.getChangesAgainstSha(push.before);
+    }
+    // Changes introduced by current branch against the base branch
+    core.info(`Changes will be detected against the branch ${baseRef}`);
+    return await git.getChangesSinceRef(baseRef);
 }
 // Uses github REST api to get list of files changed in PR
-function getChangedFilesFromApi(token, pullRequest) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.info(`Fetching list of changed files for PR#${pullRequest.number} from Github API`);
-        const client = new github.GitHub(token);
-        const pageSize = 100;
-        const files = [];
-        for (let page = 0; page * pageSize < pullRequest.changed_files; page++) {
-            const response = yield client.pulls.listFiles({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                pull_number: pullRequest.number,
-                page,
-                per_page: pageSize
-            });
-            for (const row of response.data) {
-                // There's no obvious use-case for detection of renames
-                // Therefore we treat it as if rename detection in git diff was turned off.
-                // Rename is replaced by delete of original filename and add of new filename
-                if (row.status === file_1.ChangeStatus.Renamed) {
-                    files.push({
-                        filename: row.filename,
-                        status: file_1.ChangeStatus.Added
-                    });
-                    files.push({
-                        // 'previous_filename' for some unknown reason isn't in the type definition or documentation
-                        filename: row.previous_filename,
-                        status: file_1.ChangeStatus.Deleted
-                    });
-                }
-                else {
-                    files.push({
-                        filename: row.filename,
-                        status: row.status
-                    });
-                }
+async function getChangedFilesFromApi(token, pullRequest) {
+    core.info(`Fetching list of changed files for PR#${pullRequest.number} from Github API`);
+    const client = new github.GitHub(token);
+    const pageSize = 100;
+    const files = [];
+    for (let page = 0; page * pageSize < pullRequest.changed_files; page++) {
+        const response = await client.pulls.listFiles({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            pull_number: pullRequest.number,
+            page,
+            per_page: pageSize
+        });
+        for (const row of response.data) {
+            // There's no obvious use-case for detection of renames
+            // Therefore we treat it as if rename detection in git diff was turned off.
+            // Rename is replaced by delete of original filename and add of new filename
+            if (row.status === file_1.ChangeStatus.Renamed) {
+                files.push({
+                    filename: row.filename,
+                    status: file_1.ChangeStatus.Added
+                });
+                files.push({
+                    // 'previous_filename' for some unknown reason isn't in the type definition or documentation
+                    filename: row.previous_filename,
+                    status: file_1.ChangeStatus.Deleted
+                });
+            }
+            else {
+                files.push({
+                    filename: row.filename,
+                    status: row.status
+                });
             }
         }
-        return files;
-    });
+    }
+    return files;
 }
 function exportResults(results, format) {
     for (const [key, files] of Object.entries(results)) {
