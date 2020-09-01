@@ -3819,6 +3819,7 @@ async function getChangesAgainstSha(sha) {
     // Get differences between sha and HEAD
     let output = '';
     try {
+        // Two dots '..' change detection - directly compares two versions
         await exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`], {
             listeners: {
                 stdout: (data) => (output += data.toString())
@@ -3831,7 +3832,7 @@ async function getChangesAgainstSha(sha) {
     return parseGitDiffOutput(output);
 }
 exports.getChangesAgainstSha = getChangesAgainstSha;
-async function getChangesSinceRef(ref, initialFetchDepth = 10) {
+async function getChangesSinceRef(ref, initialFetchDepth) {
     // Fetch and add base branch
     await exec_1.exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
     async function hasMergeBase() {
@@ -3858,6 +3859,7 @@ async function getChangesSinceRef(ref, initialFetchDepth = 10) {
     // Get changes introduced on HEAD compared to ref
     let output = '';
     try {
+        // Three dots '...' change detection - finds merge-base and compares against it
         await exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
             listeners: {
                 stdout: (data) => (output += data.toString())
@@ -4595,15 +4597,17 @@ async function run() {
             process.chdir(workingDirectory);
         }
         const token = core.getInput('token', { required: false });
+        const base = core.getInput('base', { required: false });
         const filtersInput = core.getInput('filters', { required: true });
         const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
         const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
+        const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10;
         if (!isExportFormat(listFiles)) {
             core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`);
             return;
         }
         const filter = new filter_1.Filter(filtersYaml);
-        const files = await getChangedFiles(token);
+        const files = await getChangedFiles(token, base, initialFetchDepth);
         const results = filter.match(files);
         exportResults(results, listFiles);
     }
@@ -4623,26 +4627,28 @@ function getConfigFileContent(configPath) {
     }
     return fs.readFileSync(configPath, { encoding: 'utf8' });
 }
-async function getChangedFiles(token) {
+async function getChangedFiles(token, base, initialFetchDepth) {
     if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
         const pr = github.context.payload.pull_request;
-        return token ? await getChangedFilesFromApi(token, pr) : await git.getChangesSinceRef(pr.base.ref);
+        return token
+            ? await getChangedFilesFromApi(token, pr)
+            : await git.getChangesSinceRef(pr.base.ref, initialFetchDepth);
     }
     else if (github.context.eventName === 'push') {
-        return getChangedFilesFromPush();
+        return getChangedFilesFromPush(base, initialFetchDepth);
     }
     else {
         throw new Error('This action can be triggered only by pull_request, pull_request_target or push event');
     }
 }
-async function getChangedFilesFromPush() {
+async function getChangedFilesFromPush(base, initialFetchDepth) {
     const push = github.context.payload;
     // No change detection for pushed tags
     if (git.isTagRef(push.ref)) {
         core.info('Workflow is triggered by pushing of tag - all files will be listed as added');
         return await git.listAllFilesAsAdded();
     }
-    const baseRef = git.trimRefsHeads(core.getInput('base', { required: false }) || push.repository.default_branch);
+    const baseRef = git.trimRefsHeads(base || push.repository.default_branch);
     const pushRef = git.trimRefsHeads(push.ref);
     // If base references same branch it was pushed to, we will do comparison against the previously pushed commit.
     if (baseRef === pushRef) {
@@ -4655,7 +4661,7 @@ async function getChangedFilesFromPush() {
     }
     // Changes introduced by current branch against the base branch
     core.info(`Changes will be detected against the branch ${baseRef}`);
-    return await git.getChangesSinceRef(baseRef);
+    return await git.getChangesSinceRef(baseRef, initialFetchDepth);
 }
 // Uses github REST api to get list of files changed in PR
 async function getChangedFilesFromApi(token, pullRequest) {

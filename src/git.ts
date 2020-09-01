@@ -11,6 +11,7 @@ export async function getChangesAgainstSha(sha: string): Promise<File[]> {
   // Get differences between sha and HEAD
   let output = ''
   try {
+    // Two dots '..' change detection - directly compares two versions
     await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`], {
       listeners: {
         stdout: (data: Buffer) => (output += data.toString())
@@ -23,7 +24,7 @@ export async function getChangesAgainstSha(sha: string): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChangesSinceRef(ref: string, initialFetchDepth = 10): Promise<File[]> {
+export async function getChangesSinceRef(ref: string, initialFetchDepth: number): Promise<File[]> {
   // Fetch and add base branch
   await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
 
@@ -54,6 +55,7 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth = 10): P
   // Get changes introduced on HEAD compared to ref
   let output = ''
   try {
+    // Three dots '...' change detection - finds merge-base and compares against it
     await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
       listeners: {
         stdout: (data: Buffer) => (output += data.toString())

@@ -17,15 +17,23 @@ inputs:
     required: false
   filters:
     description: 'Path to the configuration file or YAML string with filters definition'
-    required: false
+    required: true
   list-files:
     description: |
       Enables listing of files matching the filter:
         'none'  - Disables listing of matching files (default).
         'json'  - Matching files paths are serialized as JSON array.
         'shell' - Matching files paths are escaped and space-delimited. Output is usable as command line argument list in linux shell.
-    required: false
+    required: true
     default: none
+  initial-fetch-depth:
+    description: |
+      How many commits are initially fetched from base branch.
+      If needed, each subsequent fetch doubles the previously requested number of commits
+      until the merge-base is found or there are no more commits in the history.
+      This option takes effect only when changes are detected using git against different base branch.
+    required: false
+    default: '10'
 runs:
   using: 'node12'
   main: 'dist/index.js'

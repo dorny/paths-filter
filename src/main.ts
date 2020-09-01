@@ -18,9 +18,11 @@ async function run(): Promise<void> {
     }
 
     const token = core.getInput('token', {required: false})
+    const base = core.getInput('base', {required: false})
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
     const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
+    const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
 
     if (!isExportFormat(listFiles)) {
       core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`)
@@ -28,7 +30,7 @@ async function run(): Promise<void> {
     }
 
     const filter = new Filter(filtersYaml)
-    const files = await getChangedFiles(token)
+    const files = await getChangedFiles(token, base, initialFetchDepth)
     const results = filter.match(files)
     exportResults(results, listFiles)
   } catch (error) {
@@ -52,18 +54,20 @@ function getConfigFileContent(configPath: string): string {
   return fs.readFileSync(configPath, {encoding: 'utf8'})
 }
 
-async function getChangedFiles(token: string): Promise<File[]> {
+async function getChangedFiles(token: string, base: string, initialFetchDepth: number): Promise<File[]> {
   if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
     const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
-    return token ? await getChangedFilesFromApi(token, pr) : await git.getChangesSinceRef(pr.base.ref)
+    return token
+      ? await getChangedFilesFromApi(token, pr)
+      : await git.getChangesSinceRef(pr.base.ref, initialFetchDepth)
   } else if (github.context.eventName === 'push') {
-    return getChangedFilesFromPush()
+    return getChangedFilesFromPush(base, initialFetchDepth)
   } else {
     throw new Error('This action can be triggered only by pull_request, pull_request_target or push event')
   }
 }
 
-async function getChangedFilesFromPush(): Promise<File[]> {
+async function getChangedFilesFromPush(base: string, initialFetchDepth: number): Promise<File[]> {
   const push = github.context.payload as Webhooks.WebhookPayloadPush
 
   // No change detection for pushed tags
@@ -72,7 +76,7 @@ async function getChangedFilesFromPush(): Promise<File[]> {
     return await git.listAllFilesAsAdded()
   }
 
-  const baseRef = git.trimRefsHeads(core.getInput('base', {required: false}) || push.repository.default_branch)
+  const baseRef = git.trimRefsHeads(base || push.repository.default_branch)
   const pushRef = git.trimRefsHeads(push.ref)
 
   // If base references same branch it was pushed to, we will do comparison against the previously pushed commit.
@@ -88,7 +92,7 @@ async function getChangedFilesFromPush(): Promise<File[]> {
 
   // Changes introduced by current branch against the base branch
   core.info(`Changes will be detected against the branch ${baseRef}`)
-  return await git.getChangesSinceRef(baseRef)
+  return await git.getChangesSinceRef(baseRef, initialFetchDepth)
 }
 
 // Uses github REST api to get list of files changed in PR
