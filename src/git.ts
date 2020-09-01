@@ -33,36 +33,32 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth = 10): P
   for (;;) {
     let output = ''
     let error = ''
-    let exitCode
     try {
-      exitCode = await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
-        ignoreReturnCode: true,
+      await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
         listeners: {
           stdout: (data: Buffer) => (output += data.toString()),
           stderr: (data: Buffer) => (error += data.toString())
         }
       })
+    } catch (err) {
+      // Only acceptable error is when there is no merge base
+      if (!error.includes('no merge base')) {
+        throw new Error('Unexpected failure of `git diff` command')
+      }
+
+      // Try to fetch more commits
+      // If there are none, it means there is no common history between base and HEAD
+      if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
+        core.info('No merge base found - all files will be listed as added')
+        return listAllFilesAsAdded()
+      }
+      deepen = deepen * 2
+      continue
     } finally {
       fixStdOutNullTermination()
     }
 
-    if (exitCode === 0) {
-      return parseGitDiffOutput(output)
-    }
-
-    // Only acceptable error is when there is no merge base
-    if (!error.includes('no merge base')) {
-      throw new Error('Unexpected failure of `git diff` command')
-    }
-
-    // Try to fetch more commits
-    // If there are none, it means there is no common history between base and HEAD
-    if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
-      core.info('No merge base found - all files will be listed as added')
-      return listAllFilesAsAdded()
-    }
-
-    deepen = deepen * 2
+    return parseGitDiffOutput(output)
   }
 }
 
