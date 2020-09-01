@@ -3862,7 +3862,7 @@ function getChangesSinceRef(ref, initialFetchDepth = 10) {
         try {
             yield exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
                 listeners: {
-                    stdout: (data) => (output += data.toString()),
+                    stdout: (data) => (output += data.toString())
                 }
             });
         }
@@ -3925,7 +3925,7 @@ function tryDeepen(ref, deepen) {
     return __awaiter(this, void 0, void 0, function* () {
         const headBefore = yield getNumberOfCommits('HEAD');
         const refBefore = yield getNumberOfCommits(ref);
-        yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc', '-q']);
+        yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc']);
         const headAfter = yield getNumberOfCommits('HEAD');
         const refAfter = yield getNumberOfCommits(ref);
         const headFetched = headAfter - headBefore;
