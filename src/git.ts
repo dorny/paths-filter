@@ -57,7 +57,7 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth = 10): P
 
     // Try to fetch more commits
     // If there are none, it means there is no common history between base and HEAD
-    if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(deepen)) {
+    if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
       core.info('No merge base found - all files will be listed as added')
       return listAllFilesAsAdded()
     }
@@ -112,17 +112,23 @@ export function trimRefsHeads(ref: string): string {
   return trimStart(trimRef, 'heads/')
 }
 
-async function tryDeepen(deepen: number): Promise<boolean> {
-  // The only indicator there is no more history I've found.
-  // It forces the progress indicator and checks for 0 items from remote.
-  // If you know something better please open PR with fix.
-  let error = ''
-  await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--progress'], {
+async function tryDeepen(ref: string, deepen: number): Promise<boolean> {
+  const before = (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref))
+  await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '-q'])
+  const after = (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref))
+
+  // Check if have more commits now
+  return after > before
+}
+
+async function getNumberOfCommits(ref: string): Promise<number> {
+  let output = ''
+  await exec('git', ['rev-list', `--count`, ref], {
     listeners: {
-      stderr: (data: Buffer) => (error += data.toString())
+      stderr: (data: Buffer) => (output += data.toString())
     }
   })
-  return !error.includes('remote: Total 0 ')
+  return parseInt(output)
 }
 
 function trimStart(ref: string, start: string): string {

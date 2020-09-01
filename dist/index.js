@@ -3874,7 +3874,7 @@ function getChangesSinceRef(ref, initialFetchDepth = 10) {
             }
             // Try to fetch more commits
             // If there are none, it means there is no common history between base and HEAD
-            if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(deepen)) {
+            if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
                 core.info('No merge base found - all files will be listed as added');
                 return listAllFilesAsAdded();
             }
@@ -3931,18 +3931,24 @@ function trimRefsHeads(ref) {
     return trimStart(trimRef, 'heads/');
 }
 exports.trimRefsHeads = trimRefsHeads;
-function tryDeepen(deepen) {
+function tryDeepen(ref, deepen) {
     return __awaiter(this, void 0, void 0, function* () {
-        // The only indicator there is no more history I've found.
-        // It forces the progress indicator and checks for 0 items from remote.
-        // If you know something better please open PR with fix.
-        let error = '';
-        yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--progress'], {
+        const before = (yield getNumberOfCommits('HEAD')) + (yield getNumberOfCommits(ref));
+        yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '-q']);
+        const after = (yield getNumberOfCommits('HEAD')) + (yield getNumberOfCommits(ref));
+        // Check if have more commits now
+        return after > before;
+    });
+}
+function getNumberOfCommits(ref) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let output = '';
+        yield exec_1.exec('git', ['rev-list', `--count`, ref], {
             listeners: {
-                stderr: (data) => (error += data.toString())
+                stderr: (data) => (output += data.toString())
             }
         });
-        return !error.includes('remote: Total 0 ');
+        return parseInt(output);
     });
 }
 function trimStart(ref, start) {
