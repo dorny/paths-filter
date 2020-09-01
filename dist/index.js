@@ -3846,39 +3846,30 @@ function getChangesSinceRef(ref, initialFetchDepth = 10) {
     return __awaiter(this, void 0, void 0, function* () {
         // Fetch and add base branch
         yield exec_1.exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
-        // Try to do `git diff`
-        // Deepen the history if no merge base is found
-        let deepen = initialFetchDepth;
-        for (;;) {
-            let output = '';
-            let error = '';
-            try {
-                yield exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
-                    listeners: {
-                        stdout: (data) => (output += data.toString()),
-                        stderr: (data) => (error += data.toString())
-                    }
-                });
+        // Fetch older commits until merge-base is found
+        for (let deepen = initialFetchDepth;; deepen *= 2) {
+            const exitCode = yield exec_1.exec('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true });
+            if (exitCode === 0) {
+                // merge-base was found
+                break;
             }
-            catch (err) {
-                // Only acceptable error is when there is no merge base
-                if (!error.includes('no merge base')) {
-                    throw new Error('Unexpected failure of `git diff` command');
-                }
-                // Try to fetch more commits
-                // If there are none, it means there is no common history between base and HEAD
-                if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
-                    core.info('No merge base found - all files will be listed as added');
-                    return listAllFilesAsAdded();
-                }
-                deepen = deepen * 2;
-                continue;
+            if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
+                core.info('No merge base found - all files will be listed as added');
+                return listAllFilesAsAdded();
             }
-            finally {
-                fixStdOutNullTermination();
-            }
-            return parseGitDiffOutput(output);
         }
+        let output = '';
+        try {
+            yield exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
+                listeners: {
+                    stdout: (data) => (output += data.toString()),
+                }
+            });
+        }
+        finally {
+            fixStdOutNullTermination();
+        }
+        return parseGitDiffOutput(output);
     });
 }
 exports.getChangesSinceRef = getChangesSinceRef;

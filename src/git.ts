@@ -27,39 +27,32 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth = 10): P
   // Fetch and add base branch
   await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
 
-  // Try to do `git diff`
-  // Deepen the history if no merge base is found
-  let deepen = initialFetchDepth
-  for (;;) {
-    let output = ''
-    let error = ''
-    try {
-      await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
-        listeners: {
-          stdout: (data: Buffer) => (output += data.toString()),
-          stderr: (data: Buffer) => (error += data.toString())
-        }
-      })
-    } catch (err) {
-      // Only acceptable error is when there is no merge base
-      if (!error.includes('no merge base')) {
-        throw new Error('Unexpected failure of `git diff` command')
-      }
-
-      // Try to fetch more commits
-      // If there are none, it means there is no common history between base and HEAD
-      if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
-        core.info('No merge base found - all files will be listed as added')
-        return listAllFilesAsAdded()
-      }
-      deepen = deepen * 2
-      continue
-    } finally {
-      fixStdOutNullTermination()
+  // Fetch older commits until merge-base is found
+  for (let deepen = initialFetchDepth; ; deepen *= 2) {
+    const exitCode = await exec('git', ['merge-base', ref, 'HEAD'], {ignoreReturnCode: true})
+    if (exitCode === 0) {
+      // merge-base was found
+      break
     }
 
-    return parseGitDiffOutput(output)
+    if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
+      core.info('No merge base found - all files will be listed as added')
+      return listAllFilesAsAdded()
+    }
   }
+
+  let output = ''
+  try {
+    await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
+      listeners: {
+        stdout: (data: Buffer) => (output += data.toString())
+      }
+    })
+  } finally {
+    fixStdOutNullTermination()
+  }
+
+  return parseGitDiffOutput(output)
 }
 
 export function parseGitDiffOutput(output: string): File[] {
