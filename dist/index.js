@@ -3817,48 +3817,99 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.trimRefsHeads = exports.trimRefs = exports.isTagRef = exports.getChangedFiles = exports.fetchCommit = exports.FETCH_HEAD = exports.NULL_SHA = void 0;
+exports.trimRefsHeads = exports.trimRefs = exports.isTagRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceRef = exports.getChangesAgainstSha = exports.NULL_SHA = void 0;
 const exec_1 = __webpack_require__(986);
 const core = __importStar(__webpack_require__(470));
 const file_1 = __webpack_require__(258);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
-exports.FETCH_HEAD = 'FETCH_HEAD';
-function fetchCommit(ref) {
+function getChangesAgainstSha(sha) {
     return __awaiter(this, void 0, void 0, function* () {
-        const exitCode = yield exec_1.exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', ref]);
-        if (exitCode !== 0) {
-            throw new Error(`Fetching ${ref} failed`);
+        // Fetch single commit
+        yield exec_1.exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', sha]);
+        // Get differences between sha and HEAD
+        let output = '';
+        try {
+            yield exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`], {
+                listeners: {
+                    stdout: (data) => (output += data.toString())
+                }
+            });
+        }
+        finally {
+            fixStdOutNullTermination();
+        }
+        return parseGitDiffOutput(output);
+    });
+}
+exports.getChangesAgainstSha = getChangesAgainstSha;
+function getChangesSinceRef(ref, initialFetchDepth = 10) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // Fetch and add base branch
+        yield exec_1.exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
+        // Try to do `git diff`
+        // Deepen the history if no merge base is found
+        let deepen = initialFetchDepth;
+        for (;;) {
+            let output = '';
+            let exitCode;
+            try {
+                exitCode = yield exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
+                    ignoreReturnCode: true,
+                    listeners: {
+                        stdout: (data) => (output += data.toString())
+                    }
+                });
+            }
+            finally {
+                fixStdOutNullTermination();
+            }
+            if (exitCode === 0) {
+                return parseGitDiffOutput(output);
+            }
+            // Only acceptable error is when there is no merge base
+            if (!output.includes('no merge base')) {
+                throw new Error('Unexpected failure of `git diff` command');
+            }
+            // Try to fetch more commits
+            // If there are none, it means there is no common history between base and HEAD
+            if (!tryDeepen(deepen)) {
+                return listAllFilesAsAdded();
+            }
+            deepen = deepen * 2;
         }
     });
 }
-exports.fetchCommit = fetchCommit;
-function getChangedFiles(ref, cmd = exec_1.exec) {
+exports.getChangesSinceRef = getChangesSinceRef;
+function parseGitDiffOutput(output) {
+    const tokens = output.split('\u0000').filter(s => s.length > 0);
+    const files = [];
+    for (let i = 0; i + 1 < tokens.length; i += 2) {
+        files.push({
+            status: statusMap[tokens[i]],
+            filename: tokens[i + 1]
+        });
+    }
+    return files;
+}
+exports.parseGitDiffOutput = parseGitDiffOutput;
+function listAllFilesAsAdded() {
     return __awaiter(this, void 0, void 0, function* () {
         let output = '';
-        const exitCode = yield cmd('git', ['diff-index', '--name-status', '-z', ref], {
+        yield exec_1.exec('git', ['ls-files', '-z'], {
             listeners: {
                 stdout: (data) => (output += data.toString())
             }
         });
-        if (exitCode !== 0) {
-            throw new Error(`Couldn't determine changed files`);
-        }
-        // Previous command uses NULL as delimiters and output is printed to stdout.
-        // We have to make sure next thing written to stdout will start on new line.
-        // Otherwise things like ::set-output wouldn't work.
-        core.info('');
-        const tokens = output.split('\u0000').filter(s => s.length > 0);
-        const files = [];
-        for (let i = 0; i + 1 < tokens.length; i += 2) {
-            files.push({
-                status: statusMap[tokens[i]],
-                filename: tokens[i + 1]
-            });
-        }
-        return files;
+        return output
+            .split('\u0000')
+            .filter(s => s.length > 0)
+            .map(path => ({
+            status: file_1.ChangeStatus.Added,
+            filename: path
+        }));
     });
 }
-exports.getChangedFiles = getChangedFiles;
+exports.listAllFilesAsAdded = listAllFilesAsAdded;
 function isTagRef(ref) {
     return ref.startsWith('refs/tags/');
 }
@@ -3872,8 +3923,25 @@ function trimRefsHeads(ref) {
     return trimStart(trimRef, 'heads/');
 }
 exports.trimRefsHeads = trimRefsHeads;
+function tryDeepen(deepen) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let output = '';
+        yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags'], {
+            listeners: {
+                stdout: (data) => (output += data.toString())
+            }
+        });
+        return !output.includes('remote: Total 0 ');
+    });
+}
 function trimStart(ref, start) {
     return ref.startsWith(start) ? ref.substr(start.length) : ref;
+}
+function fixStdOutNullTermination() {
+    // Previous command uses NULL as delimiters and output is printed to stdout.
+    // We have to make sure next thing written to stdout will start on new line.
+    // Otherwise things like ::set-output wouldn't work.
+    core.info('');
 }
 const statusMap = {
     A: file_1.ChangeStatus.Added,
@@ -4554,14 +4622,8 @@ function run() {
             }
             const filter = new filter_1.Filter(filtersYaml);
             const files = yield getChangedFiles(token);
-            if (files === null) {
-                // Change detection was not possible
-                exportNoMatchingResults(filter);
-            }
-            else {
-                const results = filter.match(files);
-                exportResults(results, listFiles);
-            }
+            const results = filter.match(files);
+            exportResults(results, listFiles);
         }
         catch (error) {
             core.setFailed(error.message);
@@ -4584,13 +4646,13 @@ function getChangedFiles(token) {
     return __awaiter(this, void 0, void 0, function* () {
         if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
             const pr = github.context.payload.pull_request;
-            return token ? yield getChangedFilesFromApi(token, pr) : yield getChangedFilesFromGit(pr.base.sha);
+            return token ? yield getChangedFilesFromApi(token, pr) : yield git.getChangesSinceRef(pr.base.ref);
         }
         else if (github.context.eventName === 'push') {
             return getChangedFilesFromPush();
         }
         else {
-            throw new Error('This action can be triggered only by pull_request or push event');
+            throw new Error('This action can be triggered only by pull_request, pull_request_target or push event');
         }
     });
 }
@@ -4599,33 +4661,23 @@ function getChangedFilesFromPush() {
         const push = github.context.payload;
         // No change detection for pushed tags
         if (git.isTagRef(push.ref)) {
-            core.info('Workflow is triggered by pushing of tag. Change detection will not run.');
-            return null;
+            core.info('Workflow is triggered by pushing of tag - all files will be listed as added');
+            return yield git.listAllFilesAsAdded();
         }
-        // Get base from input or use repo default branch.
-        // It it starts with 'refs/', it will be trimmed (git fetch refs/heads/<NAME> doesn't work)
-        const baseInput = git.trimRefs(core.getInput('base', { required: false }) || push.repository.default_branch);
+        const baseRef = git.trimRefsHeads(core.getInput('base', { required: false }) || push.repository.default_branch);
+        const pushRef = git.trimRefsHeads(push.ref);
         // If base references same branch it was pushed to, we will do comparison against the previously pushed commit.
-        // Otherwise changes are detected against the base reference
-        const base = git.trimRefsHeads(baseInput) === git.trimRefsHeads(push.ref) ? push.before : baseInput;
-        // There is no previous commit for comparison
-        // e.g. change detection against previous commit of just pushed new branch
-        if (base === git.NULL_SHA) {
-            core.info('There is no previous commit for comparison. Change detection will not run.');
-            return null;
+        if (baseRef === pushRef) {
+            if (push.before === git.NULL_SHA) {
+                core.info('First push of a branch detected - all files will be listed as added');
+                return yield git.listAllFilesAsAdded();
+            }
+            core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`);
+            return yield git.getChangesAgainstSha(push.before);
         }
-        return yield getChangedFilesFromGit(base);
-    });
-}
-// Fetch base branch and use `git diff` to determine changed files
-function getChangedFilesFromGit(ref) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return core.group(`Fetching base and using \`git diff-index\` to determine changed files`, () => __awaiter(this, void 0, void 0, function* () {
-            yield git.fetchCommit(ref);
-            // FETCH_HEAD will always point to the just fetched commit
-            // No matter if ref is SHA, branch or tag name or full git ref
-            return yield git.getChangedFiles(git.FETCH_HEAD);
-        }));
+        // Changes introduced by current branch against the base branch
+        core.info(`Changes will be detected against the branch ${baseRef}`);
+        return yield git.getChangesSinceRef(baseRef);
     });
 }
 // Uses github REST api to get list of files changed in PR
@@ -4668,12 +4720,6 @@ function getChangedFilesFromApi(token, pullRequest) {
         }
         return files;
     });
-}
-function exportNoMatchingResults(filter) {
-    core.info('All filters will be set to true but no matched files will be exported.');
-    for (const key of Object.keys(filter.rules)) {
-        core.setOutput(key, true);
-    }
 }
 function exportResults(results, format) {
     for (const [key, files] of Object.entries(results)) {

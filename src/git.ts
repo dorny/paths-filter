@@ -3,32 +3,67 @@ import * as core from '@actions/core'
 import {File, ChangeStatus} from './file'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
-export const FETCH_HEAD = 'FETCH_HEAD'
 
-export async function fetchCommit(ref: string): Promise<void> {
-  const exitCode = await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', ref])
-  if (exitCode !== 0) {
-    throw new Error(`Fetching ${ref} failed`)
+export async function getChangesAgainstSha(sha: string): Promise<File[]> {
+  // Fetch single commit
+  await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', sha])
+
+  // Get differences between sha and HEAD
+  let output = ''
+  try {
+    await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`], {
+      listeners: {
+        stdout: (data: Buffer) => (output += data.toString())
+      }
+    })
+  } finally {
+    fixStdOutNullTermination()
+  }
+
+  return parseGitDiffOutput(output)
+}
+
+export async function getChangesSinceRef(ref: string, initialFetchDepth = 10): Promise<File[]> {
+  // Fetch and add base branch
+  await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
+
+  // Try to do `git diff`
+  // Deepen the history if no merge base is found
+  let deepen = initialFetchDepth
+  for (;;) {
+    let output = ''
+    let exitCode
+    try {
+      exitCode = await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
+        ignoreReturnCode: true,
+        listeners: {
+          stdout: (data: Buffer) => (output += data.toString())
+        }
+      })
+    } finally {
+      fixStdOutNullTermination()
+    }
+
+    if (exitCode === 0) {
+      return parseGitDiffOutput(output)
+    }
+
+    // Only acceptable error is when there is no merge base
+    if (!output.includes('no merge base')) {
+      throw new Error('Unexpected failure of `git diff` command')
+    }
+
+    // Try to fetch more commits
+    // If there are none, it means there is no common history between base and HEAD
+    if (!tryDeepen(deepen)) {
+      return listAllFilesAsAdded()
+    }
+
+    deepen = deepen * 2
   }
 }
 
-export async function getChangedFiles(ref: string, cmd = exec): Promise<File[]> {
-  let output = ''
-  const exitCode = await cmd('git', ['diff-index', '--name-status', '-z', ref], {
-    listeners: {
-      stdout: (data: Buffer) => (output += data.toString())
-    }
-  })
-
-  if (exitCode !== 0) {
-    throw new Error(`Couldn't determine changed files`)
-  }
-
-  // Previous command uses NULL as delimiters and output is printed to stdout.
-  // We have to make sure next thing written to stdout will start on new line.
-  // Otherwise things like ::set-output wouldn't work.
-  core.info('')
-
+export function parseGitDiffOutput(output: string): File[] {
   const tokens = output.split('\u0000').filter(s => s.length > 0)
   const files: File[] = []
   for (let i = 0; i + 1 < tokens.length; i += 2) {
@@ -38,6 +73,23 @@ export async function getChangedFiles(ref: string, cmd = exec): Promise<File[]> 
     })
   }
   return files
+}
+
+export async function listAllFilesAsAdded(): Promise<File[]> {
+  let output = ''
+  await exec('git', ['ls-files', '-z'], {
+    listeners: {
+      stdout: (data: Buffer) => (output += data.toString())
+    }
+  })
+
+  return output
+    .split('\u0000')
+    .filter(s => s.length > 0)
+    .map(path => ({
+      status: ChangeStatus.Added,
+      filename: path
+    }))
 }
 
 export function isTagRef(ref: string): boolean {
@@ -53,8 +105,25 @@ export function trimRefsHeads(ref: string): string {
   return trimStart(trimRef, 'heads/')
 }
 
+async function tryDeepen(deepen: number): Promise<boolean> {
+  let output = ''
+  await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags'], {
+    listeners: {
+      stdout: (data: Buffer) => (output += data.toString())
+    }
+  })
+  return !output.includes('remote: Total 0 ')
+}
+
 function trimStart(ref: string, start: string): string {
   return ref.startsWith(start) ? ref.substr(start.length) : ref
+}
+
+function fixStdOutNullTermination(): void {
+  // Previous command uses NULL as delimiters and output is printed to stdout.
+  // We have to make sure next thing written to stdout will start on new line.
+  // Otherwise things like ::set-output wouldn't work.
+  core.info('')
 }
 
 const statusMap: {[char: string]: ChangeStatus} = {
