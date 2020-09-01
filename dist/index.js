@@ -3815,8 +3815,11 @@ const file_1 = __webpack_require__(258);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
 async function getChangesAgainstSha(sha) {
     // Fetch single commit
+    core.startGroup(`Fetching ${sha} from origin`);
     await exec_1.exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', sha]);
+    core.endGroup();
     // Get differences between sha and HEAD
+    core.startGroup(`Change detection ${sha}..HEAD`);
     let output = '';
     try {
         // Two dots '..' change detection - directly compares two versions
@@ -3828,12 +3831,14 @@ async function getChangesAgainstSha(sha) {
     }
     finally {
         fixStdOutNullTermination();
+        core.endGroup();
     }
     return parseGitDiffOutput(output);
 }
 exports.getChangesAgainstSha = getChangesAgainstSha;
 async function getChangesSinceRef(ref, initialFetchDepth) {
     // Fetch and add base branch
+    core.startGroup(`Fetching ${ref} from origin until merge-base is found`);
     await exec_1.exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
     async function hasMergeBase() {
         return (await exec_1.exec('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true })) === 0;
@@ -3850,13 +3855,16 @@ async function getChangesSinceRef(ref, initialFetchDepth) {
             const count = await countCommits();
             if (count <= lastCommitsCount) {
                 core.info('No merge base found - all files will be listed as added');
+                core.endGroup();
                 return await listAllFilesAsAdded();
             }
             lastCommitsCount = count;
             deepen = Math.min(deepen * 2, Number.MAX_SAFE_INTEGER);
         } while (!(await hasMergeBase()));
     }
+    core.endGroup();
     // Get changes introduced on HEAD compared to ref
+    core.startGroup(`Change detection ${ref}...HEAD`);
     let output = '';
     try {
         // Three dots '...' change detection - finds merge-base and compares against it
@@ -3868,6 +3876,7 @@ async function getChangesSinceRef(ref, initialFetchDepth) {
     }
     finally {
         fixStdOutNullTermination();
+        core.endGroup();
     }
     return parseGitDiffOutput(output);
 }
@@ -3885,6 +3894,7 @@ function parseGitDiffOutput(output) {
 }
 exports.parseGitDiffOutput = parseGitDiffOutput;
 async function listAllFilesAsAdded() {
+    core.startGroup('Listing all files tracked by git');
     let output = '';
     try {
         await exec_1.exec('git', ['ls-files', '-z'], {
@@ -3895,6 +3905,7 @@ async function listAllFilesAsAdded() {
     }
     finally {
         fixStdOutNullTermination();
+        core.endGroup();
     }
     return output
         .split('\u0000')
@@ -4703,12 +4714,18 @@ async function getChangedFilesFromApi(token, pullRequest) {
     return files;
 }
 function exportResults(results, format) {
+    core.info('Results:');
     for (const [key, files] of Object.entries(results)) {
         const value = files.length > 0;
         core.startGroup(`Filter ${key} = ${value}`);
-        core.info('Matching files:');
-        for (const file of files) {
-            core.info(`${file.filename} [${file.status}]`);
+        if (files.length > 0) {
+            core.info('Matching files:');
+            for (const file of files) {
+                core.info(`${file.filename} [${file.status}]`);
+            }
+        }
+        else {
+            core.info('Matching files: none');
         }
         core.setOutput(key, value);
         if (format !== 'none') {

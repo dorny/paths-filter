@@ -6,9 +6,12 @@ export const NULL_SHA = '0000000000000000000000000000000000000000'
 
 export async function getChangesAgainstSha(sha: string): Promise<File[]> {
   // Fetch single commit
+  core.startGroup(`Fetching ${sha} from origin`)
   await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', sha])
+  core.endGroup()
 
   // Get differences between sha and HEAD
+  core.startGroup(`Change detection ${sha}..HEAD`)
   let output = ''
   try {
     // Two dots '..' change detection - directly compares two versions
@@ -19,6 +22,7 @@ export async function getChangesAgainstSha(sha: string): Promise<File[]> {
     })
   } finally {
     fixStdOutNullTermination()
+    core.endGroup()
   }
 
   return parseGitDiffOutput(output)
@@ -26,6 +30,7 @@ export async function getChangesAgainstSha(sha: string): Promise<File[]> {
 
 export async function getChangesSinceRef(ref: string, initialFetchDepth: number): Promise<File[]> {
   // Fetch and add base branch
+  core.startGroup(`Fetching ${ref} from origin until merge-base is found`)
   await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
 
   async function hasMergeBase(): Promise<boolean> {
@@ -45,14 +50,17 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth: number)
       const count = await countCommits()
       if (count <= lastCommitsCount) {
         core.info('No merge base found - all files will be listed as added')
+        core.endGroup()
         return await listAllFilesAsAdded()
       }
       lastCommitsCount = count
       deepen = Math.min(deepen * 2, Number.MAX_SAFE_INTEGER)
     } while (!(await hasMergeBase()))
   }
+  core.endGroup()
 
   // Get changes introduced on HEAD compared to ref
+  core.startGroup(`Change detection ${ref}...HEAD`)
   let output = ''
   try {
     // Three dots '...' change detection - finds merge-base and compares against it
@@ -63,6 +71,7 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth: number)
     })
   } finally {
     fixStdOutNullTermination()
+    core.endGroup()
   }
 
   return parseGitDiffOutput(output)
@@ -81,6 +90,7 @@ export function parseGitDiffOutput(output: string): File[] {
 }
 
 export async function listAllFilesAsAdded(): Promise<File[]> {
+  core.startGroup('Listing all files tracked by git')
   let output = ''
   try {
     await exec('git', ['ls-files', '-z'], {
@@ -90,6 +100,7 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
     })
   } finally {
     fixStdOutNullTermination()
+    core.endGroup()
   }
 
   return output
