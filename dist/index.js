@@ -3945,10 +3945,11 @@ function getNumberOfCommits(ref) {
         let output = '';
         yield exec_1.exec('git', ['rev-list', `--count`, ref], {
             listeners: {
-                stderr: (data) => (output += data.toString())
+                stdout: (data) => (output += data.toString())
             }
         });
-        return parseInt(output);
+        const count = parseInt(output);
+        return isNaN(count) ? 0 : count;
     });
 }
 function trimStart(ref, start) {

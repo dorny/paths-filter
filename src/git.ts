@@ -125,10 +125,11 @@ async function getNumberOfCommits(ref: string): Promise<number> {
   let output = ''
   await exec('git', ['rev-list', `--count`, ref], {
     listeners: {
-      stderr: (data: Buffer) => (output += data.toString())
+      stdout: (data: Buffer) => (output += data.toString())
     }
   })
-  return parseInt(output)
+  const count = parseInt(output)
+  return isNaN(count) ? 0 : count
 }
 
 function trimStart(ref: string, start: string): string {
