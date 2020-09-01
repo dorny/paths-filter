@@ -3834,18 +3834,28 @@ exports.getChangesAgainstSha = getChangesAgainstSha;
 async function getChangesSinceRef(ref, initialFetchDepth = 10) {
     // Fetch and add base branch
     await exec_1.exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
-    // Fetch older commits until merge-base is found
-    for (let deepen = initialFetchDepth;; deepen *= 2) {
-        const exitCode = await exec_1.exec('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true });
-        if (exitCode === 0) {
-            // merge-base was found
-            break;
-        }
-        if (deepen > Number.MAX_SAFE_INTEGER || !tryDeepen(ref, deepen)) {
-            core.info('No merge base found - all files will be listed as added');
-            return listAllFilesAsAdded();
-        }
+    async function hasMergeBase() {
+        return (await exec_1.exec('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true })) === 0;
     }
+    async function countCommits() {
+        return (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref));
+    }
+    // Fetch more commits until merge-base is found
+    if (!(await hasMergeBase())) {
+        let deepen = initialFetchDepth;
+        let lastCommitsCount = await countCommits();
+        do {
+            await exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc', '-q']);
+            const count = await countCommits();
+            if (count <= lastCommitsCount) {
+                core.info('No merge base found - all files will be listed as added');
+                return await listAllFilesAsAdded();
+            }
+            lastCommitsCount = count;
+            deepen = Math.min(deepen * 2, Number.MAX_SAFE_INTEGER);
+        } while (!(await hasMergeBase()));
+    }
+    // Get changes introduced on HEAD compared to ref
     let output = '';
     try {
         await exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
@@ -3906,18 +3916,6 @@ function trimRefsHeads(ref) {
     return trimStart(trimRef, 'heads/');
 }
 exports.trimRefsHeads = trimRefsHeads;
-async function tryDeepen(ref, deepen) {
-    const headBefore = await getNumberOfCommits('HEAD');
-    const refBefore = await getNumberOfCommits(ref);
-    await exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc']);
-    const headAfter = await getNumberOfCommits('HEAD');
-    const refAfter = await getNumberOfCommits(ref);
-    const headFetched = headAfter - headBefore;
-    const refFetched = refBefore - refAfter;
-    core.info(`HEAD -> ${headFetched} commits fetched.`);
-    core.info(`${ref} -> ${refFetched} commits fetched.`);
-    return headFetched > 0 || refFetched > 0;
-}
 async function getNumberOfCommits(ref) {
     let output = '';
     await exec_1.exec('git', ['rev-list', `--count`, ref], {
