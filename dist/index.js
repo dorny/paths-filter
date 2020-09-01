@@ -3933,11 +3933,16 @@ function trimRefsHeads(ref) {
 exports.trimRefsHeads = trimRefsHeads;
 function tryDeepen(ref, deepen) {
     return __awaiter(this, void 0, void 0, function* () {
-        const before = (yield getNumberOfCommits('HEAD')) + (yield getNumberOfCommits(ref));
-        yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '-q']);
-        const after = (yield getNumberOfCommits('HEAD')) + (yield getNumberOfCommits(ref));
-        // Check if have more commits now
-        return after > before;
+        const headBefore = yield getNumberOfCommits('HEAD');
+        const refBefore = yield getNumberOfCommits(ref);
+        yield exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc', '-q']);
+        const headAfter = yield getNumberOfCommits('HEAD');
+        const refAfter = yield getNumberOfCommits(ref);
+        const headFetched = headAfter - headBefore;
+        const refFetched = refBefore - refAfter;
+        core.info(`HEAD -> ${headFetched} commits fetched.`);
+        core.info(`${ref} -> ${refFetched} commits fetched.`);
+        return headFetched > 0 || refFetched > 0;
     });
 }
 function getNumberOfCommits(ref) {

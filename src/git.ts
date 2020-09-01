@@ -113,12 +113,18 @@ export function trimRefsHeads(ref: string): string {
 }
 
 async function tryDeepen(ref: string, deepen: number): Promise<boolean> {
-  const before = (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref))
-  await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '-q'])
-  const after = (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref))
+  const headBefore = await getNumberOfCommits('HEAD')
+  const refBefore = await getNumberOfCommits(ref)
+  await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc', '-q'])
+  const headAfter = await getNumberOfCommits('HEAD')
+  const refAfter = await getNumberOfCommits(ref)
 
-  // Check if have more commits now
-  return after > before
+  const headFetched = headAfter - headBefore
+  const refFetched = refBefore - refAfter
+  core.info(`HEAD -> ${headFetched} commits fetched.`)
+  core.info(`${ref} -> ${refFetched} commits fetched.`)
+
+  return headFetched > 0 || refFetched > 0
 }
 
 async function getNumberOfCommits(ref: string): Promise<number> {
