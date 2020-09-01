@@ -75,7 +75,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: touch add.txt && rm README.md && echo "TEST" > LICENSE && git add -A
+    - run: touch add.txt && rm README.md && echo "TEST" > LICENSE
+    - run: git add -A && git commit -a -m 'testing this action'
     - uses: ./
       id: filter
       with:
