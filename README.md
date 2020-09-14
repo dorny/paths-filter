@@ -2,7 +2,7 @@
 # paths-filter
 
 This [Github Action](https://github.com/features/actions) enables conditional execution of workflow steps and jobs,
-based on the paths that are modified by pull request or in pushed commits.
+based on the files modified by pull request, feature branch or in pushed commits.
 
 It saves time and resources especially in monorepo setups, where you can run slow tasks (e.g. integration tests or deployments) only for changed components.
 Github workflows built-in [path filters](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#onpushpull_requestpaths)
