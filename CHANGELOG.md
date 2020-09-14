@@ -5,6 +5,7 @@
 - [Change detection using git "three dot" diff](https://github.com/dorny/paths-filter/pull/35)
 - [Export files matching filter](https://github.com/dorny/paths-filter/pull/32)
 - [Extend filter syntax with optional specification of file status: add, modified, deleted](https://github.com/dorny/paths-filter/pull/22)
+- [Add working-directory input](https://github.com/dorny/paths-filter/pull/21)
 
 ## v2.2.1
 - [Add support for pull_request_target](https://github.com/dorny/paths-filter/pull/29)
