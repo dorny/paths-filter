@@ -3,6 +3,7 @@ on:
   pull_request:
     branches:
       - master
+      - develop
 
 jobs:
   build:
@@ -52,4 +53,64 @@ jobs:
         filters: '.github/filters.yml'
     - name: filter-test
       if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+      run: exit 1
+
+  test-wd-without-token:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: somewhere
+    - uses: ./somewhere
+      id: filter
+      with:
+        token: ''
+        working-directory: somewhere
+        filters: '.github/filters.yml'
+    - name: filter-test
+      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+      run: exit 1
+
+  test-change-type:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: configure GIT user
+      run: git config user.email "john@nowhere.local" && git config user.name "John Doe"
+    - name: modify working tree
+      run: touch add.txt && rm README.md && echo "TEST" > LICENSE
+    - name: commit changes
+      run: git add -A && git commit -a -m 'testing this action'
+    - uses: ./
+      id: filter
+      with:
+        token: ''
+        list-files: shell
+        filters: |
+          added:
+            - added: "add.txt"
+          deleted:
+            - deleted: "README.md"
+          modified:
+            - modified: "LICENSE"
+          any:
+            - added|deleted|modified: "*"
+    - name: Print 'added_files'
+      run: echo ${{steps.filter.outputs.added_files}}
+    - name: Print 'modified_files'
+      run: echo ${{steps.filter.outputs.modified_files}}
+    - name: Print 'deleted_files'
+      run: echo ${{steps.filter.outputs.deleted_files}}
+    - name: filter-test
+      # only single quotes are supported in GH action literal
+      # single quote needs to be escaped with single quote
+      # '''add.txt''' resolves to string 'add.txt'
+      if: |
+        steps.filter.outputs.added != 'true'
+        || steps.filter.outputs.deleted != 'true'
+        || steps.filter.outputs.modified != 'true'
+        || steps.filter.outputs.any != 'true'
+        || steps.filter.outputs.added_files != '''add.txt'''
+        || steps.filter.outputs.modified_files != '''LICENSE'''
+        || steps.filter.outputs.deleted_files != '''README.md'''
       run: exit 1

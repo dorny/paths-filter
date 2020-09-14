@@ -3788,47 +3788,134 @@ module.exports = require("child_process");
 
 "use strict";
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.trimRefsHeads = exports.trimRefs = exports.isTagRef = exports.getChangedFiles = exports.fetchCommit = exports.FETCH_HEAD = exports.NULL_SHA = void 0;
+exports.trimRefsHeads = exports.trimRefs = exports.isTagRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceRef = exports.getChangesAgainstSha = exports.NULL_SHA = void 0;
 const exec_1 = __webpack_require__(986);
+const core = __importStar(__webpack_require__(470));
+const file_1 = __webpack_require__(258);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
-exports.FETCH_HEAD = 'FETCH_HEAD';
-function fetchCommit(ref) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const exitCode = yield exec_1.exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', ref]);
-        if (exitCode !== 0) {
-            throw new Error(`Fetching ${ref} failed`);
-        }
-    });
-}
-exports.fetchCommit = fetchCommit;
-function getChangedFiles(ref) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let output = '';
-        const exitCode = yield exec_1.exec('git', ['diff-index', '--name-only', ref], {
+async function getChangesAgainstSha(sha) {
+    // Fetch single commit
+    core.startGroup(`Fetching ${sha} from origin`);
+    await exec_1.exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', sha]);
+    core.endGroup();
+    // Get differences between sha and HEAD
+    core.startGroup(`Change detection ${sha}..HEAD`);
+    let output = '';
+    try {
+        // Two dots '..' change detection - directly compares two versions
+        await exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`], {
             listeners: {
                 stdout: (data) => (output += data.toString())
             }
         });
-        if (exitCode !== 0) {
-            throw new Error(`Couldn't determine changed files`);
-        }
-        return output
-            .split('\n')
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
-    });
+    }
+    finally {
+        fixStdOutNullTermination();
+        core.endGroup();
+    }
+    return parseGitDiffOutput(output);
 }
-exports.getChangedFiles = getChangedFiles;
+exports.getChangesAgainstSha = getChangesAgainstSha;
+async function getChangesSinceRef(ref, initialFetchDepth) {
+    // Fetch and add base branch
+    core.startGroup(`Fetching ${ref} from origin until merge-base is found`);
+    await exec_1.exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
+    async function hasMergeBase() {
+        return (await exec_1.exec('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true })) === 0;
+    }
+    async function countCommits() {
+        return (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref));
+    }
+    // Fetch more commits until merge-base is found
+    if (!(await hasMergeBase())) {
+        let deepen = initialFetchDepth;
+        let lastCommitsCount = await countCommits();
+        do {
+            await exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc', '-q']);
+            const count = await countCommits();
+            if (count <= lastCommitsCount) {
+                core.info('No merge base found - all files will be listed as added');
+                core.endGroup();
+                return await listAllFilesAsAdded();
+            }
+            lastCommitsCount = count;
+            deepen = Math.min(deepen * 2, Number.MAX_SAFE_INTEGER);
+        } while (!(await hasMergeBase()));
+    }
+    core.endGroup();
+    // Get changes introduced on HEAD compared to ref
+    core.startGroup(`Change detection ${ref}...HEAD`);
+    let output = '';
+    try {
+        // Three dots '...' change detection - finds merge-base and compares against it
+        await exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
+            listeners: {
+                stdout: (data) => (output += data.toString())
+            }
+        });
+    }
+    finally {
+        fixStdOutNullTermination();
+        core.endGroup();
+    }
+    return parseGitDiffOutput(output);
+}
+exports.getChangesSinceRef = getChangesSinceRef;
+function parseGitDiffOutput(output) {
+    const tokens = output.split('\u0000').filter(s => s.length > 0);
+    const files = [];
+    for (let i = 0; i + 1 < tokens.length; i += 2) {
+        files.push({
+            status: statusMap[tokens[i]],
+            filename: tokens[i + 1]
+        });
+    }
+    return files;
+}
+exports.parseGitDiffOutput = parseGitDiffOutput;
+async function listAllFilesAsAdded() {
+    core.startGroup('Listing all files tracked by git');
+    let output = '';
+    try {
+        await exec_1.exec('git', ['ls-files', '-z'], {
+            listeners: {
+                stdout: (data) => (output += data.toString())
+            }
+        });
+    }
+    finally {
+        fixStdOutNullTermination();
+        core.endGroup();
+    }
+    return output
+        .split('\u0000')
+        .filter(s => s.length > 0)
+        .map(path => ({
+        status: file_1.ChangeStatus.Added,
+        filename: path
+    }));
+}
+exports.listAllFilesAsAdded = listAllFilesAsAdded;
 function isTagRef(ref) {
     return ref.startsWith('refs/tags/');
 }
@@ -3842,9 +3929,33 @@ function trimRefsHeads(ref) {
     return trimStart(trimRef, 'heads/');
 }
 exports.trimRefsHeads = trimRefsHeads;
+async function getNumberOfCommits(ref) {
+    let output = '';
+    await exec_1.exec('git', ['rev-list', `--count`, ref], {
+        listeners: {
+            stdout: (data) => (output += data.toString())
+        }
+    });
+    const count = parseInt(output);
+    return isNaN(count) ? 0 : count;
+}
 function trimStart(ref, start) {
     return ref.startsWith(start) ? ref.substr(start.length) : ref;
 }
+function fixStdOutNullTermination() {
+    // Previous command uses NULL as delimiters and output is printed to stdout.
+    // We have to make sure next thing written to stdout will start on new line.
+    // Otherwise things like ::set-output wouldn't work.
+    core.info('');
+}
+const statusMap = {
+    A: file_1.ChangeStatus.Added,
+    C: file_1.ChangeStatus.Copied,
+    D: file_1.ChangeStatus.Deleted,
+    M: file_1.ChangeStatus.Modified,
+    R: file_1.ChangeStatus.Renamed,
+    U: file_1.ChangeStatus.Unmerged
+};
 
 
 /***/ }),
@@ -4479,15 +4590,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -4495,34 +4597,34 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(__webpack_require__(747));
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
-const filter_1 = __importDefault(__webpack_require__(235));
+const filter_1 = __webpack_require__(235);
+const file_1 = __webpack_require__(258);
 const git = __importStar(__webpack_require__(136));
-function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const token = core.getInput('token', { required: false });
-            const filtersInput = core.getInput('filters', { required: true });
-            const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
-            const filter = new filter_1.default(filtersYaml);
-            const files = yield getChangedFiles(token);
-            if (files === null) {
-                // Change detection was not possible
-                // Set all filter keys to true (i.e. changed)
-                for (const key in filter.rules) {
-                    core.setOutput(key, String(true));
-                }
-            }
-            else {
-                const result = filter.match(files);
-                for (const key in result) {
-                    core.setOutput(key, String(result[key]));
-                }
-            }
+const shell_escape_1 = __importDefault(__webpack_require__(751));
+async function run() {
+    try {
+        const workingDirectory = core.getInput('working-directory', { required: false });
+        if (workingDirectory) {
+            process.chdir(workingDirectory);
         }
-        catch (error) {
-            core.setFailed(error.message);
+        const token = core.getInput('token', { required: false });
+        const base = core.getInput('base', { required: false });
+        const filtersInput = core.getInput('filters', { required: true });
+        const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
+        const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
+        const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10;
+        if (!isExportFormat(listFiles)) {
+            core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`);
+            return;
         }
-    });
+        const filter = new filter_1.Filter(filtersYaml);
+        const files = await getChangedFiles(token, base, initialFetchDepth);
+        const results = filter.match(files);
+        exportResults(results, listFiles);
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
 }
 function isPathInput(text) {
     return !text.includes('\n');
@@ -4536,70 +4638,116 @@ function getConfigFileContent(configPath) {
     }
     return fs.readFileSync(configPath, { encoding: 'utf8' });
 }
-function getChangedFiles(token) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
-            const pr = github.context.payload.pull_request;
-            return token ? yield getChangedFilesFromApi(token, pr) : yield getChangedFilesFromGit(pr.base.sha);
-        }
-        else if (github.context.eventName === 'push') {
-            return getChangedFilesFromPush();
-        }
-        else {
-            throw new Error('This action can be triggered only by pull_request or push event');
-        }
-    });
+async function getChangedFiles(token, base, initialFetchDepth) {
+    if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
+        const pr = github.context.payload.pull_request;
+        return token
+            ? await getChangedFilesFromApi(token, pr)
+            : await git.getChangesSinceRef(pr.base.ref, initialFetchDepth);
+    }
+    else if (github.context.eventName === 'push') {
+        return getChangedFilesFromPush(base, initialFetchDepth);
+    }
+    else {
+        throw new Error('This action can be triggered only by pull_request, pull_request_target or push event');
+    }
 }
-function getChangedFilesFromPush() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const push = github.context.payload;
-        // No change detection for pushed tags
-        if (git.isTagRef(push.ref))
-            return null;
-        // Get base from input or use repo default branch.
-        // It it starts with 'refs/', it will be trimmed (git fetch refs/heads/<NAME> doesn't work)
-        const baseInput = git.trimRefs(core.getInput('base', { required: false }) || push.repository.default_branch);
-        // If base references same branch it was pushed to, we will do comparison against the previously pushed commit.
-        // Otherwise changes are detected against the base reference
-        const base = git.trimRefsHeads(baseInput) === git.trimRefsHeads(push.ref) ? push.before : baseInput;
-        // There is no previous commit for comparison
-        // e.g. change detection against previous commit of just pushed new branch
-        if (base === git.NULL_SHA)
-            return null;
-        return yield getChangedFilesFromGit(base);
-    });
-}
-// Fetch base branch and use `git diff` to determine changed files
-function getChangedFilesFromGit(ref) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.debug('Fetching base branch and using `git diff-index` to determine changed files');
-        yield git.fetchCommit(ref);
-        // FETCH_HEAD will always point to the just fetched commit
-        // No matter if ref is SHA, branch or tag name or full git ref
-        return yield git.getChangedFiles(git.FETCH_HEAD);
-    });
+async function getChangedFilesFromPush(base, initialFetchDepth) {
+    const push = github.context.payload;
+    // No change detection for pushed tags
+    if (git.isTagRef(push.ref)) {
+        core.info('Workflow is triggered by pushing of tag - all files will be listed as added');
+        return await git.listAllFilesAsAdded();
+    }
+    const baseRef = git.trimRefsHeads(base || push.repository.default_branch);
+    const pushRef = git.trimRefsHeads(push.ref);
+    // If base references same branch it was pushed to, we will do comparison against the previously pushed commit.
+    if (baseRef === pushRef) {
+        if (push.before === git.NULL_SHA) {
+            core.info('First push of a branch detected - all files will be listed as added');
+            return await git.listAllFilesAsAdded();
+        }
+        core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`);
+        return await git.getChangesAgainstSha(push.before);
+    }
+    // Changes introduced by current branch against the base branch
+    core.info(`Changes will be detected against the branch ${baseRef}`);
+    return await git.getChangesSinceRef(baseRef, initialFetchDepth);
 }
 // Uses github REST api to get list of files changed in PR
-function getChangedFilesFromApi(token, pullRequest) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.debug('Fetching list of modified files from Github API');
-        const client = new github.GitHub(token);
-        const pageSize = 100;
-        const files = [];
-        for (let page = 0; page * pageSize < pullRequest.changed_files; page++) {
-            const response = yield client.pulls.listFiles({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                pull_number: pullRequest.number,
-                page,
-                per_page: pageSize
-            });
-            for (const row of response.data) {
-                files.push(row.filename);
+async function getChangedFilesFromApi(token, pullRequest) {
+    core.info(`Fetching list of changed files for PR#${pullRequest.number} from Github API`);
+    const client = new github.GitHub(token);
+    const pageSize = 100;
+    const files = [];
+    for (let page = 0; page * pageSize < pullRequest.changed_files; page++) {
+        const response = await client.pulls.listFiles({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            pull_number: pullRequest.number,
+            page,
+            per_page: pageSize
+        });
+        for (const row of response.data) {
+            // There's no obvious use-case for detection of renames
+            // Therefore we treat it as if rename detection in git diff was turned off.
+            // Rename is replaced by delete of original filename and add of new filename
+            if (row.status === file_1.ChangeStatus.Renamed) {
+                files.push({
+                    filename: row.filename,
+                    status: file_1.ChangeStatus.Added
+                });
+                files.push({
+                    // 'previous_filename' for some unknown reason isn't in the type definition or documentation
+                    filename: row.previous_filename,
+                    status: file_1.ChangeStatus.Deleted
+                });
+            }
+            else {
+                files.push({
+                    filename: row.filename,
+                    status: row.status
+                });
             }
         }
-        return files;
-    });
+    }
+    return files;
+}
+function exportResults(results, format) {
+    core.info('Results:');
+    for (const [key, files] of Object.entries(results)) {
+        const value = files.length > 0;
+        core.startGroup(`Filter ${key} = ${value}`);
+        if (files.length > 0) {
+            core.info('Matching files:');
+            for (const file of files) {
+                core.info(`${file.filename} [${file.status}]`);
+            }
+        }
+        else {
+            core.info('Matching files: none');
+        }
+        core.setOutput(key, value);
+        if (format !== 'none') {
+            const filesValue = serializeExport(files, format);
+            core.setOutput(`${key}_files`, filesValue);
+        }
+    }
+    core.endGroup();
+}
+function serializeExport(files, format) {
+    const fileNames = files.map(file => file.filename);
+    switch (format) {
+        case 'json':
+            return JSON.stringify(fileNames);
+        case 'shell':
+            return fileNames.map(shell_escape_1.default).join(' ');
+        default:
+            return '';
+    }
+}
+function isExportFormat(value) {
+    return value === 'none' || value === 'shell' || value === 'json';
 }
 run();
 
@@ -4688,49 +4836,98 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Filter = void 0;
 const jsyaml = __importStar(__webpack_require__(414));
 const minimatch = __importStar(__webpack_require__(595));
+// Minimatch options used in all matchers
+const MinimatchOptions = {
+    dot: true
+};
 class Filter {
+    // Creates instance of Filter and load rules from YAML if it's provided
     constructor(yaml) {
         this.rules = {};
-        const doc = jsyaml.safeLoad(yaml);
-        if (typeof doc !== 'object') {
-            this.throwInvalidFormatError();
-        }
-        const opts = {
-            dot: true
-        };
-        for (const name of Object.keys(doc)) {
-            const patternsNode = doc[name];
-            if (!Array.isArray(patternsNode)) {
-                this.throwInvalidFormatError();
-            }
-            const patterns = flat(patternsNode);
-            if (!patterns.every(x => typeof x === 'string')) {
-                this.throwInvalidFormatError();
-            }
-            this.rules[name] = patterns.map(x => new minimatch.Minimatch(x, opts));
+        if (yaml) {
+            this.load(yaml);
         }
     }
-    // Returns dictionary with match result per rules group
-    match(paths) {
+    // Load rules from YAML string
+    load(yaml) {
+        if (!yaml) {
+            return;
+        }
+        const doc = jsyaml.safeLoad(yaml);
+        if (typeof doc !== 'object') {
+            this.throwInvalidFormatError('Root element is not an object');
+        }
+        for (const [key, item] of Object.entries(doc)) {
+            this.rules[key] = this.parseFilterItemYaml(item);
+        }
+    }
+    match(files) {
         const result = {};
         for (const [key, patterns] of Object.entries(this.rules)) {
-            const match = paths.some(fileName => patterns.some(rule => rule.match(fileName)));
-            result[key] = match;
+            result[key] = files.filter(file => this.isMatch(file, patterns));
         }
         return result;
     }
-    throwInvalidFormatError() {
-        throw new Error('Invalid filter YAML format: Expected dictionary of string arrays');
+    isMatch(file, patterns) {
+        return patterns.some(rule => (rule.status === undefined || rule.status.includes(file.status)) && rule.matcher.match(file.filename));
+    }
+    parseFilterItemYaml(item) {
+        if (Array.isArray(item)) {
+            return flat(item.map(i => this.parseFilterItemYaml(i)));
+        }
+        if (typeof item === 'string') {
+            return [{ status: undefined, matcher: new minimatch.Minimatch(item, MinimatchOptions) }];
+        }
+        if (typeof item === 'object') {
+            return Object.entries(item).map(([key, pattern]) => {
+                if (typeof key !== 'string' || typeof pattern !== 'string') {
+                    this.throwInvalidFormatError(`Expected [key:string]= pattern:string, but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`);
+                }
+                return {
+                    status: key
+                        .split('|')
+                        .map(x => x.trim())
+                        .filter(x => x.length > 0)
+                        .map(x => x.toLowerCase()),
+                    matcher: new minimatch.Minimatch(pattern, MinimatchOptions)
+                };
+            });
+        }
+        this.throwInvalidFormatError(`Unexpected element type '${typeof item}'`);
+    }
+    throwInvalidFormatError(message) {
+        throw new Error(`Invalid filter YAML format: ${message}.`);
     }
 }
-exports.default = Filter;
-// Creates a new array with all sub-array elements recursively concatenated
+exports.Filter = Filter;
+// Creates a new array with all sub-array elements concatenated
 // In future could be replaced by Array.prototype.flat (supported on Node.js 11+)
 function flat(arr) {
-    return arr.reduce((acc, val) => acc.concat(Array.isArray(val) ? flat(val) : val), []);
+    return arr.reduce((acc, val) => acc.concat(val), []);
 }
+
+
+/***/ }),
+
+/***/ 258:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ChangeStatus = void 0;
+var ChangeStatus;
+(function (ChangeStatus) {
+    ChangeStatus["Added"] = "added";
+    ChangeStatus["Copied"] = "copied";
+    ChangeStatus["Deleted"] = "deleted";
+    ChangeStatus["Modified"] = "modified";
+    ChangeStatus["Renamed"] = "renamed";
+    ChangeStatus["Unmerged"] = "unmerged";
+})(ChangeStatus = exports.ChangeStatus || (exports.ChangeStatus = {}));
 
 
 /***/ }),
@@ -15143,6 +15340,23 @@ function sync (path, options) {
 /***/ (function(module) {
 
 module.exports = require("fs");
+
+/***/ }),
+
+/***/ 751:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+// Credits to https://github.com/xxorax/node-shell-escape
+Object.defineProperty(exports, "__esModule", { value: true });
+function shellEscape(value) {
+    return `'${value.replace(/'/g, "'\\''")}'`
+        .replace(/^(?:'')+/g, '') // unduplicate single-quote at the beginning
+        .replace(/\\'''/g, "\\'"); // remove non-escaped single-quote if there are enclosed between 2 escaped
+}
+exports.default = shellEscape;
+
 
 /***/ }),
 
