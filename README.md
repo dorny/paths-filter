@@ -235,6 +235,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        # This may save additional git fetch roundtrip if
+        # merge-base is found within latest 20 commits
+        fetch-depth: 20
     - uses: dorny/paths-filter@v2
       id: filter
       with:
