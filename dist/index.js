@@ -4677,9 +4677,6 @@ async function getChangedFilesFromPush(base, initialFetchDepth) {
     const pushRef = git.getShortName(push.ref) ||
         (core.warning(`'ref' field is missing in PUSH event payload - using current branch, tag or commit SHA`),
             await git.getCurrentRef());
-    const beforeRef = push.before ||
-        (core.warning(`'before' field is missing in PUSH event payload - using parent of current commit`),
-            await git.getParentSha(pushRef));
     const baseRef = git.getShortName(base) || defaultRef;
     if (!baseRef) {
         throw new Error("This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload");
@@ -4687,6 +4684,9 @@ async function getChangedFilesFromPush(base, initialFetchDepth) {
     // If base references same branch it was pushed to,
     // we will do comparison against the previously pushed commit
     if (baseRef === pushRef) {
+        const beforeRef = push.before ||
+            (core.warning(`'before' field is missing in PUSH event payload - using parent of current commit`),
+                await git.getParentSha(pushRef));
         // If there is no previously pushed commit,
         // we will do comparison against the default branch or return all as added
         if (beforeRef === git.NULL_SHA) {
