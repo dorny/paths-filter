@@ -4,18 +4,20 @@ import {File, ChangeStatus} from './file'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
 
-export async function getChangesAgainstSha(sha: string): Promise<File[]> {
-  // Fetch single commit
-  core.startGroup(`Fetching ${sha} from origin`)
-  await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', sha])
-  core.endGroup()
+export async function getChanges(ref: string): Promise<File[]> {
+  if (!(await hasCommit(ref))) {
+    // Fetch single commit
+    core.startGroup(`Fetching ${ref} from origin`)
+    await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', ref])
+    core.endGroup()
+  }
 
-  // Get differences between sha and HEAD
-  core.startGroup(`Change detection ${sha}..HEAD`)
+  // Get differences between ref and HEAD
+  core.startGroup(`Change detection ${ref}..HEAD`)
   let output = ''
   try {
     // Two dots '..' change detection - directly compares two versions
-    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`])).stdout
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}..HEAD`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -24,10 +26,12 @@ export async function getChangesAgainstSha(sha: string): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChangesSinceRef(ref: string, initialFetchDepth: number): Promise<File[]> {
-  // Fetch and add base branch
-  core.startGroup(`Fetching ${ref} from origin until merge-base is found`)
-  await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
+export async function getChangesSinceMergeBase(ref: string, initialFetchDepth: number): Promise<File[]> {
+  if (!(await hasBranch(ref))) {
+    // Fetch and add base branch
+    core.startGroup(`Fetching ${ref} from origin until merge-base is found`)
+    await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
+  }
 
   async function hasMergeBase(): Promise<boolean> {
     return (await exec('git', ['merge-base', ref, 'HEAD'], {ignoreReturnCode: true})).code === 0
@@ -100,26 +104,59 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
     }))
 }
 
-export function isTagRef(ref: string): boolean {
-  return ref.startsWith('refs/tags/')
+export async function getCurrentRef(): Promise<string> {
+  const branch = (await exec('git', ['branch', '--show-current'])).stdout.trim()
+  if (branch) {
+    return branch
+  }
+
+  const describe = await exec('git', ['describe', '--all', '--exact-match'], {ignoreReturnCode: true})
+  if (describe.code === 0) {
+    return describe.stdout.trim()
+  }
+
+  return (await exec('git', ['rev-parse', 'HEAD'])).stdout.trim()
 }
 
-export function trimRefs(ref: string): string {
-  return trimStart(ref, 'refs/')
+export async function getParentSha(ref: string): Promise<string> {
+  const revParse = await exec('git', ['rev-parse', `${ref}~`], {ignoreReturnCode: true})
+  if (revParse.code === 0) {
+    return revParse.stdout.trim()
+  }
+
+  const parent = 'parent '
+  const catFile = await exec('git', ['cat-file', '-p', ref])
+  const parents = catFile.stdout
+    .split('\n')
+    .filter(line => line.startsWith(parent))
+    .map(line => line.slice(parent.length).trim())
+  return parents[0]
 }
 
-export function trimRefsHeads(ref: string): string {
+export function getShortName(ref: string): string {
   const trimRef = trimStart(ref, 'refs/')
   return trimStart(trimRef, 'heads/')
 }
 
+async function hasCommit(ref: string): Promise<boolean> {
+  return (await exec('git', ['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).code === 0
+}
+
+async function hasBranch(branch: string): Promise<boolean> {
+  const showRef = await exec('git', ['show-ref', '--verify', '-q', `refs/heads/${branch}`], {ignoreReturnCode: true})
+  return showRef.code === 0
+}
+
 async function getNumberOfCommits(ref: string): Promise<number> {
-  let output = (await exec('git', ['rev-list', `--count`, ref])).stdout
+  const output = (await exec('git', ['rev-list', `--count`, ref])).stdout
   const count = parseInt(output)
   return isNaN(count) ? 0 : count
 }
 
 function trimStart(ref: string, start: string): string {
+  if (!ref) {
+    return ''
+  }
   return ref.startsWith(start) ? ref.substr(start.length) : ref
 }
 

@@ -1,4 +1,4 @@
-import {exec as execImpl , ExecOptions} from '@actions/exec'
+import {exec as execImpl, ExecOptions} from '@actions/exec'
 
 // Wraps original exec() function
 // Returns exit code and whole stdout/stderr
@@ -11,11 +11,11 @@ export default async function exec(commandLine: string, args?: string[], options
     stderr: (data: Buffer) => (stderr += data.toString())
   }
   const code = await execImpl(commandLine, args, options)
-  return { code, stdout, stderr }
+  return {code, stdout, stderr}
 }
 
-export type ExecResult = {
-  code: number,
-  stdout: string,
+export interface ExecResult {
+  code: number
+  stdout: string
   stderr: string
 }
