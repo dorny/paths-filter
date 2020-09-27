@@ -1,4 +1,4 @@
-import {exec} from '@actions/exec'
+import exec from './exec'
 import * as core from '@actions/core'
 import {File, ChangeStatus} from './file'
 
@@ -15,11 +15,7 @@ export async function getChangesAgainstSha(sha: string): Promise<File[]> {
   let output = ''
   try {
     // Two dots '..' change detection - directly compares two versions
-    await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`], {
-      listeners: {
-        stdout: (data: Buffer) => (output += data.toString())
-      }
-    })
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -34,7 +30,7 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth: number)
   await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
 
   async function hasMergeBase(): Promise<boolean> {
-    return (await exec('git', ['merge-base', ref, 'HEAD'], {ignoreReturnCode: true})) === 0
+    return (await exec('git', ['merge-base', ref, 'HEAD'], {ignoreReturnCode: true})).code === 0
   }
 
   async function countCommits(): Promise<number> {
@@ -64,11 +60,7 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth: number)
   let output = ''
   try {
     // Three dots '...' change detection - finds merge-base and compares against it
-    await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
-      listeners: {
-        stdout: (data: Buffer) => (output += data.toString())
-      }
-    })
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -93,11 +85,7 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
   core.startGroup('Listing all files tracked by git')
   let output = ''
   try {
-    await exec('git', ['ls-files', '-z'], {
-      listeners: {
-        stdout: (data: Buffer) => (output += data.toString())
-      }
-    })
+    output = (await exec('git', ['ls-files', '-z'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -126,12 +114,7 @@ export function trimRefsHeads(ref: string): string {
 }
 
 async function getNumberOfCommits(ref: string): Promise<number> {
-  let output = ''
-  await exec('git', ['rev-list', `--count`, ref], {
-    listeners: {
-      stdout: (data: Buffer) => (output += data.toString())
-    }
-  })
+  let output = (await exec('git', ['rev-list', `--count`, ref])).stdout
   const count = parseInt(output)
   return isNaN(count) ? 0 : count
 }
