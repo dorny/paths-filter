@@ -3934,7 +3934,7 @@ async function getParentSha(ref) {
         .split('\n')
         .filter(line => line.startsWith(parent))
         .map(line => line.slice(parent.length).trim());
-    return parents[0];
+    return parents.length > 0 ? parents[0] : exports.NULL_SHA;
 }
 exports.getParentSha = getParentSha;
 function getShortName(ref) {

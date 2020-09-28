@@ -130,7 +130,8 @@ export async function getParentSha(ref: string): Promise<string> {
     .split('\n')
     .filter(line => line.startsWith(parent))
     .map(line => line.slice(parent.length).trim())
-  return parents[0]
+
+  return parents.length > 0 ? parents[0] : NULL_SHA
 }
 
 export function getShortName(ref: string): string {
