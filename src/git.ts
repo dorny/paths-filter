@@ -8,7 +8,7 @@ export async function getChanges(ref: string): Promise<File[]> {
   if (!(await hasCommit(ref))) {
     // Fetch single commit
     core.startGroup(`Fetching ${ref} from origin`)
-    await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', ref])
+    await exec('git', ['fetch', '--depth=1', '--no-tags', '--no-auto-gc', 'origin', ref])
     core.endGroup()
   }
 
@@ -105,33 +105,43 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
 }
 
 export async function getCurrentRef(): Promise<string> {
-  const branch = (await exec('git', ['branch', '--show-current'])).stdout.trim()
-  if (branch) {
-    return branch
-  }
+  core.startGroup(`Determining current ref`)
+  try {
+    const branch = (await exec('git', ['branch', '--show-current'])).stdout.trim()
+    if (branch) {
+      return branch
+    }
 
-  const describe = await exec('git', ['describe', '--all', '--exact-match'], {ignoreReturnCode: true})
-  if (describe.code === 0) {
-    return describe.stdout.trim()
-  }
+    const describe = await exec('git', ['describe', '--all', '--exact-match'], {ignoreReturnCode: true})
+    if (describe.code === 0) {
+      return describe.stdout.trim()
+    }
 
-  return (await exec('git', ['rev-parse', 'HEAD'])).stdout.trim()
+    return (await exec('git', ['rev-parse', 'HEAD'])).stdout.trim()
+  } finally {
+    core.endGroup()
+  }
 }
 
 export async function getParentSha(ref: string): Promise<string> {
-  const revParse = await exec('git', ['rev-parse', `${ref}~`], {ignoreReturnCode: true})
-  if (revParse.code === 0) {
-    return revParse.stdout.trim()
+  core.startGroup(`Determining parent of ${ref}`)
+  try {
+    const revParse = await exec('git', ['rev-parse', `${ref}~`], {ignoreReturnCode: true})
+    if (revParse.code === 0) {
+      return revParse.stdout.trim()
+    }
+
+    const parent = 'parent '
+    const catFile = await exec('git', ['cat-file', '-p', ref])
+    const parents = catFile.stdout
+      .split('\n')
+      .filter(line => line.startsWith(parent))
+      .map(line => line.slice(parent.length).trim())
+
+    return parents.length > 0 ? parents[0] : NULL_SHA
+  } finally {
+    core.endGroup()
   }
-
-  const parent = 'parent '
-  const catFile = await exec('git', ['cat-file', '-p', ref])
-  const parents = catFile.stdout
-    .split('\n')
-    .filter(line => line.startsWith(parent))
-    .map(line => line.slice(parent.length).trim())
-
-  return parents.length > 0 ? parents[0] : NULL_SHA
 }
 
 export function getShortName(ref: string): string {
@@ -140,7 +150,12 @@ export function getShortName(ref: string): string {
 }
 
 async function hasCommit(ref: string): Promise<boolean> {
-  return (await exec('git', ['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).code === 0
+  core.startGroup(`Checking if ${ref} is locally available`)
+  try {
+    return (await exec('git', ['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).code === 0
+  } finally {
+    core.endGroup()
+  }
 }
 
 async function hasBranch(branch: string): Promise<boolean> {

@@ -3820,7 +3820,7 @@ async function getChanges(ref) {
     if (!(await hasCommit(ref))) {
         // Fetch single commit
         core.startGroup(`Fetching ${ref} from origin`);
-        await exec_1.default('git', ['fetch', '--depth=1', '--no-tags', 'origin', ref]);
+        await exec_1.default('git', ['fetch', '--depth=1', '--no-tags', '--no-auto-gc', 'origin', ref]);
         core.endGroup();
     }
     // Get differences between ref and HEAD
@@ -3912,29 +3912,41 @@ async function listAllFilesAsAdded() {
 }
 exports.listAllFilesAsAdded = listAllFilesAsAdded;
 async function getCurrentRef() {
-    const branch = (await exec_1.default('git', ['branch', '--show-current'])).stdout.trim();
-    if (branch) {
-        return branch;
+    core.startGroup(`Determining current ref`);
+    try {
+        const branch = (await exec_1.default('git', ['branch', '--show-current'])).stdout.trim();
+        if (branch) {
+            return branch;
+        }
+        const describe = await exec_1.default('git', ['describe', '--all', '--exact-match'], { ignoreReturnCode: true });
+        if (describe.code === 0) {
+            return describe.stdout.trim();
+        }
+        return (await exec_1.default('git', ['rev-parse', 'HEAD'])).stdout.trim();
     }
-    const describe = await exec_1.default('git', ['describe', '--all', '--exact-match'], { ignoreReturnCode: true });
-    if (describe.code === 0) {
-        return describe.stdout.trim();
+    finally {
+        core.endGroup();
     }
-    return (await exec_1.default('git', ['rev-parse', 'HEAD'])).stdout.trim();
 }
 exports.getCurrentRef = getCurrentRef;
 async function getParentSha(ref) {
-    const revParse = await exec_1.default('git', ['rev-parse', `${ref}~`], { ignoreReturnCode: true });
-    if (revParse.code === 0) {
-        return revParse.stdout.trim();
+    core.startGroup(`Determining parent of ${ref}`);
+    try {
+        const revParse = await exec_1.default('git', ['rev-parse', `${ref}~`], { ignoreReturnCode: true });
+        if (revParse.code === 0) {
+            return revParse.stdout.trim();
+        }
+        const parent = 'parent ';
+        const catFile = await exec_1.default('git', ['cat-file', '-p', ref]);
+        const parents = catFile.stdout
+            .split('\n')
+            .filter(line => line.startsWith(parent))
+            .map(line => line.slice(parent.length).trim());
+        return parents.length > 0 ? parents[0] : exports.NULL_SHA;
     }
-    const parent = 'parent ';
-    const catFile = await exec_1.default('git', ['cat-file', '-p', ref]);
-    const parents = catFile.stdout
-        .split('\n')
-        .filter(line => line.startsWith(parent))
-        .map(line => line.slice(parent.length).trim());
-    return parents.length > 0 ? parents[0] : exports.NULL_SHA;
+    finally {
+        core.endGroup();
+    }
 }
 exports.getParentSha = getParentSha;
 function getShortName(ref) {
@@ -3943,7 +3955,13 @@ function getShortName(ref) {
 }
 exports.getShortName = getShortName;
 async function hasCommit(ref) {
-    return (await exec_1.default('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).code === 0;
+    core.startGroup(`Checking if ${ref} is locally available`);
+    try {
+        return (await exec_1.default('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).code === 0;
+    }
+    finally {
+        core.endGroup();
+    }
 }
 async function hasBranch(branch) {
     const showRef = await exec_1.default('git', ['show-ref', '--verify', '-q', `refs/heads/${branch}`], { ignoreReturnCode: true });
