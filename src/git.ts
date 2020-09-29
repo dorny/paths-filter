@@ -1,25 +1,14 @@
-import {exec} from '@actions/exec'
+import exec from './exec'
 import * as core from '@actions/core'
 import {File, ChangeStatus} from './file'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
 
-export async function getChangesAgainstSha(sha: string): Promise<File[]> {
-  // Fetch single commit
-  core.startGroup(`Fetching ${sha} from origin`)
-  await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', sha])
-  core.endGroup()
-
-  // Get differences between sha and HEAD
-  core.startGroup(`Change detection ${sha}..HEAD`)
+export async function getChangesInLastCommit(): Promise<File[]> {
+  core.startGroup(`Change detection in last commit`)
   let output = ''
   try {
-    // Two dots '..' change detection - directly compares two versions
-    await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`], {
-      listeners: {
-        stdout: (data: Buffer) => (output += data.toString())
-      }
-    })
+    output = (await exec('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -28,25 +17,54 @@ export async function getChangesAgainstSha(sha: string): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChangesSinceRef(ref: string, initialFetchDepth: number): Promise<File[]> {
-  // Fetch and add base branch
-  core.startGroup(`Fetching ${ref} from origin until merge-base is found`)
-  await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
+export async function getChanges(ref: string): Promise<File[]> {
+  if (!(await hasCommit(ref))) {
+    // Fetch single commit
+    core.startGroup(`Fetching ${ref} from origin`)
+    await exec('git', ['fetch', '--depth=1', '--no-tags', '--no-auto-gc', 'origin', ref])
+    core.endGroup()
+  }
+
+  // Get differences between ref and HEAD
+  core.startGroup(`Change detection ${ref}..HEAD`)
+  let output = ''
+  try {
+    // Two dots '..' change detection - directly compares two versions
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}..HEAD`])).stdout
+  } finally {
+    fixStdOutNullTermination()
+    core.endGroup()
+  }
+
+  return parseGitDiffOutput(output)
+}
+
+export async function getChangesSinceMergeBase(ref: string, initialFetchDepth: number): Promise<File[]> {
+  if (!(await hasCommit(ref))) {
+    // Fetch and add base branch
+    core.startGroup(`Fetching ${ref}`)
+    try {
+      await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
+    } finally {
+      core.endGroup()
+    }
+  }
 
   async function hasMergeBase(): Promise<boolean> {
-    return (await exec('git', ['merge-base', ref, 'HEAD'], {ignoreReturnCode: true})) === 0
+    return (await exec('git', ['merge-base', ref, 'HEAD'], {ignoreReturnCode: true})).code === 0
   }
 
   async function countCommits(): Promise<number> {
     return (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref))
   }
 
+  core.startGroup(`Searching for merge-base with ${ref}`)
   // Fetch more commits until merge-base is found
   if (!(await hasMergeBase())) {
     let deepen = initialFetchDepth
     let lastCommitsCount = await countCommits()
     do {
-      await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc', '-q'])
+      await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc'])
       const count = await countCommits()
       if (count <= lastCommitsCount) {
         core.info('No merge base found - all files will be listed as added')
@@ -64,11 +82,7 @@ export async function getChangesSinceRef(ref: string, initialFetchDepth: number)
   let output = ''
   try {
     // Three dots '...' change detection - finds merge-base and compares against it
-    await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
-      listeners: {
-        stdout: (data: Buffer) => (output += data.toString())
-      }
-    })
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -93,11 +107,7 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
   core.startGroup('Listing all files tracked by git')
   let output = ''
   try {
-    await exec('git', ['ls-files', '-z'], {
-      listeners: {
-        stdout: (data: Buffer) => (output += data.toString())
-      }
-    })
+    output = (await exec('git', ['ls-files', '-z'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -112,32 +122,50 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
     }))
 }
 
-export function isTagRef(ref: string): boolean {
-  return ref.startsWith('refs/tags/')
+export async function getCurrentRef(): Promise<string> {
+  core.startGroup(`Determining current ref`)
+  try {
+    const branch = (await exec('git', ['branch', '--show-current'])).stdout.trim()
+    if (branch) {
+      return branch
+    }
+
+    const describe = await exec('git', ['describe', '--tags', '--exact-match'], {ignoreReturnCode: true})
+    if (describe.code === 0) {
+      return describe.stdout.trim()
+    }
+
+    return (await exec('git', ['rev-parse', 'HEAD'])).stdout.trim()
+  } finally {
+    core.endGroup()
+  }
 }
 
-export function trimRefs(ref: string): string {
-  return trimStart(ref, 'refs/')
+export function getShortName(ref: string): string {
+  if (!ref) return ''
+
+  const heads = 'refs/heads/'
+  const tags = 'refs/tags/'
+
+  if (ref.startsWith(heads)) return ref.slice(heads.length)
+  if (ref.startsWith(tags)) return ref.slice(tags.length)
+
+  return ref
 }
 
-export function trimRefsHeads(ref: string): string {
-  const trimRef = trimStart(ref, 'refs/')
-  return trimStart(trimRef, 'heads/')
+async function hasCommit(ref: string): Promise<boolean> {
+  core.startGroup(`Checking if commit for ${ref} is locally available`)
+  try {
+    return (await exec('git', ['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).code === 0
+  } finally {
+    core.endGroup()
+  }
 }
 
 async function getNumberOfCommits(ref: string): Promise<number> {
-  let output = ''
-  await exec('git', ['rev-list', `--count`, ref], {
-    listeners: {
-      stdout: (data: Buffer) => (output += data.toString())
-    }
-  })
+  const output = (await exec('git', ['rev-list', `--count`, ref])).stdout
   const count = parseInt(output)
   return isNaN(count) ? 0 : count
-}
-
-function trimStart(ref: string, start: string): string {
-  return ref.startsWith(start) ? ref.substr(start.length) : ref
 }
 
 function fixStdOutNullTermination(): void {

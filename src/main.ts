@@ -57,9 +57,11 @@ function getConfigFileContent(configPath: string): string {
 async function getChangedFiles(token: string, base: string, initialFetchDepth: number): Promise<File[]> {
   if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
     const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
-    return token
-      ? await getChangedFilesFromApi(token, pr)
-      : await git.getChangesSinceRef(pr.base.ref, initialFetchDepth)
+    if (token) {
+      return await getChangedFilesFromApi(token, pr)
+    }
+    core.info('Github token is not available - changes will be detected from PRs merge commit')
+    return await git.getChangesInLastCommit()
   } else if (github.context.eventName === 'push') {
     return getChangedFilesFromPush(base, initialFetchDepth)
   } else {
@@ -69,30 +71,47 @@ async function getChangedFiles(token: string, base: string, initialFetchDepth: n
 
 async function getChangedFilesFromPush(base: string, initialFetchDepth: number): Promise<File[]> {
   const push = github.context.payload as Webhooks.WebhookPayloadPush
+  const defaultRef = push.repository?.default_branch
 
-  // No change detection for pushed tags
-  if (git.isTagRef(push.ref)) {
-    core.info('Workflow is triggered by pushing of tag - all files will be listed as added')
-    return await git.listAllFilesAsAdded()
+  const pushRef =
+    git.getShortName(push.ref) ||
+    (core.warning(`'ref' field is missing in PUSH event payload - using current branch, tag or commit SHA`),
+    await git.getCurrentRef())
+
+  const baseRef = git.getShortName(base) || defaultRef
+  if (!baseRef) {
+    throw new Error(
+      "This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload"
+    )
   }
 
-  const baseRef = git.trimRefsHeads(base || push.repository.default_branch)
-  const pushRef = git.trimRefsHeads(push.ref)
-
-  // If base references same branch it was pushed to, we will do comparison against the previously pushed commit.
+  // If base references same branch it was pushed to,
+  // we will do comparison against the previously pushed commit
   if (baseRef === pushRef) {
+    if (!push.before) {
+      core.warning(`'before' field is missing in PUSH event payload - changes will be detected from last commit`)
+      return await git.getChangesInLastCommit()
+    }
+
+    // If there is no previously pushed commit,
+    // we will do comparison against the default branch or return all as added
     if (push.before === git.NULL_SHA) {
-      core.info('First push of a branch detected - all files will be listed as added')
-      return await git.listAllFilesAsAdded()
+      if (defaultRef && baseRef !== defaultRef) {
+        core.info(`First push of a branch detected - changes will be detected against the default branch ${defaultRef}`)
+        return await git.getChangesSinceMergeBase(defaultRef, initialFetchDepth)
+      } else {
+        core.info('Initial push detected - all files will be listed as added')
+        return await git.listAllFilesAsAdded()
+      }
     }
 
     core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`)
-    return await git.getChangesAgainstSha(push.before)
+    return await git.getChanges(push.before)
   }
 
   // Changes introduced by current branch against the base branch
   core.info(`Changes will be detected against the branch ${baseRef}`)
-  return await git.getChangesSinceRef(baseRef, initialFetchDepth)
+  return await git.getChangesSinceMergeBase(baseRef, initialFetchDepth)
 }
 
 // Uses github REST api to get list of files changed in PR

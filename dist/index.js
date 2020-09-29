@@ -3807,27 +3807,20 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.trimRefsHeads = exports.trimRefs = exports.isTagRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceRef = exports.getChangesAgainstSha = exports.NULL_SHA = void 0;
-const exec_1 = __webpack_require__(986);
+exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChanges = exports.getChangesInLastCommit = exports.NULL_SHA = void 0;
+const exec_1 = __importDefault(__webpack_require__(807));
 const core = __importStar(__webpack_require__(470));
 const file_1 = __webpack_require__(258);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
-async function getChangesAgainstSha(sha) {
-    // Fetch single commit
-    core.startGroup(`Fetching ${sha} from origin`);
-    await exec_1.exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', sha]);
-    core.endGroup();
-    // Get differences between sha and HEAD
-    core.startGroup(`Change detection ${sha}..HEAD`);
+async function getChangesInLastCommit() {
+    core.startGroup(`Change detection in last commit`);
     let output = '';
     try {
-        // Two dots '..' change detection - directly compares two versions
-        await exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${sha}..HEAD`], {
-            listeners: {
-                stdout: (data) => (output += data.toString())
-            }
-        });
+        output = (await exec_1.default('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -3835,23 +3828,52 @@ async function getChangesAgainstSha(sha) {
     }
     return parseGitDiffOutput(output);
 }
-exports.getChangesAgainstSha = getChangesAgainstSha;
-async function getChangesSinceRef(ref, initialFetchDepth) {
-    // Fetch and add base branch
-    core.startGroup(`Fetching ${ref} from origin until merge-base is found`);
-    await exec_1.exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
+exports.getChangesInLastCommit = getChangesInLastCommit;
+async function getChanges(ref) {
+    if (!(await hasCommit(ref))) {
+        // Fetch single commit
+        core.startGroup(`Fetching ${ref} from origin`);
+        await exec_1.default('git', ['fetch', '--depth=1', '--no-tags', '--no-auto-gc', 'origin', ref]);
+        core.endGroup();
+    }
+    // Get differences between ref and HEAD
+    core.startGroup(`Change detection ${ref}..HEAD`);
+    let output = '';
+    try {
+        // Two dots '..' change detection - directly compares two versions
+        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}..HEAD`])).stdout;
+    }
+    finally {
+        fixStdOutNullTermination();
+        core.endGroup();
+    }
+    return parseGitDiffOutput(output);
+}
+exports.getChanges = getChanges;
+async function getChangesSinceMergeBase(ref, initialFetchDepth) {
+    if (!(await hasCommit(ref))) {
+        // Fetch and add base branch
+        core.startGroup(`Fetching ${ref}`);
+        try {
+            await exec_1.default('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
+        }
+        finally {
+            core.endGroup();
+        }
+    }
     async function hasMergeBase() {
-        return (await exec_1.exec('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true })) === 0;
+        return (await exec_1.default('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true })).code === 0;
     }
     async function countCommits() {
         return (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref));
     }
+    core.startGroup(`Searching for merge-base with ${ref}`);
     // Fetch more commits until merge-base is found
     if (!(await hasMergeBase())) {
         let deepen = initialFetchDepth;
         let lastCommitsCount = await countCommits();
         do {
-            await exec_1.exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc', '-q']);
+            await exec_1.default('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc']);
             const count = await countCommits();
             if (count <= lastCommitsCount) {
                 core.info('No merge base found - all files will be listed as added');
@@ -3868,11 +3890,7 @@ async function getChangesSinceRef(ref, initialFetchDepth) {
     let output = '';
     try {
         // Three dots '...' change detection - finds merge-base and compares against it
-        await exec_1.exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`], {
-            listeners: {
-                stdout: (data) => (output += data.toString())
-            }
-        });
+        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -3880,7 +3898,7 @@ async function getChangesSinceRef(ref, initialFetchDepth) {
     }
     return parseGitDiffOutput(output);
 }
-exports.getChangesSinceRef = getChangesSinceRef;
+exports.getChangesSinceMergeBase = getChangesSinceMergeBase;
 function parseGitDiffOutput(output) {
     const tokens = output.split('\u0000').filter(s => s.length > 0);
     const files = [];
@@ -3897,11 +3915,7 @@ async function listAllFilesAsAdded() {
     core.startGroup('Listing all files tracked by git');
     let output = '';
     try {
-        await exec_1.exec('git', ['ls-files', '-z'], {
-            listeners: {
-                stdout: (data) => (output += data.toString())
-            }
-        });
+        output = (await exec_1.default('git', ['ls-files', '-z'])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -3916,31 +3930,49 @@ async function listAllFilesAsAdded() {
     }));
 }
 exports.listAllFilesAsAdded = listAllFilesAsAdded;
-function isTagRef(ref) {
-    return ref.startsWith('refs/tags/');
-}
-exports.isTagRef = isTagRef;
-function trimRefs(ref) {
-    return trimStart(ref, 'refs/');
-}
-exports.trimRefs = trimRefs;
-function trimRefsHeads(ref) {
-    const trimRef = trimStart(ref, 'refs/');
-    return trimStart(trimRef, 'heads/');
-}
-exports.trimRefsHeads = trimRefsHeads;
-async function getNumberOfCommits(ref) {
-    let output = '';
-    await exec_1.exec('git', ['rev-list', `--count`, ref], {
-        listeners: {
-            stdout: (data) => (output += data.toString())
+async function getCurrentRef() {
+    core.startGroup(`Determining current ref`);
+    try {
+        const branch = (await exec_1.default('git', ['branch', '--show-current'])).stdout.trim();
+        if (branch) {
+            return branch;
         }
-    });
+        const describe = await exec_1.default('git', ['describe', '--tags', '--exact-match'], { ignoreReturnCode: true });
+        if (describe.code === 0) {
+            return describe.stdout.trim();
+        }
+        return (await exec_1.default('git', ['rev-parse', 'HEAD'])).stdout.trim();
+    }
+    finally {
+        core.endGroup();
+    }
+}
+exports.getCurrentRef = getCurrentRef;
+function getShortName(ref) {
+    if (!ref)
+        return '';
+    const heads = 'refs/heads/';
+    const tags = 'refs/tags/';
+    if (ref.startsWith(heads))
+        return ref.slice(heads.length);
+    if (ref.startsWith(tags))
+        return ref.slice(tags.length);
+    return ref;
+}
+exports.getShortName = getShortName;
+async function hasCommit(ref) {
+    core.startGroup(`Checking if commit for ${ref} is locally available`);
+    try {
+        return (await exec_1.default('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).code === 0;
+    }
+    finally {
+        core.endGroup();
+    }
+}
+async function getNumberOfCommits(ref) {
+    const output = (await exec_1.default('git', ['rev-list', `--count`, ref])).stdout;
     const count = parseInt(output);
     return isNaN(count) ? 0 : count;
-}
-function trimStart(ref, start) {
-    return ref.startsWith(start) ? ref.substr(start.length) : ref;
 }
 function fixStdOutNullTermination() {
     // Previous command uses NULL as delimiters and output is printed to stdout.
@@ -4641,9 +4673,11 @@ function getConfigFileContent(configPath) {
 async function getChangedFiles(token, base, initialFetchDepth) {
     if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
         const pr = github.context.payload.pull_request;
-        return token
-            ? await getChangedFilesFromApi(token, pr)
-            : await git.getChangesSinceRef(pr.base.ref, initialFetchDepth);
+        if (token) {
+            return await getChangedFilesFromApi(token, pr);
+        }
+        core.info('Github token is not available - changes will be detected from PRs merge commit');
+        return await git.getChangesInLastCommit();
     }
     else if (github.context.eventName === 'push') {
         return getChangedFilesFromPush(base, initialFetchDepth);
@@ -4653,26 +4687,41 @@ async function getChangedFiles(token, base, initialFetchDepth) {
     }
 }
 async function getChangedFilesFromPush(base, initialFetchDepth) {
+    var _a;
     const push = github.context.payload;
-    // No change detection for pushed tags
-    if (git.isTagRef(push.ref)) {
-        core.info('Workflow is triggered by pushing of tag - all files will be listed as added');
-        return await git.listAllFilesAsAdded();
+    const defaultRef = (_a = push.repository) === null || _a === void 0 ? void 0 : _a.default_branch;
+    const pushRef = git.getShortName(push.ref) ||
+        (core.warning(`'ref' field is missing in PUSH event payload - using current branch, tag or commit SHA`),
+            await git.getCurrentRef());
+    const baseRef = git.getShortName(base) || defaultRef;
+    if (!baseRef) {
+        throw new Error("This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload");
     }
-    const baseRef = git.trimRefsHeads(base || push.repository.default_branch);
-    const pushRef = git.trimRefsHeads(push.ref);
-    // If base references same branch it was pushed to, we will do comparison against the previously pushed commit.
+    // If base references same branch it was pushed to,
+    // we will do comparison against the previously pushed commit
     if (baseRef === pushRef) {
+        if (!push.before) {
+            core.warning(`'before' field is missing in PUSH event payload - changes will be detected from last commit`);
+            return await git.getChangesInLastCommit();
+        }
+        // If there is no previously pushed commit,
+        // we will do comparison against the default branch or return all as added
         if (push.before === git.NULL_SHA) {
-            core.info('First push of a branch detected - all files will be listed as added');
-            return await git.listAllFilesAsAdded();
+            if (defaultRef && baseRef !== defaultRef) {
+                core.info(`First push of a branch detected - changes will be detected against the default branch ${defaultRef}`);
+                return await git.getChangesSinceMergeBase(defaultRef, initialFetchDepth);
+            }
+            else {
+                core.info('Initial push detected - all files will be listed as added');
+                return await git.listAllFilesAsAdded();
+            }
         }
         core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`);
-        return await git.getChangesAgainstSha(push.before);
+        return await git.getChanges(push.before);
     }
     // Changes introduced by current branch against the base branch
     core.info(`Changes will be detected against the branch ${baseRef}`);
-    return await git.getChangesSinceRef(baseRef, initialFetchDepth);
+    return await git.getChangesSinceMergeBase(baseRef, initialFetchDepth);
 }
 // Uses github REST api to get list of files changed in PR
 async function getChangedFilesFromApi(token, pullRequest) {
@@ -15610,6 +15659,31 @@ function getUserAgent() {
 
 exports.getUserAgent = getUserAgent;
 //# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 807:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const exec_1 = __webpack_require__(986);
+// Wraps original exec() function
+// Returns exit code and whole stdout/stderr
+async function exec(commandLine, args, options) {
+    options = options || {};
+    let stdout = '';
+    let stderr = '';
+    options.listeners = {
+        stdout: (data) => (stdout += data.toString()),
+        stderr: (data) => (stderr += data.toString())
+    };
+    const code = await exec_1.exec(commandLine, args, options);
+    return { code, stdout, stderr };
+}
+exports.default = exec;
 
 
 /***/ }),

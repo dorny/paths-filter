@@ -31,10 +31,14 @@ doesn't allow this because they doesn't work on a level of individual jobs or st
 - Minimatch [dot](https://www.npmjs.com/package/minimatch#dot) option is set to true.
   Globbing will match also paths where file or folder name starts with a dot.
 - It's recommended to quote your path expressions with `'` or `"`. Otherwise you will get an error if it starts with `*`.
+- Local execution with [act](https://github.com/nektos/act) works only with alternative runner image. Default runner doesn't have `git` binary.
+  - Use: `act -P ubuntu-latest=nektos/act-environments-ubuntu:18.04`
 
 
 # What's New
-
+- Support for tag pushes and tags as a base reference
+- Fixes for various edge cases when event payload is incomplete
+  - Supports local execution with [act](https://github.com/nektos/act)
 - Fixed behavior of feature branch workflow:
   - Detects only changes introduced by feature branch. Later modifications on base branch are ignored.
 - Filter by type of file change:
@@ -68,7 +72,7 @@ For more information see [CHANGELOG](https://github.com/actions/checkout/blob/ma
     # Filters syntax is documented by example - see examples section.
     filters: ''
 
-    # Branch against which the changes will be detected.
+    # Branch or tag against which the changes will be detected.
     # If it references same branch it was pushed to,
     # changes are detected against the most recent commit before the push.
     # Otherwise it uses git merge-base to find best common ancestor between
