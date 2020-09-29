@@ -27,10 +27,14 @@ export async function getChanges(ref: string): Promise<File[]> {
 }
 
 export async function getChangesSinceMergeBase(ref: string, initialFetchDepth: number): Promise<File[]> {
-  if (!(await hasRef(ref))) {
+  if (!(await hasCommit(ref))) {
     // Fetch and add base branch
-    core.startGroup(`Fetching ${ref} from origin until merge-base is found`)
-    await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
+    core.startGroup(`Fetching ${ref}`)
+    try {
+      await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
+    } finally {
+      core.endGroup()
+    }
   }
 
   async function hasMergeBase(): Promise<boolean> {
@@ -41,6 +45,7 @@ export async function getChangesSinceMergeBase(ref: string, initialFetchDepth: n
     return (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref))
   }
 
+  core.startGroup(`Searching for merge-base with ${ref}`)
   // Fetch more commits until merge-base is found
   if (!(await hasMergeBase())) {
     let deepen = initialFetchDepth
@@ -157,17 +162,12 @@ export function getShortName(ref: string): string {
 }
 
 async function hasCommit(ref: string): Promise<boolean> {
-  core.startGroup(`Checking if ${ref} is locally available`)
+  core.startGroup(`Checking if commit for ${ref} is locally available`)
   try {
     return (await exec('git', ['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).code === 0
   } finally {
     core.endGroup()
   }
-}
-
-async function hasRef(ref: string): Promise<boolean> {
-  const showRef = await exec('git', ['show-ref', '--verify', '-q', ref], {ignoreReturnCode: true})
-  return showRef.code === 0
 }
 
 async function getNumberOfCommits(ref: string): Promise<number> {

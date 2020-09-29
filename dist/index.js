@@ -3838,10 +3838,15 @@ async function getChanges(ref) {
 }
 exports.getChanges = getChanges;
 async function getChangesSinceMergeBase(ref, initialFetchDepth) {
-    if (!(await hasRef(ref))) {
+    if (!(await hasCommit(ref))) {
         // Fetch and add base branch
-        core.startGroup(`Fetching ${ref} from origin until merge-base is found`);
-        await exec_1.default('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
+        core.startGroup(`Fetching ${ref}`);
+        try {
+            await exec_1.default('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
+        }
+        finally {
+            core.endGroup();
+        }
     }
     async function hasMergeBase() {
         return (await exec_1.default('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true })).code === 0;
@@ -3849,6 +3854,7 @@ async function getChangesSinceMergeBase(ref, initialFetchDepth) {
     async function countCommits() {
         return (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref));
     }
+    core.startGroup(`Searching for merge-base with ${ref}`);
     // Fetch more commits until merge-base is found
     if (!(await hasMergeBase())) {
         let deepen = initialFetchDepth;
@@ -3962,17 +3968,13 @@ function getShortName(ref) {
 }
 exports.getShortName = getShortName;
 async function hasCommit(ref) {
-    core.startGroup(`Checking if ${ref} is locally available`);
+    core.startGroup(`Checking if commit for ${ref} is locally available`);
     try {
         return (await exec_1.default('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).code === 0;
     }
     finally {
         core.endGroup();
     }
-}
-async function hasRef(ref) {
-    const showRef = await exec_1.default('git', ['show-ref', '--verify', '-q', ref], { ignoreReturnCode: true });
-    return showRef.code === 0;
 }
 async function getNumberOfCommits(ref) {
     const output = (await exec_1.default('git', ['rev-list', `--count`, ref])).stdout;
