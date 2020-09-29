@@ -4,6 +4,19 @@ import {File, ChangeStatus} from './file'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
 
+export async function getChangesInLastCommit(): Promise<File[]> {
+  core.startGroup(`Change detection in last commit`)
+  let output = ''
+  try {
+    output = (await exec('git', ['log', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout
+  } finally {
+    fixStdOutNullTermination()
+    core.endGroup()
+  }
+
+  return parseGitDiffOutput(output)
+}
+
 export async function getChanges(ref: string): Promise<File[]> {
   if (!(await hasCommit(ref))) {
     // Fetch single commit
@@ -51,7 +64,7 @@ export async function getChangesSinceMergeBase(ref: string, initialFetchDepth: n
     let deepen = initialFetchDepth
     let lastCommitsCount = await countCommits()
     do {
-      await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc', '-q'])
+      await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc'])
       const count = await countCommits()
       if (count <= lastCommitsCount) {
         core.info('No merge base found - all files will be listed as added')
@@ -123,27 +136,6 @@ export async function getCurrentRef(): Promise<string> {
     }
 
     return (await exec('git', ['rev-parse', 'HEAD'])).stdout.trim()
-  } finally {
-    core.endGroup()
-  }
-}
-
-export async function getParentSha(ref: string): Promise<string> {
-  core.startGroup(`Determining parent of ${ref}`)
-  try {
-    const revParse = await exec('git', ['rev-parse', `${ref}~`], {ignoreReturnCode: true})
-    if (revParse.code === 0) {
-      return revParse.stdout.trim()
-    }
-
-    const parent = 'parent '
-    const catFile = await exec('git', ['cat-file', '-p', ref])
-    const parents = catFile.stdout
-      .split('\n')
-      .filter(line => line.startsWith(parent))
-      .map(line => line.slice(parent.length).trim())
-
-    return parents.length > 0 ? parents[0] : NULL_SHA
   } finally {
     core.endGroup()
   }

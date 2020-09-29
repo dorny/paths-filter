@@ -3811,11 +3811,24 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getShortName = exports.getParentSha = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChanges = exports.NULL_SHA = void 0;
+exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChanges = exports.getChangesInLastCommit = exports.NULL_SHA = void 0;
 const exec_1 = __importDefault(__webpack_require__(807));
 const core = __importStar(__webpack_require__(470));
 const file_1 = __webpack_require__(258);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
+async function getChangesInLastCommit() {
+    core.startGroup(`Change detection in last commit`);
+    let output = '';
+    try {
+        output = (await exec_1.default('git', ['log', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout;
+    }
+    finally {
+        fixStdOutNullTermination();
+        core.endGroup();
+    }
+    return parseGitDiffOutput(output);
+}
+exports.getChangesInLastCommit = getChangesInLastCommit;
 async function getChanges(ref) {
     if (!(await hasCommit(ref))) {
         // Fetch single commit
@@ -3860,7 +3873,7 @@ async function getChangesSinceMergeBase(ref, initialFetchDepth) {
         let deepen = initialFetchDepth;
         let lastCommitsCount = await countCommits();
         do {
-            await exec_1.default('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc', '-q']);
+            await exec_1.default('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc']);
             const count = await countCommits();
             if (count <= lastCommitsCount) {
                 core.info('No merge base found - all files will be listed as added');
@@ -3935,26 +3948,6 @@ async function getCurrentRef() {
     }
 }
 exports.getCurrentRef = getCurrentRef;
-async function getParentSha(ref) {
-    core.startGroup(`Determining parent of ${ref}`);
-    try {
-        const revParse = await exec_1.default('git', ['rev-parse', `${ref}~`], { ignoreReturnCode: true });
-        if (revParse.code === 0) {
-            return revParse.stdout.trim();
-        }
-        const parent = 'parent ';
-        const catFile = await exec_1.default('git', ['cat-file', '-p', ref]);
-        const parents = catFile.stdout
-            .split('\n')
-            .filter(line => line.startsWith(parent))
-            .map(line => line.slice(parent.length).trim());
-        return parents.length > 0 ? parents[0] : exports.NULL_SHA;
-    }
-    finally {
-        core.endGroup();
-    }
-}
-exports.getParentSha = getParentSha;
 function getShortName(ref) {
     if (!ref)
         return '';
@@ -4680,9 +4673,7 @@ function getConfigFileContent(configPath) {
 async function getChangedFiles(token, base, initialFetchDepth) {
     if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
         const pr = github.context.payload.pull_request;
-        return token
-            ? await getChangedFilesFromApi(token, pr)
-            : await git.getChangesSinceMergeBase(pr.base.ref, initialFetchDepth);
+        return token ? await getChangedFilesFromApi(token, pr) : await git.getChangesInLastCommit(); // For PRs there will be detached head with merge commit
     }
     else if (github.context.eventName === 'push') {
         return getChangedFilesFromPush(base, initialFetchDepth);
@@ -4705,12 +4696,13 @@ async function getChangedFilesFromPush(base, initialFetchDepth) {
     // If base references same branch it was pushed to,
     // we will do comparison against the previously pushed commit
     if (baseRef === pushRef) {
-        const beforeRef = push.before ||
-            (core.warning(`'before' field is missing in PUSH event payload - using parent of current commit`),
-                await git.getParentSha(pushRef));
+        if (!push.before) {
+            core.warning(`'before' field is missing in PUSH event payload - changes will be detected from last commit`);
+            return await git.getChangesInLastCommit();
+        }
         // If there is no previously pushed commit,
         // we will do comparison against the default branch or return all as added
-        if (beforeRef === git.NULL_SHA) {
+        if (push.before === git.NULL_SHA) {
             if (defaultRef && baseRef !== defaultRef) {
                 core.info(`First push of a branch detected - changes will be detected against the default branch ${defaultRef}`);
                 return await git.getChangesSinceMergeBase(defaultRef, initialFetchDepth);
@@ -4721,7 +4713,7 @@ async function getChangedFilesFromPush(base, initialFetchDepth) {
             }
         }
         core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`);
-        return await git.getChanges(beforeRef);
+        return await git.getChanges(push.before);
     }
     // Changes introduced by current branch against the base branch
     core.info(`Changes will be detected against the branch ${baseRef}`);

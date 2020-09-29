@@ -57,9 +57,7 @@ function getConfigFileContent(configPath: string): string {
 async function getChangedFiles(token: string, base: string, initialFetchDepth: number): Promise<File[]> {
   if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
     const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
-    return token
-      ? await getChangedFilesFromApi(token, pr)
-      : await git.getChangesSinceMergeBase(pr.base.ref, initialFetchDepth)
+    return token ? await getChangedFilesFromApi(token, pr) : await git.getChangesInLastCommit() // For PRs there will be detached head with merge commit
   } else if (github.context.eventName === 'push') {
     return getChangedFilesFromPush(base, initialFetchDepth)
   } else {
@@ -86,14 +84,14 @@ async function getChangedFilesFromPush(base: string, initialFetchDepth: number):
   // If base references same branch it was pushed to,
   // we will do comparison against the previously pushed commit
   if (baseRef === pushRef) {
-    const beforeRef =
-      push.before ||
-      (core.warning(`'before' field is missing in PUSH event payload - using parent of current commit`),
-      await git.getParentSha(pushRef))
+    if (!push.before) {
+      core.warning(`'before' field is missing in PUSH event payload - changes will be detected from last commit`)
+      return await git.getChangesInLastCommit()
+    }
 
     // If there is no previously pushed commit,
     // we will do comparison against the default branch or return all as added
-    if (beforeRef === git.NULL_SHA) {
+    if (push.before === git.NULL_SHA) {
       if (defaultRef && baseRef !== defaultRef) {
         core.info(`First push of a branch detected - changes will be detected against the default branch ${defaultRef}`)
         return await git.getChangesSinceMergeBase(defaultRef, initialFetchDepth)
@@ -104,7 +102,7 @@ async function getChangedFilesFromPush(base: string, initialFetchDepth: number):
     }
 
     core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`)
-    return await git.getChanges(beforeRef)
+    return await git.getChanges(push.before)
   }
 
   // Changes introduced by current branch against the base branch
