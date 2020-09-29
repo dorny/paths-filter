@@ -19,7 +19,11 @@ describe('parsing output of the git diff command', () => {
 describe('git utility function tests (those not invoking git)', () => {
   test('Trims "refs/" and "heads/" from ref', () => {
     expect(git.getShortName('refs/heads/master')).toBe('master')
-    expect(git.getShortName('heads/master')).toBe('master')
+    expect(git.getShortName('heads/master')).toBe('heads/master')
     expect(git.getShortName('master')).toBe('master')
+
+    expect(git.getShortName('refs/tags/v1')).toBe('v1')
+    expect(git.getShortName('tags/v1')).toBe('tags/v1')
+    expect(git.getShortName('v1')).toBe('v1')
   })
 })

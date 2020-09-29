@@ -3918,7 +3918,7 @@ async function getCurrentRef() {
         if (branch) {
             return branch;
         }
-        const describe = await exec_1.default('git', ['describe', '--all', '--exact-match'], { ignoreReturnCode: true });
+        const describe = await exec_1.default('git', ['describe', '--tags', '--exact-match'], { ignoreReturnCode: true });
         if (describe.code === 0) {
             return describe.stdout.trim();
         }
@@ -3950,8 +3950,15 @@ async function getParentSha(ref) {
 }
 exports.getParentSha = getParentSha;
 function getShortName(ref) {
-    const trimRef = trimStart(ref, 'refs/');
-    return trimStart(trimRef, 'heads/');
+    if (!ref)
+        return '';
+    const heads = 'refs/heads/';
+    const tags = 'refs/tags/';
+    if (ref.startsWith(heads))
+        return ref.slice(heads.length);
+    if (ref.startsWith(tags))
+        return ref.slice(tags.length);
+    return ref;
 }
 exports.getShortName = getShortName;
 async function hasCommit(ref) {
@@ -3971,12 +3978,6 @@ async function getNumberOfCommits(ref) {
     const output = (await exec_1.default('git', ['rev-list', `--count`, ref])).stdout;
     const count = parseInt(output);
     return isNaN(count) ? 0 : count;
-}
-function trimStart(ref, start) {
-    if (!ref) {
-        return '';
-    }
-    return ref.startsWith(start) ? ref.substr(start.length) : ref;
 }
 function fixStdOutNullTermination() {
     // Previous command uses NULL as delimiters and output is printed to stdout.
@@ -4695,7 +4696,7 @@ async function getChangedFilesFromPush(base, initialFetchDepth) {
     const pushRef = git.getShortName(push.ref) ||
         (core.warning(`'ref' field is missing in PUSH event payload - using current branch, tag or commit SHA`),
             await git.getCurrentRef());
-    const baseRef = git.getShortName(base) || defaultRef;
+    const baseRef = base || defaultRef;
     if (!baseRef) {
         throw new Error("This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload");
     }

@@ -112,7 +112,7 @@ export async function getCurrentRef(): Promise<string> {
       return branch
     }
 
-    const describe = await exec('git', ['describe', '--all', '--exact-match'], {ignoreReturnCode: true})
+    const describe = await exec('git', ['describe', '--tags', '--exact-match'], {ignoreReturnCode: true})
     if (describe.code === 0) {
       return describe.stdout.trim()
     }
@@ -145,8 +145,15 @@ export async function getParentSha(ref: string): Promise<string> {
 }
 
 export function getShortName(ref: string): string {
-  const trimRef = trimStart(ref, 'refs/')
-  return trimStart(trimRef, 'heads/')
+  if (!ref) return ''
+
+  const heads = 'refs/heads/'
+  const tags = 'refs/tags/'
+
+  if (ref.startsWith(heads)) return ref.slice(heads.length)
+  if (ref.startsWith(tags)) return ref.slice(tags.length)
+
+  return ref
 }
 
 async function hasCommit(ref: string): Promise<boolean> {
@@ -167,13 +174,6 @@ async function getNumberOfCommits(ref: string): Promise<number> {
   const output = (await exec('git', ['rev-list', `--count`, ref])).stdout
   const count = parseInt(output)
   return isNaN(count) ? 0 : count
-}
-
-function trimStart(ref: string, start: string): string {
-  if (!ref) {
-    return ''
-  }
-  return ref.startsWith(start) ? ref.substr(start.length) : ref
 }
 
 function fixStdOutNullTermination(): void {

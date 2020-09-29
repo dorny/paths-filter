@@ -76,7 +76,7 @@ async function getChangedFilesFromPush(base: string, initialFetchDepth: number):
     (core.warning(`'ref' field is missing in PUSH event payload - using current branch, tag or commit SHA`),
     await git.getCurrentRef())
 
-  const baseRef = git.getShortName(base) || defaultRef
+  const baseRef = base || defaultRef
   if (!baseRef) {
     throw new Error(
       "This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload"
