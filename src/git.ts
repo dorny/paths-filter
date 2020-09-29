@@ -27,7 +27,7 @@ export async function getChanges(ref: string): Promise<File[]> {
 }
 
 export async function getChangesSinceMergeBase(ref: string, initialFetchDepth: number): Promise<File[]> {
-  if (!(await hasBranch(ref))) {
+  if (!(await hasRef(ref))) {
     // Fetch and add base branch
     core.startGroup(`Fetching ${ref} from origin until merge-base is found`)
     await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
@@ -165,8 +165,8 @@ async function hasCommit(ref: string): Promise<boolean> {
   }
 }
 
-async function hasBranch(branch: string): Promise<boolean> {
-  const showRef = await exec('git', ['show-ref', '--verify', '-q', `refs/heads/${branch}`], {ignoreReturnCode: true})
+async function hasRef(ref: string): Promise<boolean> {
+  const showRef = await exec('git', ['show-ref', '--verify', '-q', ref], {ignoreReturnCode: true})
   return showRef.code === 0
 }
 

@@ -3838,7 +3838,7 @@ async function getChanges(ref) {
 }
 exports.getChanges = getChanges;
 async function getChangesSinceMergeBase(ref, initialFetchDepth) {
-    if (!(await hasBranch(ref))) {
+    if (!(await hasRef(ref))) {
         // Fetch and add base branch
         core.startGroup(`Fetching ${ref} from origin until merge-base is found`);
         await exec_1.default('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
@@ -3970,8 +3970,8 @@ async function hasCommit(ref) {
         core.endGroup();
     }
 }
-async function hasBranch(branch) {
-    const showRef = await exec_1.default('git', ['show-ref', '--verify', '-q', `refs/heads/${branch}`], { ignoreReturnCode: true });
+async function hasRef(ref) {
+    const showRef = await exec_1.default('git', ['show-ref', '--verify', '-q', ref], { ignoreReturnCode: true });
     return showRef.code === 0;
 }
 async function getNumberOfCommits(ref) {
