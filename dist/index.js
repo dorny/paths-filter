@@ -3820,7 +3820,7 @@ async function getChangesInLastCommit() {
     core.startGroup(`Change detection in last commit`);
     let output = '';
     try {
-        output = (await exec_1.default('git', ['log', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout;
+        output = (await exec_1.default('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout;
     }
     finally {
         fixStdOutNullTermination();

@@ -8,7 +8,7 @@ export async function getChangesInLastCommit(): Promise<File[]> {
   core.startGroup(`Change detection in last commit`)
   let output = ''
   try {
-    output = (await exec('git', ['log', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout
+    output = (await exec('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
