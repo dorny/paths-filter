@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.4.0
+- [Support pushes of tags or when tag is used as base](https://github.com/dorny/paths-filter/pull/40)
+- [Use git log to detect changes from PRs merge commit if token is not available](https://github.com/dorny/paths-filter/pull/40)
+- [Support local execution with act](https://github.com/dorny/paths-filter/pull/40)
+- [Improved processing of repository initial push](https://github.com/dorny/paths-filter/pull/40)
+- [Improved processing of first push of new branch](https://github.com/dorny/paths-filter/pull/40)
+
+
 ## v2.3.0
 - [Improved documentation](https://github.com/dorny/paths-filter/pull/37)
 - [Change detection using git "three dot" diff](https://github.com/dorny/paths-filter/pull/35)
