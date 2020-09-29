@@ -57,7 +57,11 @@ function getConfigFileContent(configPath: string): string {
 async function getChangedFiles(token: string, base: string, initialFetchDepth: number): Promise<File[]> {
   if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
     const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
-    return token ? await getChangedFilesFromApi(token, pr) : await git.getChangesInLastCommit() // For PRs there will be detached head with merge commit
+    if (token) {
+      return await getChangedFilesFromApi(token, pr)
+    }
+    core.info('Github token is not available - changes will be detected from PRs merge commit')
+    return await git.getChangesInLastCommit()
   } else if (github.context.eventName === 'push') {
     return getChangedFilesFromPush(base, initialFetchDepth)
   } else {
@@ -74,7 +78,7 @@ async function getChangedFilesFromPush(base: string, initialFetchDepth: number):
     (core.warning(`'ref' field is missing in PUSH event payload - using current branch, tag or commit SHA`),
     await git.getCurrentRef())
 
-  const baseRef = base || defaultRef
+  const baseRef = git.getShortName(base) || defaultRef
   if (!baseRef) {
     throw new Error(
       "This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload"
