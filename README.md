@@ -1,5 +1,4 @@
-
-# paths-filter
+# Paths Changes Filter
 
 This [Github Action](https://github.com/features/actions) enables conditional execution of workflow steps and jobs,
 based on the files modified by pull request, feature branch or in pushed commits.
@@ -24,8 +23,22 @@ doesn't allow this because they doesn't work on a level of individual jobs or st
   - Changes are detected against the most recent commit on the same branch before the push
   - Uses git commands to detect changes - repository must be already [checked out](https://github.com/actions/checkout)
 
+## Example
+```yaml
+- uses: dorny/paths-filter@v2
+  id: changes
+  with:
+    filters: |
+      src:
+        - 'src/**'
 
-## Important notes:
+  # run only if some file in 'src' folder was changed
+  if: steps.changes.outputs.src == 'true'
+  run: ...
+```
+For more scenarios see [examples](#examples) section.
+
+## Notes:
 - Paths expressions are evaluated using [minimatch](https://github.com/isaacs/minimatch) library.
   Documentation for path expression format can be found on project github page.
 - Minimatch [dot](https://www.npmjs.com/package/minimatch#dot) option is set to true.
