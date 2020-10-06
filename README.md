@@ -49,6 +49,7 @@ For more scenarios see [examples](#examples) section.
 
 
 # What's New
+- Fixed compatibility with older (<2.23) versions of git
 - Support for tag pushes and tags as a base reference
 - Fixes for various edge cases when event payload is incomplete
   - Supports local execution with [act](https://github.com/nektos/act)
@@ -59,7 +60,6 @@ For more scenarios see [examples](#examples) section.
 - Custom processing of changed files:
   - Optionally export paths of all files matching the filter
   - Output can be space-delimited or in JSON format
-- Improved documentation and logging
 
 For more information see [CHANGELOG](https://github.com/actions/checkout/blob/main/CHANGELOG.md)
 
