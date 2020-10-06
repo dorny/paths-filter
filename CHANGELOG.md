@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.4.1
+## v2.4.2
 - [Fixed compatibility with older (<2.23) versions of git](https://github.com/dorny/paths-filter/pull/42)
 
 ## v2.4.0
