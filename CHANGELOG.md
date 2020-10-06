@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.4.1
+- [Fixed compatibility with older (<2.23) versions of git](https://github.com/dorny/paths-filter/pull/42)
+
 ## v2.4.0
 - [Support pushes of tags or when tag is used as base](https://github.com/dorny/paths-filter/pull/40)
 - [Use git log to detect changes from PRs merge commit if token is not available](https://github.com/dorny/paths-filter/pull/40)

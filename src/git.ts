@@ -21,7 +21,7 @@ export async function getChanges(ref: string): Promise<File[]> {
   if (!(await hasCommit(ref))) {
     // Fetch single commit
     core.startGroup(`Fetching ${ref} from origin`)
-    await exec('git', ['fetch', '--depth=1', '--no-tags', '--no-auto-gc', 'origin', ref])
+    await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', ref])
     core.endGroup()
   }
 
@@ -64,7 +64,7 @@ export async function getChangesSinceMergeBase(ref: string, initialFetchDepth: n
     let deepen = initialFetchDepth
     let lastCommitsCount = await countCommits()
     do {
-      await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags', '--no-auto-gc'])
+      await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags'])
       const count = await countCommits()
       if (count <= lastCommitsCount) {
         core.info('No merge base found - all files will be listed as added')
