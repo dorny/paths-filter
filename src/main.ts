@@ -109,7 +109,7 @@ async function getChangedFilesFromGit(base: string, initialFetchDepth: number): 
       }
     }
 
-    core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`)
+    core.info(`Changes will be detected against commit (${baseSha})`)
     return await git.getChanges(baseSha)
   }
 

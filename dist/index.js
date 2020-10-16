@@ -4720,7 +4720,7 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
                 return await git.listAllFilesAsAdded();
             }
         }
-        core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`);
+        core.info(`Changes will be detected against commit (${baseSha})`);
         return await git.getChanges(baseSha);
     }
     // Changes introduced by current branch against the base branch
