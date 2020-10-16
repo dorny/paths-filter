@@ -94,7 +94,7 @@ For more information see [CHANGELOG](https://github.com/actions/checkout/blob/ma
     # Filters syntax is documented by example - see examples section.
     filters: ''
 
-    # Branch or tag against which the changes will be detected.
+    # Branch, tag or commit SHA against which the changes will be detected.
     # If it references same branch it was pushed to,
     # changes are detected against the most recent commit before the push.
     # Otherwise it uses git merge-base to find best common ancestor between
