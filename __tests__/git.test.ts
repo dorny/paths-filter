@@ -26,4 +26,10 @@ describe('git utility function tests (those not invoking git)', () => {
     expect(git.getShortName('tags/v1')).toBe('tags/v1')
     expect(git.getShortName('v1')).toBe('v1')
   })
+
+  test('isGitSha(ref) returns true only for 40 characters of a-z and 0-9', () => {
+    expect(git.isGitSha('8b399ed1681b9efd6b1e048ca1c5cba47edf3855')).toBeTruthy()
+    expect(git.isGitSha('This_is_very_long_name_for_a_branch_1111')).toBeFalsy()
+    expect(git.isGitSha('master')).toBeFalsy()
+  })
 })
