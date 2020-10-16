@@ -62,19 +62,19 @@ async function getChangedFiles(token: string, base: string, initialFetchDepth: n
     }
     core.info('Github token is not available - changes will be detected from PRs merge commit')
     return await git.getChangesInLastCommit()
-  } else if (github.context.eventName === 'push') {
-    return getChangedFilesFromPush(base, initialFetchDepth)
   } else {
-    throw new Error('This action can be triggered only by pull_request, pull_request_target or push event')
+    return getChangedFilesFromGit(base, initialFetchDepth)
   }
 }
 
-async function getChangedFilesFromPush(base: string, initialFetchDepth: number): Promise<File[]> {
-  const push = github.context.payload as Webhooks.WebhookPayloadPush
-  const defaultRef = push.repository?.default_branch
+async function getChangedFilesFromGit(base: string, initialFetchDepth: number): Promise<File[]> {
+  const defaultRef = github.context.payload.repository?.default_branch
+
+  const beforeSha =
+    github.context.eventName === 'push' ? (github.context.payload as Webhooks.WebhookPayloadPush).before : null
 
   const pushRef =
-    git.getShortName(push.ref) ||
+    git.getShortName(github.context.ref) ||
     (core.warning(`'ref' field is missing in PUSH event payload - using current branch, tag or commit SHA`),
     await git.getCurrentRef())
 
@@ -85,17 +85,21 @@ async function getChangedFilesFromPush(base: string, initialFetchDepth: number):
     )
   }
 
-  // If base references same branch it was pushed to,
-  // we will do comparison against the previously pushed commit
-  if (baseRef === pushRef) {
-    if (!push.before) {
+  const isBaseRefSha = git.isGitSha(baseRef)
+  const isBaseSameAsPush = baseRef === pushRef
+
+  // If base is commit SHA will do comparison against the referenced commit
+  // Or If base references same branch it was pushed to, we will do comparison against the previously pushed commit
+  if (isBaseRefSha || isBaseSameAsPush) {
+    if (!isBaseRefSha && !beforeSha) {
       core.warning(`'before' field is missing in PUSH event payload - changes will be detected from last commit`)
       return await git.getChangesInLastCommit()
     }
 
+    const baseSha = isBaseRefSha ? baseRef : beforeSha
     // If there is no previously pushed commit,
     // we will do comparison against the default branch or return all as added
-    if (push.before === git.NULL_SHA) {
+    if (baseSha === git.NULL_SHA) {
       if (defaultRef && baseRef !== defaultRef) {
         core.info(`First push of a branch detected - changes will be detected against the default branch ${defaultRef}`)
         return await git.getChangesSinceMergeBase(defaultRef, initialFetchDepth)
@@ -106,7 +110,7 @@ async function getChangedFilesFromPush(base: string, initialFetchDepth: number):
     }
 
     core.info(`Changes will be detected against the last previously pushed commit on same branch (${pushRef})`)
-    return await git.getChanges(push.before)
+    return await git.getChanges(baseSha)
   }
 
   // Changes introduced by current branch against the base branch

@@ -153,6 +153,10 @@ export function getShortName(ref: string): string {
   return ref
 }
 
+export function isGitSha(ref: string): boolean {
+  return /^[a-z0-9]{40}$/.test(ref)
+}
+
 async function hasCommit(ref: string): Promise<boolean> {
   core.startGroup(`Checking if commit for ${ref} is locally available`)
   try {

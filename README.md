@@ -9,18 +9,27 @@ doesn't allow this because they doesn't work on a level of individual jobs or st
 
 
 ## Supported workflows:
-- Pull requests:
-  - Action triggered by **[pull_request](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request)**
+- **Pull requests:**
+  - Workflow triggered by **[pull_request](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request)**
     or **[pull_request_target](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target)** event
   - Changes are detected against the pull request base branch
   - Uses Github REST API to fetch list of modified files
-- Feature branches:
-  - Action triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)** event
-  - Changes are detected against the merge-base with configured base branch
+- **Feature branches:**
+  - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)**
+  or any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
+  - The `base` input parameter must not be the same as the branch that triggered the workflow
+  - Changes are detected against the merge-base with configured base branch or default branch
   - Uses git commands to detect changes - repository must be already [checked out](https://github.com/actions/checkout)
-- Master, Release or other long-lived branches:
-  - Action triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)** event
-  - Changes are detected against the most recent commit on the same branch before the push
+- **Master, Release or other long-lived branches:**
+  - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)** event
+  when `base` input parameter is same as the branch that triggered the workflow:
+    - Changes are detected against the most recent commit on the same branch before the push
+  - Workflow triggered by any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
+  when `base` input parameter is commit SHA:
+    - Changes are detected against the provided `base` commit
+  - Workflow triggered by any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
+  when `base` input parameter is same as the branch that triggered the workflow:
+    - Changes are detected from last commit
   - Uses git commands to detect changes - repository must be already [checked out](https://github.com/actions/checkout)
 
 ## Example
