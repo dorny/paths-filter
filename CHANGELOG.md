@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.5.0
+- [Support workflows triggered by any event](https://github.com/dorny/paths-filter/pull/44)
+
 ## v2.4.2
 - [Fixed compatibility with older (<2.23) versions of git](https://github.com/dorny/paths-filter/pull/42)
 
