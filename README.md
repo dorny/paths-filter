@@ -7,6 +7,10 @@ It saves time and resources especially in monorepo setups, where you can run slo
 Github workflows built-in [path filters](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#onpushpull_requestpaths)
 doesn't allow this because they doesn't work on a level of individual jobs or steps.
 
+**Real world usage examples:**
+- [sentry.io](https://sentry.io/) - [backend-test-py3.6.yml](https://github.com/getsentry/sentry/blob/ca0e43dc5602a9ab2e06d3f6397cc48fb5a78541/.github/workflows/backend-test-py3.6.yml#L32)
+- [GoogleChrome/web.dev](https://web.dev/) - [lint-and-test-workflow.yml](https://github.com/GoogleChrome/web.dev/blob/e1f0c28964e99ce6a996c1e3fd3ee1985a7a04f6/.github/workflows/lint-and-test-workflow.yml#L33)
+
 
 ## Supported workflows:
 - **Pull requests:**
