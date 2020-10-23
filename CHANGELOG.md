@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.5.1
+- [Improved path matching with micromatch](https://github.com/dorny/paths-filter/pull/46)
+
 ## v2.5.0
 - [Support workflows triggered by any event](https://github.com/dorny/paths-filter/pull/44)
 

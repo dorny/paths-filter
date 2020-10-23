@@ -98,6 +98,25 @@ describe('matching tests', () => {
     expect(match.dot).toEqual(files)
   })
 
+  test('matches all except tsx and less files (negate a group with or-ed parts)', () => {
+    const yaml = `
+    backend:
+      - '!(**/*.tsx|**/*.less)'
+    `
+    const filter = new Filter(yaml)
+    const tsxFiles = modified(['src/ui.tsx'])
+    const lessFiles = modified(['src/ui.less'])
+    const pyFiles = modified(['src/server.py'])
+
+    const tsxMatch = filter.match(tsxFiles)
+    const lessMatch = filter.match(lessFiles)
+    const pyMatch = filter.match(pyFiles)
+
+    expect(tsxMatch.backend).toEqual([])
+    expect(lessMatch.backend).toEqual([])
+    expect(pyMatch.backend).toEqual(pyFiles)
+  })
+
   test('matches path based on rules included using YAML anchor', () => {
     const yaml = `
     shared: &shared

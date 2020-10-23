@@ -1,5 +1,5 @@
 import * as jsyaml from 'js-yaml'
-import * as minimatch from 'minimatch'
+import * as micromatch from 'micromatch'
 import {File, ChangeStatus} from './file'
 
 // Type definition of object we expect to load from YAML
@@ -12,7 +12,7 @@ type FilterItemYaml =
   | FilterItemYaml[] // Supports referencing another rule via YAML anchor
 
 // Minimatch options used in all matchers
-const MinimatchOptions: minimatch.IOptions = {
+const MatchOptions: micromatch.Options = {
   dot: true
 }
 
@@ -20,7 +20,7 @@ const MinimatchOptions: minimatch.IOptions = {
 // Created as simplified form of data in FilterItemYaml
 interface FilterRuleItem {
   status?: ChangeStatus[] // Required change status of the matched files
-  matcher: minimatch.IMinimatch // Matches the filename
+  isMatch: (str: string) => boolean // Matches the filename
 }
 
 export interface FilterResults {
@@ -63,7 +63,7 @@ export class Filter {
 
   private isMatch(file: File, patterns: FilterRuleItem[]): boolean {
     return patterns.some(
-      rule => (rule.status === undefined || rule.status.includes(file.status)) && rule.matcher.match(file.filename)
+      rule => (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.filename)
     )
   }
 
@@ -73,7 +73,7 @@ export class Filter {
     }
 
     if (typeof item === 'string') {
-      return [{status: undefined, matcher: new minimatch.Minimatch(item, MinimatchOptions)}]
+      return [{status: undefined, isMatch: micromatch.matcher(item, MatchOptions)}]
     }
 
     if (typeof item === 'object') {
@@ -89,7 +89,7 @@ export class Filter {
             .map(x => x.trim())
             .filter(x => x.length > 0)
             .map(x => x.toLowerCase()) as ChangeStatus[],
-          matcher: new minimatch.Minimatch(pattern, MinimatchOptions)
+          isMatch: micromatch.matcher(pattern, MatchOptions)
         }
       })
     }
