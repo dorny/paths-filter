@@ -405,7 +405,7 @@ jobs:
 - name: Lint Markdown
   uses: johndoe/some-action@v1
   with:
-    files: ${{ steps.filter.changed_files }}
+    files: ${{ steps.filter.outputs.changed_files }}
 ```
 </details>
 
