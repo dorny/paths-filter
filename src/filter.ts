@@ -78,7 +78,7 @@ export class Filter {
 
     if (typeof item === 'object') {
       return Object.entries(item).map(([key, pattern]) => {
-        if (typeof key !== 'string' || typeof pattern !== 'string') {
+        if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
           this.throwInvalidFormatError(
             `Expected [key:string]= pattern:string, but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`
           )
