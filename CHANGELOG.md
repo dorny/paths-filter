@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.2
+- [Add support for multiple patterns when using file status](https://github.com/dorny/paths-filter/pull/48)
+- [Use picomatch directly instead of micromatch wrapper](https://github.com/dorny/paths-filter/pull/49)
+
 ## v2.5.1
 - [Improved path matching with micromatch](https://github.com/dorny/paths-filter/pull/46)
 

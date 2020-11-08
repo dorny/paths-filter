@@ -1,5 +1,5 @@
 import * as jsyaml from 'js-yaml'
-import * as micromatch from 'micromatch'
+import picomatch from 'picomatch'
 import {File, ChangeStatus} from './file'
 
 // Type definition of object we expect to load from YAML
@@ -8,11 +8,11 @@ interface FilterYaml {
 }
 type FilterItemYaml =
   | string // Filename pattern, e.g. "path/to/*.js"
-  | {[changeTypes: string]: string} // Change status and filename, e.g. added|modified: "path/to/*.js"
+  | {[changeTypes: string]: string | string[]} // Change status and filename, e.g. added|modified: "path/to/*.js"
   | FilterItemYaml[] // Supports referencing another rule via YAML anchor
 
 // Minimatch options used in all matchers
-const MatchOptions: micromatch.Options = {
+const MatchOptions = {
   dot: true
 }
 
@@ -73,14 +73,14 @@ export class Filter {
     }
 
     if (typeof item === 'string') {
-      return [{status: undefined, isMatch: micromatch.matcher(item, MatchOptions)}]
+      return [{status: undefined, isMatch: picomatch(item, MatchOptions)}]
     }
 
     if (typeof item === 'object') {
       return Object.entries(item).map(([key, pattern]) => {
         if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
           this.throwInvalidFormatError(
-            `Expected [key:string]= pattern:string, but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`
+            `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`
           )
         }
         return {
@@ -89,7 +89,7 @@ export class Filter {
             .map(x => x.trim())
             .filter(x => x.length > 0)
             .map(x => x.toLowerCase()) as ChangeStatus[],
-          isMatch: micromatch.matcher(pattern, MatchOptions)
+          isMatch: picomatch(pattern, MatchOptions)
         }
       })
     }
