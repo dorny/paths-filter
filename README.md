@@ -350,10 +350,15 @@ jobs:
         # dictionary, where type(s) of change composes the key.
         # Multiple change types can be specified using `|` as delimiter.
         filters: |
+          shared: &shared
+            - common/**
+            - config/**
           addedOrModified:
             - added|modified: '**'
           allChanges:
             - added|deleted|modified: '**'
+          addedOrModifiedAnchors:
+            - added|modified: *shared
 ```
 </details>
 

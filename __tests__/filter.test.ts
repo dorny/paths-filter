@@ -165,6 +165,20 @@ describe('matching specific change status', () => {
     const match = filter.match(files)
     expect(match.addOrModify).toEqual(files)
   })
+
+  test.only('matches when using an anchor', () => {
+    const yaml = `
+    shared: &shared
+      - common/**/*
+      - config/**/*
+    src:
+      - modified: *shared
+    `
+    let filter = new Filter(yaml)
+    const files = modified(['config/file.js', 'common/anotherFile.js'])
+    const match = filter.match(files)
+    expect(match.src).toEqual(files)
+  })
 })
 
 function modified(paths: string[]): File[] {
