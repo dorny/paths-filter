@@ -166,7 +166,7 @@ describe('matching specific change status', () => {
     expect(match.addOrModify).toEqual(files)
   })
 
-  test.only('matches when using an anchor', () => {
+  test('matches when using an anchor', () => {
     const yaml = `
     shared: &shared
       - common/**/*
