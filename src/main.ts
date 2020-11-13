@@ -153,9 +153,11 @@ async function getChangedFilesFromApi(
           status: ChangeStatus.Deleted
         })
       } else {
+        // Github status and git status variants are same except for deleted files
+        const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
         files.push({
           filename: row.filename,
-          status: row.status as ChangeStatus
+          status
         })
       }
     }

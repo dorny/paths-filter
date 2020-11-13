@@ -4760,9 +4760,11 @@ async function getChangedFilesFromApi(token, pullRequest) {
                 });
             }
             else {
+                // Github status and git status variants are same except for deleted files
+                const status = row.status === 'removed' ? file_1.ChangeStatus.Deleted : row.status;
                 files.push({
                     filename: row.filename,
-                    status: row.status
+                    status
                 });
             }
         }
