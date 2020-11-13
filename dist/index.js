@@ -4729,23 +4729,20 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
 }
 // Uses github REST api to get list of files changed in PR
 async function getChangedFilesFromApi(token, pullRequest) {
-    var _a;
     core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from Github API`);
-    core.info(`Declared number of changed_files = ${pullRequest.changed_files}`);
+    core.info(`Number of changed_files is ${pullRequest.changed_files}`);
     const client = new github.GitHub(token);
     const pageSize = 100;
     const files = [];
-    let response;
-    let page = 1;
-    do {
+    for (let page = 1; page * pageSize < pullRequest.changed_files; page++) {
         core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, page: ${page}, per_page: ${pageSize})`);
-        response = await client.pulls.listFiles({
+        const response = await client.pulls.listFiles({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
             pull_number: pullRequest.number,
+            page,
             per_page: pageSize
         });
-        core.info(`Headers: ${JSON.stringify(response.headers)}`);
         for (const row of response.data) {
             core.info(`[${row.status}] ${row.filename}`);
             // There's no obvious use-case for detection of renames
@@ -4769,8 +4766,7 @@ async function getChangedFilesFromApi(token, pullRequest) {
                 });
             }
         }
-        page++;
-    } while (((_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.length) > 0);
+    }
     core.endGroup();
     return files;
 }
