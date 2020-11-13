@@ -128,7 +128,7 @@ async function getChangedFilesFromApi(
   const client = new github.GitHub(token)
   const pageSize = 100
   const files: File[] = []
-  for (let page = 1; page * pageSize < pullRequest.changed_files; page++) {
+  for (let page = 1; (page - 1) * pageSize < pullRequest.changed_files; page++) {
     core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, page: ${page}, per_page: ${pageSize})`)
     const response = await client.pulls.listFiles({
       owner: github.context.repo.owner,
