@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.5.3
+- [Fixed retrieval of all changes via Github API when there are 100+ changes](https://github.com/dorny/paths-filter/pull/50)
+
 ## v2.5.2
 - [Add support for multiple patterns when using file status](https://github.com/dorny/paths-filter/pull/48)
 - [Use picomatch directly instead of micromatch wrapper](https://github.com/dorny/paths-filter/pull/49)

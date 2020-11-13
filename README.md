@@ -62,6 +62,7 @@ For more scenarios see [examples](#examples) section.
 
 
 # What's New
+- Fixed retrieval of all changes via Github API when there are 100+ changes
 - Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
 - Support workflows triggered by any event
 - Fixed compatibility with older (<2.23) versions of git
