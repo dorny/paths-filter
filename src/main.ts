@@ -2,6 +2,7 @@ import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {Webhooks} from '@octokit/webhooks'
+import type {Octokit} from '@octokit/rest'
 
 import {Filter, FilterResults} from './filter'
 import {File, ChangeStatus} from './file'
