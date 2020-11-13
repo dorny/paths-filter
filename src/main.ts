@@ -125,11 +125,12 @@ async function getChangedFilesFromApi(
   pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest
 ): Promise<File[]> {
   core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from Github API`)
+  core.info(`Declared number of changed_files = ${pullRequest.changed_files}`)
   const client = new github.GitHub(token)
   const pageSize = 100
   const files: File[] = []
   let response: Octokit.Response<Octokit.PullsListFilesResponse>
-  let page = 0
+  let page = 1
   do {
     core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, page: ${page}, per_page: ${pageSize})`)
     response = await client.pulls.listFiles({
@@ -139,6 +140,7 @@ async function getChangedFilesFromApi(
       page,
       per_page: pageSize
     })
+    core.info(`Headers: ${JSON.stringify(response.headers)}`)
     for (const row of response.data) {
       core.info(`[${row.status}] ${row.filename}`)
       // There's no obvious use-case for detection of renames
