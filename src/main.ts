@@ -137,7 +137,6 @@ async function getChangedFilesFromApi(
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       pull_number: pullRequest.number,
-      page,
       per_page: pageSize
     })
     core.info(`Headers: ${JSON.stringify(response.headers)}`)
