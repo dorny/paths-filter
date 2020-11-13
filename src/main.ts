@@ -127,8 +127,10 @@ async function getChangedFilesFromApi(
   const client = new github.GitHub(token)
   const pageSize = 100
   const files: File[] = []
-  for (let page = 0; page * pageSize < pullRequest.changed_files; page++) {
-    const response = await client.pulls.listFiles({
+  let response: Octokit.Response<Octokit.PullsListFilesResponse>
+  let page = 0
+  do {
+    response = await client.pulls.listFiles({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       pull_number: pullRequest.number,
@@ -156,7 +158,8 @@ async function getChangedFilesFromApi(
         })
       }
     }
-  }
+    page++
+  } while (response?.data?.length > 0)
 
   return files
 }
