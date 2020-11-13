@@ -4730,13 +4730,14 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
 // Uses github REST api to get list of files changed in PR
 async function getChangedFilesFromApi(token, pullRequest) {
     var _a;
-    core.info(`Fetching list of changed files for PR#${pullRequest.number} from Github API`);
+    core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from Github API`);
     const client = new github.GitHub(token);
     const pageSize = 100;
     const files = [];
     let response;
     let page = 0;
     do {
+        core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, page: ${page}, per_page: ${pageSize})`);
         response = await client.pulls.listFiles({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
@@ -4745,6 +4746,7 @@ async function getChangedFilesFromApi(token, pullRequest) {
             per_page: pageSize
         });
         for (const row of response.data) {
+            core.info(`[${row.status}] ${row.filename}`);
             // There's no obvious use-case for detection of renames
             // Therefore we treat it as if rename detection in git diff was turned off.
             // Rename is replaced by delete of original filename and add of new filename
@@ -4768,6 +4770,7 @@ async function getChangedFilesFromApi(token, pullRequest) {
         }
         page++;
     } while (((_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.length) > 0);
+    core.endGroup();
     return files;
 }
 function exportResults(results, format) {

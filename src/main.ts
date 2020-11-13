@@ -124,13 +124,14 @@ async function getChangedFilesFromApi(
   token: string,
   pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest
 ): Promise<File[]> {
-  core.info(`Fetching list of changed files for PR#${pullRequest.number} from Github API`)
+  core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from Github API`)
   const client = new github.GitHub(token)
   const pageSize = 100
   const files: File[] = []
   let response: Octokit.Response<Octokit.PullsListFilesResponse>
   let page = 0
   do {
+    core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, page: ${page}, per_page: ${pageSize})`)
     response = await client.pulls.listFiles({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
@@ -139,6 +140,7 @@ async function getChangedFilesFromApi(
       per_page: pageSize
     })
     for (const row of response.data) {
+      core.info(`[${row.status}] ${row.filename}`)
       // There's no obvious use-case for detection of renames
       // Therefore we treat it as if rename detection in git diff was turned off.
       // Rename is replaced by delete of original filename and add of new filename
@@ -162,6 +164,7 @@ async function getChangedFilesFromApi(
     page++
   } while (response?.data?.length > 0)
 
+  core.endGroup()
   return files
 }
 
