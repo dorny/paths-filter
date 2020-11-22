@@ -3,6 +3,7 @@ import * as core from '@actions/core'
 import {File, ChangeStatus} from './file'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
+export const HEAD = 'HEAD'
 
 export async function getChangesInLastCommit(): Promise<File[]> {
   core.startGroup(`Change detection in last commit`)
@@ -31,6 +32,20 @@ export async function getChanges(ref: string): Promise<File[]> {
   try {
     // Two dots '..' change detection - directly compares two versions
     output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}..HEAD`])).stdout
+  } finally {
+    fixStdOutNullTermination()
+    core.endGroup()
+  }
+
+  return parseGitDiffOutput(output)
+}
+
+export async function getChangesOnHead(): Promise<File[]> {
+  // Get current changes - both staged and unstaged
+  core.startGroup(`Change detection on HEAD`)
+  let output = ''
+  try {
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
