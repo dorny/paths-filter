@@ -66,6 +66,7 @@ For more scenarios see [examples](#examples) section.
 
 
 # What's New
+- Support local changes
 - Fixed retrieval of all changes via Github API when there are 100+ changes
 - Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
 - Support workflows triggered by any event
