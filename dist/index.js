@@ -3811,11 +3811,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChanges = exports.getChangesInLastCommit = exports.NULL_SHA = void 0;
+exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.HEAD = exports.NULL_SHA = void 0;
 const exec_1 = __importDefault(__webpack_require__(807));
 const core = __importStar(__webpack_require__(470));
 const file_1 = __webpack_require__(258);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
+exports.HEAD = 'HEAD';
 async function getChangesInLastCommit() {
     core.startGroup(`Change detection in last commit`);
     let output = '';
@@ -3850,6 +3851,20 @@ async function getChanges(ref) {
     return parseGitDiffOutput(output);
 }
 exports.getChanges = getChanges;
+async function getChangesOnHead() {
+    // Get current changes - both staged and unstaged
+    core.startGroup(`Change detection on HEAD`);
+    let output = '';
+    try {
+        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout;
+    }
+    finally {
+        fixStdOutNullTermination();
+        core.endGroup();
+    }
+    return parseGitDiffOutput(output);
+}
+exports.getChangesOnHead = getChangesOnHead;
 async function getChangesSinceMergeBase(ref, initialFetchDepth) {
     if (!(await hasCommit(ref))) {
         // Fetch and add base branch
@@ -4675,6 +4690,11 @@ function getConfigFileContent(configPath) {
     return fs.readFileSync(configPath, { encoding: 'utf8' });
 }
 async function getChangedFiles(token, base, initialFetchDepth) {
+    // if base is 'HEAD' only local uncommitted changes will be detected
+    // This is the simplest case as we don't need to fetch more commits or evaluate current/before refs
+    if (base === git.HEAD) {
+        return await git.getChangesOnHead();
+    }
     if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
         const pr = github.context.payload.pull_request;
         if (token) {
@@ -4692,7 +4712,7 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
     const defaultRef = (_a = github.context.payload.repository) === null || _a === void 0 ? void 0 : _a.default_branch;
     const beforeSha = github.context.eventName === 'push' ? github.context.payload.before : null;
     const pushRef = git.getShortName(github.context.ref) ||
-        (core.warning(`'ref' field is missing in PUSH event payload - using current branch, tag or commit SHA`),
+        (core.warning(`'ref' field is missing in event payload - using current branch, tag or commit SHA`),
             await git.getCurrentRef());
     const baseRef = git.getShortName(base) || defaultRef;
     if (!baseRef) {
@@ -4700,11 +4720,11 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
     }
     const isBaseRefSha = git.isGitSha(baseRef);
     const isBaseSameAsPush = baseRef === pushRef;
-    // If base is commit SHA will do comparison against the referenced commit
-    // Or If base references same branch it was pushed to, we will do comparison against the previously pushed commit
+    // If base is commit SHA we will do comparison against the referenced commit
+    // Or if base references same branch it was pushed to, we will do comparison against the previously pushed commit
     if (isBaseRefSha || isBaseSameAsPush) {
         if (!isBaseRefSha && !beforeSha) {
-            core.warning(`'before' field is missing in PUSH event payload - changes will be detected from last commit`);
+            core.warning(`'before' field is missing in event payload - changes will be detected from last commit`);
             return await git.getChangesInLastCommit();
         }
         const baseSha = isBaseRefSha ? baseRef : beforeSha;

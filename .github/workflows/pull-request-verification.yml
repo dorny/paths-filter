@@ -71,6 +71,23 @@ jobs:
       if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
       run: exit 1
 
+  test-local-changes:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: echo "NEW FILE" > local
+    - run: git add local
+    - uses: ./
+      id: filter
+      with:
+        base: HEAD
+        filters: |
+          local:
+            - local
+    - name: filter-test
+      if: steps.filter.outputs.local != 'true'
+      run: exit 1
+
   test-change-type:
     runs-on: ubuntu-latest
     steps:

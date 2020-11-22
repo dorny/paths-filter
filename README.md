@@ -35,6 +35,10 @@ doesn't allow this because they doesn't work on a level of individual jobs or st
   when `base` input parameter is same as the branch that triggered the workflow:
     - Changes are detected from last commit
   - Uses git commands to detect changes - repository must be already [checked out](https://github.com/actions/checkout)
+- **Local changes**
+  - Workflow triggered by any event when `base` input parameter is set to `HEAD`
+  - Changes are detected against current HEAD
+  - Untracked files are ignored
 
 ## Example
 ```yaml
@@ -62,6 +66,7 @@ For more scenarios see [examples](#examples) section.
 
 
 # What's New
+- Support local changes
 - Fixed retrieval of all changes via Github API when there are 100+ changes
 - Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
 - Support workflows triggered by any event
@@ -300,6 +305,35 @@ jobs:
         # you can specify it directly.
         # If it's not configured, the repository default branch is used.
         base: ${{ github.ref }}
+        filters: ... # Configure your filters
+```
+</details>
+
+<details>
+  <summary><b>Local changes:</b> Detect staged and unstaged local changes</summary>
+
+```yaml
+on:
+  push:
+    branches: # Push to following branches will trigger the workflow
+      - master
+      - develop
+      - release/**
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+      # Some action which modifies files tracked by git (e.g. code linter)
+    - uses: johndoe/some-action@v1
+
+      # Filter to detect which files were modified
+      # Changes could be for example automatically committed
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        base: HEAD
         filters: ... # Configure your filters
 ```
 </details>

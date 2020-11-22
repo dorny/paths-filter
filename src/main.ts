@@ -55,6 +55,12 @@ function getConfigFileContent(configPath: string): string {
 }
 
 async function getChangedFiles(token: string, base: string, initialFetchDepth: number): Promise<File[]> {
+  // if base is 'HEAD' only local uncommitted changes will be detected
+  // This is the simplest case as we don't need to fetch more commits or evaluate current/before refs
+  if (base === git.HEAD) {
+    return await git.getChangesOnHead()
+  }
+
   if (github.context.eventName === 'pull_request' || github.context.eventName === 'pull_request_target') {
     const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
     if (token) {
@@ -75,7 +81,7 @@ async function getChangedFilesFromGit(base: string, initialFetchDepth: number): 
 
   const pushRef =
     git.getShortName(github.context.ref) ||
-    (core.warning(`'ref' field is missing in PUSH event payload - using current branch, tag or commit SHA`),
+    (core.warning(`'ref' field is missing in event payload - using current branch, tag or commit SHA`),
     await git.getCurrentRef())
 
   const baseRef = git.getShortName(base) || defaultRef
@@ -88,11 +94,11 @@ async function getChangedFilesFromGit(base: string, initialFetchDepth: number): 
   const isBaseRefSha = git.isGitSha(baseRef)
   const isBaseSameAsPush = baseRef === pushRef
 
-  // If base is commit SHA will do comparison against the referenced commit
-  // Or If base references same branch it was pushed to, we will do comparison against the previously pushed commit
+  // If base is commit SHA we will do comparison against the referenced commit
+  // Or if base references same branch it was pushed to, we will do comparison against the previously pushed commit
   if (isBaseRefSha || isBaseSameAsPush) {
     if (!isBaseRefSha && !beforeSha) {
-      core.warning(`'before' field is missing in PUSH event payload - changes will be detected from last commit`)
+      core.warning(`'before' field is missing in event payload - changes will be detected from last commit`)
       return await git.getChangesInLastCommit()
     }
 

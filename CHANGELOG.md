@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.6.0
+- [Support local changes](https://github.com/dorny/paths-filter/pull/53)
+
 ## v2.5.3
 - [Fixed mapping of removed/deleted change status from github API](https://github.com/dorny/paths-filter/pull/51)
 - [Fixed retrieval of all changes via Github API when there are 100+ changes](https://github.com/dorny/paths-filter/pull/50)
