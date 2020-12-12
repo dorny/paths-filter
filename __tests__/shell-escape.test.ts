@@ -1,16 +1,21 @@
 import shellEscape from '../src/shell-escape'
 
-test('simple path escaped', () => {
-  expect(shellEscape('file')).toBe("'file'")
+test('simple filename should not be modified', () => {
+  expect(shellEscape('file.txt')).toBe('file.txt')
 })
 
-test('path with space is wrapped with single quotes', () => {
-  expect(shellEscape('file with space')).toBe("'file with space'")
+test('directory separator should be preserved and not escaped', () => {
+  expect(shellEscape('path/to/file.txt')).toBe('path/to/file.txt')
 })
 
-test('path with quote is divided into quoted segments and escaped quote', () => {
-  expect(shellEscape("file'with quote")).toBe("'file'\\''with quote'")
+test('spaces should be escaped with backslash', () => {
+  expect(shellEscape('file with space')).toBe('file\\ with\\ space')
 })
-test('path with leading quote does not have double quotes at beginning', () => {
-  expect(shellEscape("'file-leading-quote")).toBe("\\''file-leading-quote'")
+
+test('quotes should be escaped  with backslash', () => {
+  expect(shellEscape('file\'with quote"')).toBe('file\\\'with\\ quote\\"')
+})
+
+test('$variables sould be escaped', () => {
+  expect(shellEscape('$var')).toBe('\\$var')
 })

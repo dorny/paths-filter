@@ -1,7 +1,5 @@
-// Credits to https://github.com/xxorax/node-shell-escape
-
+// Uses easy safe set of characters which can be left unescaped to keep it readable.
+// Every other character will be backslash-escaped
 export default function shellEscape(value: string): string {
-  return `'${value.replace(/'/g, "'\\''")}'`
-    .replace(/^(?:'')+/g, '') // unduplicate single-quote at the beginning
-    .replace(/\\'''/g, "\\'") // remove non-escaped single-quote if there are enclosed between 2 escaped
+  return value.replace(/([^a-zA-Z0-9,._+:@%/-])/gm, '\\$1')
 }
