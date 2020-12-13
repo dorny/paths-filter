@@ -119,15 +119,12 @@ jobs:
     - name: Print 'deleted_files'
       run: echo ${{steps.filter.outputs.deleted_files}}
     - name: filter-test
-      # only single quotes are supported in GH action literal
-      # single quote needs to be escaped with single quote
-      # '''add.txt''' resolves to string 'add.txt'
       if: |
         steps.filter.outputs.added != 'true'
         || steps.filter.outputs.deleted != 'true'
         || steps.filter.outputs.modified != 'true'
         || steps.filter.outputs.any != 'true'
-        || steps.filter.outputs.added_files != '''add.txt'''
-        || steps.filter.outputs.modified_files != '''LICENSE'''
-        || steps.filter.outputs.deleted_files != '''README.md'''
+        || steps.filter.outputs.added_files != 'add.txt'
+        || steps.filter.outputs.modified_files != 'LICENSE'
+        || steps.filter.outputs.deleted_files != 'README.md'
       run: exit 1

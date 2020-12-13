@@ -6,9 +6,9 @@ import {Webhooks} from '@octokit/webhooks'
 import {Filter, FilterResults} from './filter'
 import {File, ChangeStatus} from './file'
 import * as git from './git'
-import shellEscape from './shell-escape'
+import {escape, shellEscape} from './shell-escape'
 
-type ExportFormat = 'none' | 'json' | 'shell'
+type ExportFormat = 'none' | 'json' | 'shell' | 'escape'
 
 async function run(): Promise<void> {
   try {
@@ -201,6 +201,8 @@ function serializeExport(files: File[], format: ExportFormat): string {
   switch (format) {
     case 'json':
       return JSON.stringify(fileNames)
+    case 'escape':
+      return fileNames.map(escape).join(' ')
     case 'shell':
       return fileNames.map(shellEscape).join(' ')
     default:
@@ -209,7 +211,7 @@ function serializeExport(files: File[], format: ExportFormat): string {
 }
 
 function isExportFormat(value: string): value is ExportFormat {
-  return value === 'none' || value === 'shell' || value === 'json'
+  return value === 'none' || value === 'shell' || value === 'json' || value === 'escape'
 }
 
 run()
