@@ -175,10 +175,12 @@ async function getChangedFilesFromApi(
 
 function exportResults(results: FilterResults, format: ExportFormat): void {
   core.info('Results:')
+  const changes = []
   for (const [key, files] of Object.entries(results)) {
     const value = files.length > 0
     core.startGroup(`Filter ${key} = ${value}`)
     if (files.length > 0) {
+      changes.push(key)
       core.info('Matching files:')
       for (const file of files) {
         core.info(`${file.filename} [${file.status}]`)
@@ -192,6 +194,14 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
       const filesValue = serializeExport(files, format)
       core.setOutput(`${key}_files`, filesValue)
     }
+  }
+
+  if (results['changes'] === undefined) {
+    const changesJson = JSON.stringify(changes)
+    core.info(`Changes output set to ${changesJson}`)
+    core.setOutput('changes', changesJson)
+  } else {
+    core.info('Cannot set changes output variable - name already used by filter output')
   }
   core.endGroup()
 }

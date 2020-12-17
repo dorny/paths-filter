@@ -29,6 +29,9 @@ jobs:
     - name: filter-test
       if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
       run: exit 1
+    - name: changes-test
+      if: contains(fromJSON(steps.filter.outputs.changes), 'error') || !contains(fromJSON(steps.filter.outputs.changes), 'any')
+      run: exit 1
 
   test-external:
     runs-on: ubuntu-latest
