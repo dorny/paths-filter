@@ -5,7 +5,7 @@ based on the files modified by pull request, feature branch or in pushed commits
 
 It saves time and resources especially in monorepo setups, where you can run slow tasks (e.g. integration tests or deployments) only for changed components.
 Github workflows built-in [path filters](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#onpushpull_requestpaths)
-doesn't allow this because they doesn't work on a level of individual jobs or steps.
+don't allow this because they don't work on a level of individual jobs or steps.
 
 **Real world usage examples:**
 - [sentry.io](https://sentry.io/) - [backend-test-py3.6.yml](https://github.com/getsentry/sentry/blob/ca0e43dc5602a9ab2e06d3f6397cc48fb5a78541/.github/workflows/backend-test-py3.6.yml#L32)
