@@ -58,7 +58,7 @@ For more scenarios see [examples](#examples) section.
 ## Notes:
 - Paths expressions are evaluated using [picomatch](https://github.com/micromatch/picomatch) library.
   Documentation for path expression format can be found on project github page.
-- Micromatch [dot](https://github.com/micromatch/picomatch#options) option is set to true.
+- Picomatch [dot](https://github.com/micromatch/picomatch#options) option is set to true.
   Globbing will match also paths where file or folder name starts with a dot.
 - It's recommended to quote your path expressions with `'` or `"`. Otherwise you will get an error if it starts with `*`.
 - Local execution with [act](https://github.com/nektos/act) works only with alternative runner image. Default runner doesn't have `git` binary.
@@ -66,6 +66,7 @@ For more scenarios see [examples](#examples) section.
 
 
 # What's New
+- Configure matrix job to run for each folder with changes using `changes` output
 - Improved listing of matching files with `list-files: shell` and `list-files: escape` options
 - Support local changes
 - Fixed retrieval of all changes via Github API when there are 100+ changes
@@ -122,9 +123,9 @@ For more information see [CHANGELOG](https://github.com/actions/checkout/blob/ma
     # Enables listing of files matching the filter:
     #   'none'  - Disables listing of matching files (default).
     #   'json'  - Matching files paths are formatted as JSON array.
-    #   'shell' - Space delimited list usable as command line argument list in linux shell.
+    #   'shell' - Space delimited list usable as command line argument list in Linux shell.
     #             If needed it uses single or double quotes to wrap filename with unsafe characters.
-    #   'escape'- Space delimited list usable as command line argument list in linux shell.
+    #   'escape'- Space delimited list usable as command line argument list in Linux shell.
     #             Backslash escapes every potentially unsafe character.
     # Default: none
     list-files: ''
@@ -147,6 +148,7 @@ For more information see [CHANGELOG](https://github.com/actions/checkout/blob/ma
    - `'true'` - if **any** of changed files matches any of filter rules
    - `'false'` - if **none** of changed files matches any of filter rules
 - If enabled, for each filter it sets output variable with name `${FILTER_NAME}_files`. It will contain list of all files matching the filter.
+- `changes` - JSON array with names of all filters matching any of changed files.
 
 # Examples
 
@@ -223,6 +225,41 @@ jobs:
   frontend:
     needs: changes
     if: ${{ needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - ...
+```
+</details>
+
+<details>
+<summary>Use change detection to configure matrix job</summary>
+
+```yaml
+jobs:
+  # JOB to run change detection
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      # Expose matched filters as job 'packages' output variable
+      packages: ${{ steps.filter.outputs.changes }}
+    steps:
+    # For pull requests it's not necessary to checkout the code
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          package1: src/package1
+          package2: src/package2
+
+  # JOB to build and test each of modified packages
+  build:
+    needs: changes
+    strategy:
+      matrix:
+        # Parse JSON array containing names of all filters matching any of changed files
+        # e.g. ['package1', 'package2'] if both package folders contains changes
+        package: ${{ fromJson(needs.changes.outputs.packages) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -406,7 +443,7 @@ jobs:
     # Enable listing of files matching each filter.
     # Paths to files will be available in `${FILTER_NAME}_files` output variable.
     # Paths will be escaped and space-delimited.
-    # Output is usable as command line argument list in linux shell
+    # Output is usable as command line argument list in Linux shell
     list-files: shell
 
     # In this example changed files will be checked by linter.
