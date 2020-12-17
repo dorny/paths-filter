@@ -66,18 +66,12 @@ For more scenarios see [examples](#examples) section.
 
 
 # What's New
+- Improved listing of matching files with `list-files: shell` and `list-files: escape` options
 - Support local changes
 - Fixed retrieval of all changes via Github API when there are 100+ changes
 - Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
 - Support workflows triggered by any event
 - Fixed compatibility with older (<2.23) versions of git
-- Support for tag pushes and tags as a base reference
-- Fixes for various edge cases when event payload is incomplete
-  - Supports local execution with [act](https://github.com/nektos/act)
-- Fixed behavior of feature branch workflow:
-  - Detects only changes introduced by feature branch. Later modifications on base branch are ignored
-- Filter by type of file change:
-  - Optionally consider if file was added, modified or deleted
 
 For more information see [CHANGELOG](https://github.com/actions/checkout/blob/main/CHANGELOG.md)
 
@@ -128,8 +122,10 @@ For more information see [CHANGELOG](https://github.com/actions/checkout/blob/ma
     # Enables listing of files matching the filter:
     #   'none'  - Disables listing of matching files (default).
     #   'json'  - Matching files paths are formatted as JSON array.
-    #   'shell' - Matching files paths are escaped and space-delimited.
-    #             Output is usable as command line argument list in linux shell.
+    #   'shell' - Space delimited list usable as command line argument list in linux shell.
+    #             If needed it uses single or double quotes to wrap filename with unsafe characters.
+    #   'escape'- Space delimited list usable as command line argument list in linux shell.
+    #             Backslash escapes every potentially unsafe character.
     # Default: none
     list-files: ''
 
