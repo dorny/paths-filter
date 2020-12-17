@@ -74,7 +74,7 @@ For more scenarios see [examples](#examples) section.
 - Support workflows triggered by any event
 - Fixed compatibility with older (<2.23) versions of git
 
-For more information see [CHANGELOG](https://github.com/actions/checkout/blob/main/CHANGELOG.md)
+For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/master/CHANGELOG.md)
 
 # Usage
 
