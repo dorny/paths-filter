@@ -194,6 +194,7 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
       const filesValue = serializeExport(files, format)
       core.setOutput(`${key}_files`, filesValue)
     }
+    core.endGroup()
   }
 
   if (results['changes'] === undefined) {
@@ -203,7 +204,6 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
   } else {
     core.info('Cannot set changes output variable - name already used by filter output')
   }
-  core.endGroup()
 }
 
 function serializeExport(files: File[], format: ExportFormat): string {

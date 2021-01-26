@@ -4810,6 +4810,7 @@ function exportResults(results, format) {
             const filesValue = serializeExport(files, format);
             core.setOutput(`${key}_files`, filesValue);
         }
+        core.endGroup();
     }
     if (results['changes'] === undefined) {
         const changesJson = JSON.stringify(changes);
@@ -4819,7 +4820,6 @@ function exportResults(results, format) {
     else {
         core.info('Cannot set changes output variable - name already used by filter output');
     }
-    core.endGroup();
 }
 function serializeExport(files, format) {
     const fileNames = files.map(file => file.filename);
