@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.8.0
+- [Add count output variable](https://github.com/dorny/paths-filter/pull/65)
+- [Fix log grouping of changes](https://github.com/dorny/paths-filter/pull/61)
+
 ## v2.7.0
 - [Add "changes" output variable to support matrix job configuration](https://github.com/dorny/paths-filter/pull/59)
 - [Improved listing of matching files with `list-files: shell` and `list-files: escape` options](https://github.com/dorny/paths-filter/pull/58)
