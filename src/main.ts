@@ -190,6 +190,7 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
     }
 
     core.setOutput(key, value)
+    core.setOutput(`${key}_count`, files.length)
     if (format !== 'none') {
       const filesValue = serializeExport(files, format)
       core.setOutput(`${key}_files`, filesValue)

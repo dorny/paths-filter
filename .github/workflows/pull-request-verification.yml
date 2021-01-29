@@ -90,6 +90,9 @@ jobs:
     - name: filter-test
       if: steps.filter.outputs.local != 'true'
       run: exit 1
+    - name: count-test
+      if: steps.filter.outputs.local_count != 1
+      run: exit 1
 
   test-change-type:
     runs-on: ubuntu-latest
