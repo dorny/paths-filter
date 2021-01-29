@@ -147,6 +147,7 @@ For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/
 - For each filter it sets output variable named by the filter to the text:
    - `'true'` - if **any** of changed files matches any of filter rules
    - `'false'` - if **none** of changed files matches any of filter rules
+- For each filter it sets output variable with name `${FILTER_NAME}_count` to the count of matching files.
 - If enabled, for each filter it sets output variable with name `${FILTER_NAME}_files`. It will contain list of all files matching the filter.
 - `changes` - JSON array with names of all filters matching any of changed files.
 
