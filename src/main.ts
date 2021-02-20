@@ -6,9 +6,10 @@ import {Webhooks} from '@octokit/webhooks'
 import {Filter, FilterResults} from './filter'
 import {File, ChangeStatus} from './file'
 import * as git from './git'
-import {escape, shellEscape} from './shell-escape'
+import {backslashEscape, shellEscape} from './list-format/shell-escape'
+import {csvEscape} from './list-format/csv-escape'
 
-type ExportFormat = 'none' | 'json' | 'shell' | 'escape'
+type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape'
 
 async function run(): Promise<void> {
   try {
@@ -210,10 +211,12 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
 function serializeExport(files: File[], format: ExportFormat): string {
   const fileNames = files.map(file => file.filename)
   switch (format) {
+    case 'csv':
+      return fileNames.map(csvEscape).join(',')
     case 'json':
       return JSON.stringify(fileNames)
     case 'escape':
-      return fileNames.map(escape).join(' ')
+      return fileNames.map(backslashEscape).join(' ')
     case 'shell':
       return fileNames.map(shellEscape).join(' ')
     default:
@@ -222,7 +225,7 @@ function serializeExport(files: File[], format: ExportFormat): string {
 }
 
 function isExportFormat(value: string): value is ExportFormat {
-  return value === 'none' || value === 'shell' || value === 'json' || value === 'escape'
+  return ['none', 'csv', 'shell', 'json', 'escape'].includes(value)
 }
 
 run()

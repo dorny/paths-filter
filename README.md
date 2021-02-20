@@ -66,13 +66,13 @@ For more scenarios see [examples](#examples) section.
 
 
 # What's New
+- Add `list-files: csv` format
 - Configure matrix job to run for each folder with changes using `changes` output
 - Improved listing of matching files with `list-files: shell` and `list-files: escape` options
 - Support local changes
 - Fixed retrieval of all changes via Github API when there are 100+ changes
 - Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
 - Support workflows triggered by any event
-- Fixed compatibility with older (<2.23) versions of git
 
 For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/master/CHANGELOG.md)
 
@@ -122,6 +122,8 @@ For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/
 
     # Enables listing of files matching the filter:
     #   'none'  - Disables listing of matching files (default).
+    #   'csv'   - Coma separated list of filenames.
+    #             If needed it uses double quotes to wrap filename with unsafe characters.
     #   'json'  - Matching files paths are formatted as JSON array.
     #   'shell' - Space delimited list usable as command line argument list in Linux shell.
     #             If needed it uses single or double quotes to wrap filename with unsafe characters.

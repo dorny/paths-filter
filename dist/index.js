@@ -4648,7 +4648,8 @@ const github = __importStar(__webpack_require__(469));
 const filter_1 = __webpack_require__(235);
 const file_1 = __webpack_require__(258);
 const git = __importStar(__webpack_require__(136));
-const shell_escape_1 = __webpack_require__(751);
+const shell_escape_1 = __webpack_require__(206);
+const csv_escape_1 = __webpack_require__(410);
 async function run() {
     try {
         const workingDirectory = core.getInput('working-directory', { required: false });
@@ -4825,10 +4826,12 @@ function exportResults(results, format) {
 function serializeExport(files, format) {
     const fileNames = files.map(file => file.filename);
     switch (format) {
+        case 'csv':
+            return fileNames.map(csv_escape_1.csvEscape).join(',');
         case 'json':
             return JSON.stringify(fileNames);
         case 'escape':
-            return fileNames.map(shell_escape_1.escape).join(' ');
+            return fileNames.map(shell_escape_1.backslashEscape).join(' ');
         case 'shell':
             return fileNames.map(shell_escape_1.shellEscape).join(' ');
         default:
@@ -4836,7 +4839,7 @@ function serializeExport(files, format) {
     }
 }
 function isExportFormat(value) {
-    return value === 'none' || value === 'shell' || value === 'json' || value === 'escape';
+    return ['none', 'csv', 'shell', 'json', 'escape'].includes(value);
 }
 run();
 
@@ -5026,6 +5029,43 @@ module.exports = {
     return win32 === true ? WINDOWS_CHARS : POSIX_CHARS;
   }
 };
+
+
+/***/ }),
+
+/***/ 206:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.shellEscape = exports.backslashEscape = void 0;
+// Backslash escape every character except small subset of definitely safe characters
+function backslashEscape(value) {
+    return value.replace(/([^a-zA-Z0-9,._+:@%/-])/gm, '\\$1');
+}
+exports.backslashEscape = backslashEscape;
+// Returns filename escaped for usage as shell argument.
+// Applies "human readable" approach with as few escaping applied as possible
+function shellEscape(value) {
+    if (value === '')
+        return value;
+    // Only safe characters
+    if (/^[a-zA-Z0-9,._+:@%/-]+$/m.test(value)) {
+        return value;
+    }
+    if (value.includes("'")) {
+        // Only safe characters, single quotes and white-spaces
+        if (/^[a-zA-Z0-9,._+:@%/'\s-]+$/m.test(value)) {
+            return `"${value}"`;
+        }
+        // Split by single quote and apply escaping recursively
+        return value.split("'").map(shellEscape).join("\\'");
+    }
+    // Contains some unsafe characters but no single quote
+    return `'${value}'`;
+}
+exports.shellEscape = shellEscape;
 
 
 /***/ }),
@@ -8811,6 +8851,33 @@ function Octokit(plugins, options) {
 
   return api;
 }
+
+
+/***/ }),
+
+/***/ 410:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.csvEscape = void 0;
+// Returns filename escaped for CSV
+// Wraps file name into "..." only when it contains some potentially unsafe character
+function csvEscape(value) {
+    if (value === '')
+        return value;
+    // Only safe characters
+    if (/^[a-zA-Z0-9._+:@%/-]+$/m.test(value)) {
+        return value;
+    }
+    // https://tools.ietf.org/html/rfc4180
+    // If double-quotes are used to enclose fields, then a double-quote
+    // appearing inside a field must be escaped by preceding it with
+    // another double quote
+    return `"${value.replace(/"/g, '""')}"`;
+}
+exports.csvEscape = csvEscape;
 
 
 /***/ }),
@@ -15224,43 +15291,6 @@ function sync (path, options) {
 /***/ (function(module) {
 
 module.exports = require("fs");
-
-/***/ }),
-
-/***/ 751:
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.shellEscape = exports.escape = void 0;
-// Backslash escape every character except small subset of definitely safe characters
-function escape(value) {
-    return value.replace(/([^a-zA-Z0-9,._+:@%/-])/gm, '\\$1');
-}
-exports.escape = escape;
-// Returns filename escaped for usage as shell argument.
-// Applies "human readable" approach with as few escaping applied as possible
-function shellEscape(value) {
-    if (value === '')
-        return value;
-    // Only safe characters
-    if (/^[a-zA-Z0-9,._+:@%/-]+$/m.test(value)) {
-        return value;
-    }
-    if (value.includes("'")) {
-        // Only safe characters, single quotes and white-spaces
-        if (/^[a-zA-Z0-9,._+:@%/'\s-]+$/m.test(value)) {
-            return `"${value}"`;
-        }
-        // Split by single quote and apply escaping recursively
-        return value.split("'").map(shellEscape).join("\\'");
-    }
-    // Contains some unsafe characters but no single quote
-    return `'${value}'`;
-}
-exports.shellEscape = shellEscape;
-
 
 /***/ }),
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.9.0
+- [Add list-files: csv format](https://github.com/dorny/paths-filter/pull/68)
+
 ## v2.8.0
 - [Add count output variable](https://github.com/dorny/paths-filter/pull/65)
 - [Fix log grouping of changes](https://github.com/dorny/paths-filter/pull/61)

@@ -1,5 +1,5 @@
 // Backslash escape every character except small subset of definitely safe characters
-export function escape(value: string): string {
+export function backslashEscape(value: string): string {
   return value.replace(/([^a-zA-Z0-9,._+:@%/-])/gm, '\\$1')
 }
 
