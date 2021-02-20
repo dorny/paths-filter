@@ -122,6 +122,8 @@ For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/
 
     # Enables listing of files matching the filter:
     #   'none'  - Disables listing of matching files (default).
+    #   'csv'   - Coma separated list of filenames.
+    #             If needed it uses double quotes to wrap filename with unsafe characters.
     #   'json'  - Matching files paths are formatted as JSON array.
     #   'shell' - Space delimited list usable as command line argument list in Linux shell.
     #             If needed it uses single or double quotes to wrap filename with unsafe characters.

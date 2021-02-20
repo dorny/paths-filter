@@ -1,24 +1,24 @@
-import {escape, shellEscape} from '../src/shell-escape'
+import {backslashEscape, shellEscape} from '../src/list-format/shell-escape'
 
 describe('escape() backslash escapes every character except subset of definitely safe characters', () => {
   test('simple filename should not be modified', () => {
-    expect(escape('file.txt')).toBe('file.txt')
+    expect(backslashEscape('file.txt')).toBe('file.txt')
   })
 
   test('directory separator should be preserved and not escaped', () => {
-    expect(escape('path/to/file.txt')).toBe('path/to/file.txt')
+    expect(backslashEscape('path/to/file.txt')).toBe('path/to/file.txt')
   })
 
   test('spaces should be escaped with backslash', () => {
-    expect(escape('file with space')).toBe('file\\ with\\ space')
+    expect(backslashEscape('file with space')).toBe('file\\ with\\ space')
   })
 
   test('quotes should be escaped with backslash', () => {
-    expect(escape('file\'with quote"')).toBe('file\\\'with\\ quote\\"')
+    expect(backslashEscape('file\'with quote"')).toBe('file\\\'with\\ quote\\"')
   })
 
   test('$variables should be escaped', () => {
-    expect(escape('$var')).toBe('\\$var')
+    expect(backslashEscape('$var')).toBe('\\$var')
   })
 })
 
