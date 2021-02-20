@@ -66,13 +66,13 @@ For more scenarios see [examples](#examples) section.
 
 
 # What's New
+- Add `list-files: csv` format
 - Configure matrix job to run for each folder with changes using `changes` output
 - Improved listing of matching files with `list-files: shell` and `list-files: escape` options
 - Support local changes
 - Fixed retrieval of all changes via Github API when there are 100+ changes
 - Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
 - Support workflows triggered by any event
-- Fixed compatibility with older (<2.23) versions of git
 
 For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/master/CHANGELOG.md)
 
