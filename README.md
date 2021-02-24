@@ -262,7 +262,7 @@ jobs:
       matrix:
         # Parse JSON array containing names of all filters matching any of changed files
         # e.g. ['package1', 'package2'] if both package folders contains changes
-        package: ${{ fromJson(needs.changes.outputs.packages) }}
+        package: ${{ fromJSON(needs.changes.outputs.packages) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
