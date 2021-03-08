@@ -18,20 +18,20 @@ export async function getChangesInLastCommit(): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChanges(ref: string): Promise<File[]> {
-  if (!(await hasCommit(ref))) {
+export async function getChanges(baseRef: string): Promise<File[]> {
+  if (!(await hasCommit(baseRef))) {
     // Fetch single commit
-    core.startGroup(`Fetching ${ref} from origin`)
-    await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', ref])
+    core.startGroup(`Fetching ${baseRef} from origin`)
+    await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', baseRef])
     core.endGroup()
   }
 
   // Get differences between ref and HEAD
-  core.startGroup(`Change detection ${ref}..HEAD`)
+  core.startGroup(`Change detection ${baseRef}..HEAD`)
   let output = ''
   try {
     // Two dots '..' change detection - directly compares two versions
-    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}..HEAD`])).stdout
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..HEAD`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -54,50 +54,56 @@ export async function getChangesOnHead(): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChangesSinceMergeBase(ref: string, initialFetchDepth: number): Promise<File[]> {
-  if (!(await hasCommit(ref))) {
-    // Fetch and add base branch
-    core.startGroup(`Fetching ${ref}`)
-    try {
-      await exec('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`])
-    } finally {
-      core.endGroup()
-    }
-  }
-
+export async function getChangesSinceMergeBase(
+  baseRef: string,
+  ref: string,
+  initialFetchDepth: number
+): Promise<File[]> {
   async function hasMergeBase(): Promise<boolean> {
-    return (await exec('git', ['merge-base', ref, 'HEAD'], {ignoreReturnCode: true})).code === 0
+    return (await exec('git', ['merge-base', baseRef, ref], {ignoreReturnCode: true})).code === 0
   }
 
-  async function countCommits(): Promise<number> {
-    return (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref))
-  }
-
-  core.startGroup(`Searching for merge-base with ${ref}`)
-  // Fetch more commits until merge-base is found
-  if (!(await hasMergeBase())) {
-    let deepen = initialFetchDepth
-    let lastCommitsCount = await countCommits()
-    do {
-      await exec('git', ['fetch', `--deepen=${deepen}`, '--no-tags'])
-      const count = await countCommits()
-      if (count <= lastCommitsCount) {
-        core.info('No merge base found - all files will be listed as added')
-        core.endGroup()
-        return await listAllFilesAsAdded()
+  let noMergeBase = false
+  core.startGroup(`Searching for merge-base ${baseRef}...${ref}`)
+  try {
+    let init = true
+    let lastCommitCount = await getCommitCount()
+    let depth = Math.max(lastCommitCount * 2, initialFetchDepth)
+    while (!(await hasMergeBase())) {
+      if (init) {
+        await exec('git', ['fetch', `--depth=${depth}`, 'origin', `${baseRef}:${baseRef}`, `${ref}`])
+        init = false
+      } else {
+        await exec('git', ['fetch', `--deepen=${depth}`, 'origin', baseRef, ref])
       }
-      lastCommitsCount = count
-      deepen = Math.min(deepen * 2, Number.MAX_SAFE_INTEGER)
-    } while (!(await hasMergeBase()))
+      const commitCount = await getCommitCount()
+      if (commitCount === lastCommitCount) {
+        core.info('No more commits were fetched')
+        core.info('Last attempt will be to fetch full history')
+        await exec('git', ['fetch', '--unshallow'])
+        if (!(await hasMergeBase())) {
+          noMergeBase = true
+        }
+        break
+      }
+      depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER)
+      lastCommitCount = commitCount
+    }
+  } finally {
+    core.endGroup()
   }
-  core.endGroup()
+
+  if (noMergeBase) {
+    core.warning('No merge base found - all files will be listed as added')
+    return await listAllFilesAsAdded()
+  }
 
   // Get changes introduced on HEAD compared to ref
-  core.startGroup(`Change detection ${ref}...HEAD`)
+  core.startGroup(`Change detection ${baseRef}...${ref}`)
   let output = ''
   try {
     // Three dots '...' change detection - finds merge-base and compares against it
-    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`])).stdout
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}...${ref}`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -150,7 +156,7 @@ export async function getCurrentRef(): Promise<string> {
       return describe.stdout.trim()
     }
 
-    return (await exec('git', ['rev-parse', 'HEAD'])).stdout.trim()
+    return (await exec('git', ['rev-parse', HEAD])).stdout.trim()
   } finally {
     core.endGroup()
   }
@@ -181,8 +187,8 @@ async function hasCommit(ref: string): Promise<boolean> {
   }
 }
 
-async function getNumberOfCommits(ref: string): Promise<number> {
-  const output = (await exec('git', ['rev-list', `--count`, ref])).stdout
+async function getCommitCount(): Promise<number> {
+  const output = (await exec('git', ['rev-list', '--count', '--all'])).stdout
   const count = parseInt(output)
   return isNaN(count) ? 0 : count
 }

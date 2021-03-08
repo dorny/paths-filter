@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.9.1
+- [Fix fetching git history + fallback to unshallow repo](https://github.com/dorny/paths-filter/pull/74)
+
 ## v2.9.0
 - [Add list-files: csv format](https://github.com/dorny/paths-filter/pull/68)
 

@@ -38,7 +38,7 @@ inputs:
       until the merge-base is found or there are no more commits in the history.
       This option takes effect only when changes are detected using git against different base branch.
     required: false
-    default: '10'
+    default: '100'
 outputs:
   changes:
     description: JSON array with names of all filters matching any of changed files

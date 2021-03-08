@@ -3830,19 +3830,19 @@ async function getChangesInLastCommit() {
     return parseGitDiffOutput(output);
 }
 exports.getChangesInLastCommit = getChangesInLastCommit;
-async function getChanges(ref) {
-    if (!(await hasCommit(ref))) {
+async function getChanges(baseRef) {
+    if (!(await hasCommit(baseRef))) {
         // Fetch single commit
-        core.startGroup(`Fetching ${ref} from origin`);
-        await exec_1.default('git', ['fetch', '--depth=1', '--no-tags', 'origin', ref]);
+        core.startGroup(`Fetching ${baseRef} from origin`);
+        await exec_1.default('git', ['fetch', '--depth=1', '--no-tags', 'origin', baseRef]);
         core.endGroup();
     }
     // Get differences between ref and HEAD
-    core.startGroup(`Change detection ${ref}..HEAD`);
+    core.startGroup(`Change detection ${baseRef}..HEAD`);
     let output = '';
     try {
         // Two dots '..' change detection - directly compares two versions
-        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}..HEAD`])).stdout;
+        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..HEAD`])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -3865,47 +3865,51 @@ async function getChangesOnHead() {
     return parseGitDiffOutput(output);
 }
 exports.getChangesOnHead = getChangesOnHead;
-async function getChangesSinceMergeBase(ref, initialFetchDepth) {
-    if (!(await hasCommit(ref))) {
-        // Fetch and add base branch
-        core.startGroup(`Fetching ${ref}`);
-        try {
-            await exec_1.default('git', ['fetch', `--depth=${initialFetchDepth}`, '--no-tags', 'origin', `${ref}:${ref}`]);
-        }
-        finally {
-            core.endGroup();
-        }
-    }
+async function getChangesSinceMergeBase(baseRef, ref, initialFetchDepth) {
     async function hasMergeBase() {
-        return (await exec_1.default('git', ['merge-base', ref, 'HEAD'], { ignoreReturnCode: true })).code === 0;
+        return (await exec_1.default('git', ['merge-base', baseRef, ref], { ignoreReturnCode: true })).code === 0;
     }
-    async function countCommits() {
-        return (await getNumberOfCommits('HEAD')) + (await getNumberOfCommits(ref));
-    }
-    core.startGroup(`Searching for merge-base with ${ref}`);
-    // Fetch more commits until merge-base is found
-    if (!(await hasMergeBase())) {
-        let deepen = initialFetchDepth;
-        let lastCommitsCount = await countCommits();
-        do {
-            await exec_1.default('git', ['fetch', `--deepen=${deepen}`, '--no-tags']);
-            const count = await countCommits();
-            if (count <= lastCommitsCount) {
-                core.info('No merge base found - all files will be listed as added');
-                core.endGroup();
-                return await listAllFilesAsAdded();
+    let noMergeBase = false;
+    core.startGroup(`Searching for merge-base ${baseRef}...${ref}`);
+    try {
+        let init = true;
+        let lastCommitCount = await getCommitCount();
+        let depth = Math.max(lastCommitCount * 2, initialFetchDepth);
+        while (!(await hasMergeBase())) {
+            if (init) {
+                await exec_1.default('git', ['fetch', `--depth=${depth}`, 'origin', `${baseRef}:${baseRef}`, `${ref}`]);
+                init = false;
             }
-            lastCommitsCount = count;
-            deepen = Math.min(deepen * 2, Number.MAX_SAFE_INTEGER);
-        } while (!(await hasMergeBase()));
+            else {
+                await exec_1.default('git', ['fetch', `--deepen=${depth}`, 'origin', baseRef, ref]);
+            }
+            const commitCount = await getCommitCount();
+            if (commitCount === lastCommitCount) {
+                core.info('No more commits were fetched');
+                core.info('Last attempt will be to fetch full history');
+                await exec_1.default('git', ['fetch', '--unshallow']);
+                if (!(await hasMergeBase())) {
+                    noMergeBase = true;
+                }
+                break;
+            }
+            depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER);
+            lastCommitCount = commitCount;
+        }
     }
-    core.endGroup();
+    finally {
+        core.endGroup();
+    }
+    if (noMergeBase) {
+        core.warning('No merge base found - all files will be listed as added');
+        return await listAllFilesAsAdded();
+    }
     // Get changes introduced on HEAD compared to ref
-    core.startGroup(`Change detection ${ref}...HEAD`);
+    core.startGroup(`Change detection ${baseRef}...${ref}`);
     let output = '';
     try {
         // Three dots '...' change detection - finds merge-base and compares against it
-        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', `${ref}...HEAD`])).stdout;
+        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}...${ref}`])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -3956,7 +3960,7 @@ async function getCurrentRef() {
         if (describe.code === 0) {
             return describe.stdout.trim();
         }
-        return (await exec_1.default('git', ['rev-parse', 'HEAD'])).stdout.trim();
+        return (await exec_1.default('git', ['rev-parse', exports.HEAD])).stdout.trim();
     }
     finally {
         core.endGroup();
@@ -3988,8 +3992,8 @@ async function hasCommit(ref) {
         core.endGroup();
     }
 }
-async function getNumberOfCommits(ref) {
-    const output = (await exec_1.default('git', ['rev-list', `--count`, ref])).stdout;
+async function getCommitCount() {
+    const output = (await exec_1.default('git', ['rev-list', '--count', '--all'])).stdout;
     const count = parseInt(output);
     return isNaN(count) ? 0 : count;
 }
@@ -4676,7 +4680,7 @@ async function run() {
     }
 }
 function isPathInput(text) {
-    return !text.includes('\n');
+    return !(text.includes('\n') || text.includes(':'));
 }
 function getConfigFileContent(configPath) {
     if (!fs.existsSync(configPath)) {
@@ -4709,7 +4713,7 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
     var _a;
     const defaultRef = (_a = github.context.payload.repository) === null || _a === void 0 ? void 0 : _a.default_branch;
     const beforeSha = github.context.eventName === 'push' ? github.context.payload.before : null;
-    const pushRef = git.getShortName(github.context.ref) ||
+    const ref = git.getShortName(github.context.ref) ||
         (core.warning(`'ref' field is missing in event payload - using current branch, tag or commit SHA`),
             await git.getCurrentRef());
     const baseRef = git.getShortName(base) || defaultRef;
@@ -4717,10 +4721,10 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
         throw new Error("This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload");
     }
     const isBaseRefSha = git.isGitSha(baseRef);
-    const isBaseSameAsPush = baseRef === pushRef;
+    const isBaseRefSameAsRef = baseRef === ref;
     // If base is commit SHA we will do comparison against the referenced commit
     // Or if base references same branch it was pushed to, we will do comparison against the previously pushed commit
-    if (isBaseRefSha || isBaseSameAsPush) {
+    if (isBaseRefSha || isBaseRefSameAsRef) {
         if (!isBaseRefSha && !beforeSha) {
             core.warning(`'before' field is missing in event payload - changes will be detected from last commit`);
             return await git.getChangesInLastCommit();
@@ -4731,7 +4735,7 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
         if (baseSha === git.NULL_SHA) {
             if (defaultRef && baseRef !== defaultRef) {
                 core.info(`First push of a branch detected - changes will be detected against the default branch ${defaultRef}`);
-                return await git.getChangesSinceMergeBase(defaultRef, initialFetchDepth);
+                return await git.getChangesSinceMergeBase(defaultRef, ref, initialFetchDepth);
             }
             else {
                 core.info('Initial push detected - all files will be listed as added');
@@ -4743,7 +4747,7 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
     }
     // Changes introduced by current branch against the base branch
     core.info(`Changes will be detected against the branch ${baseRef}`);
-    return await git.getChangesSinceMergeBase(baseRef, initialFetchDepth);
+    return await git.getChangesSinceMergeBase(baseRef, ref, initialFetchDepth);
 }
 // Uses github REST api to get list of files changed in PR
 async function getChangedFilesFromApi(token, pullRequest) {
