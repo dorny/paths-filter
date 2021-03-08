@@ -66,10 +66,16 @@ export async function getChangesSinceMergeBase(
   let noMergeBase = false
   core.startGroup(`Searching for merge-base ${baseRef}...${ref}`)
   try {
+    let init = true
     let lastCommitCount = await getCommitCount()
     let depth = Math.max(lastCommitCount * 2, initialFetchDepth)
     while (!(await hasMergeBase())) {
-      await exec('git', ['fetch', `--depth=${depth}`, 'origin', `${baseRef}:${baseRef}`, `${ref}`])
+      if (init) {
+        await exec('git', ['fetch', `--depth=${depth}`, 'origin', `${baseRef}:${baseRef}`, `${ref}`])
+        init = false
+      } else {
+        await exec('git', ['fetch', `--deepen=${depth}`, 'origin', baseRef, ref])
+      }
       const commitCount = await getCommitCount()
       if (commitCount === lastCommitCount) {
         core.info('No more commits were fetched')
