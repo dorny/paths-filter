@@ -3875,7 +3875,7 @@ async function getChangesSinceMergeBase(baseRef, ref, initialFetchDepth) {
         let lastCommitCount = await getCommitCount();
         let depth = Math.max(lastCommitCount * 2, initialFetchDepth);
         while (!(await hasMergeBase())) {
-            await exec_1.default('git', ['fetch', `--depth=${depth}`, 'origin', `${baseRef}:${baseRef}`, `${ref}:${ref}`]);
+            await exec_1.default('git', ['fetch', `--depth=${depth}`, 'origin', `${baseRef}:${baseRef}`, `${ref}`]);
             const commitCount = await getCommitCount();
             if (commitCount === lastCommitCount) {
                 core.info('No more commits were fetched');
