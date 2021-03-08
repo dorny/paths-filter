@@ -81,6 +81,7 @@ export async function getChangesSinceMergeBase(
         break
       }
       depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER)
+      lastCommitCount = commitCount
     }
   } finally {
     core.endGroup()
