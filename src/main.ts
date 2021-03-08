@@ -80,7 +80,7 @@ async function getChangedFilesFromGit(base: string, initialFetchDepth: number): 
   const beforeSha =
     github.context.eventName === 'push' ? (github.context.payload as Webhooks.WebhookPayloadPush).before : null
 
-  const pushRef =
+  const ref =
     git.getShortName(github.context.ref) ||
     (core.warning(`'ref' field is missing in event payload - using current branch, tag or commit SHA`),
     await git.getCurrentRef())
@@ -93,11 +93,11 @@ async function getChangedFilesFromGit(base: string, initialFetchDepth: number): 
   }
 
   const isBaseRefSha = git.isGitSha(baseRef)
-  const isBaseSameAsPush = baseRef === pushRef
+  const isBaseRefSameAsRef = baseRef === ref
 
   // If base is commit SHA we will do comparison against the referenced commit
   // Or if base references same branch it was pushed to, we will do comparison against the previously pushed commit
-  if (isBaseRefSha || isBaseSameAsPush) {
+  if (isBaseRefSha || isBaseRefSameAsRef) {
     if (!isBaseRefSha && !beforeSha) {
       core.warning(`'before' field is missing in event payload - changes will be detected from last commit`)
       return await git.getChangesInLastCommit()
@@ -109,7 +109,7 @@ async function getChangedFilesFromGit(base: string, initialFetchDepth: number): 
     if (baseSha === git.NULL_SHA) {
       if (defaultRef && baseRef !== defaultRef) {
         core.info(`First push of a branch detected - changes will be detected against the default branch ${defaultRef}`)
-        return await git.getChangesSinceMergeBase(defaultRef, initialFetchDepth)
+        return await git.getChangesSinceMergeBase(defaultRef, ref, initialFetchDepth)
       } else {
         core.info('Initial push detected - all files will be listed as added')
         return await git.listAllFilesAsAdded()
@@ -122,7 +122,7 @@ async function getChangedFilesFromGit(base: string, initialFetchDepth: number): 
 
   // Changes introduced by current branch against the base branch
   core.info(`Changes will be detected against the branch ${baseRef}`)
-  return await git.getChangesSinceMergeBase(baseRef, initialFetchDepth)
+  return await git.getChangesSinceMergeBase(baseRef, ref, initialFetchDepth)
 }
 
 // Uses github REST api to get list of files changed in PR
