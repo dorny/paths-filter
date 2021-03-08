@@ -117,7 +117,7 @@ For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/
     # is found or there are no more commits in the history.
     # This option takes effect only when changes are detected
     # using git against base branch (feature branch workflow).
-    # Default: 20
+    # Default: 100
     initial-fetch-depth: ''
 
     # Enables listing of files matching the filter:
