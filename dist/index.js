@@ -4673,7 +4673,7 @@ async function run() {
     }
 }
 function isPathInput(text) {
-    return !text.includes('\n');
+    return !(text.includes('\n') || text.includes(':'));
 }
 function getConfigFileContent(configPath) {
     if (!fs.existsSync(configPath)) {

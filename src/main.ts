@@ -40,7 +40,7 @@ async function run(): Promise<void> {
 }
 
 function isPathInput(text: string): boolean {
-  return !text.includes('\n')
+  return !(text.includes('\n') || text.includes(':'))
 }
 
 function getConfigFileContent(configPath: string): string {
