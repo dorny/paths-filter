@@ -54,33 +54,31 @@ export async function getChangesOnHead(): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChangesSinceMergeBase(
-  baseRef: string,
-  ref: string,
-  initialFetchDepth: number
-): Promise<File[]> {
+export async function getChangesSinceMergeBase(base: string, initialFetchDepth: number): Promise<File[]> {
+  const baseRef = `remotes/origin/${base}`
+
   async function hasMergeBase(): Promise<boolean> {
-    return (await exec('git', ['merge-base', baseRef, ref], {ignoreReturnCode: true})).code === 0
+    return (await exec('git', ['merge-base', baseRef, HEAD], {ignoreReturnCode: true})).code === 0
   }
 
   let noMergeBase = false
-  core.startGroup(`Searching for merge-base ${baseRef}...${ref}`)
+  core.startGroup(`Searching for merge-base ${baseRef}...${HEAD}`)
   try {
     let init = true
     let lastCommitCount = await getCommitCount()
     let depth = Math.max(lastCommitCount * 2, initialFetchDepth)
     while (!(await hasMergeBase())) {
       if (init) {
-        await exec('git', ['fetch', `--depth=${depth}`, 'origin', `${baseRef}:${baseRef}`, `${ref}`])
+        await exec('git', ['fetch', `--depth=${depth}`, 'origin', base, HEAD])
         init = false
       } else {
-        await exec('git', ['fetch', `--deepen=${depth}`, 'origin', baseRef, ref])
+        await exec('git', ['fetch', `--deepen=${depth}`, 'origin', base, HEAD])
       }
       const commitCount = await getCommitCount()
       if (commitCount === lastCommitCount) {
         core.info('No more commits were fetched')
         core.info('Last attempt will be to fetch full history')
-        await exec('git', ['fetch', '--unshallow'])
+        await exec('git', ['fetch'])
         if (!(await hasMergeBase())) {
           noMergeBase = true
         }
@@ -99,11 +97,11 @@ export async function getChangesSinceMergeBase(
   }
 
   // Get changes introduced on HEAD compared to ref
-  core.startGroup(`Change detection ${baseRef}...${ref}`)
+  core.startGroup(`Change detection ${baseRef}...${HEAD}`)
   let output = ''
   try {
     // Three dots '...' change detection - finds merge-base and compares against it
-    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}...${ref}`])).stdout
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}...${HEAD}`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
