@@ -3865,36 +3865,33 @@ async function getChangesOnHead() {
     return parseGitDiffOutput(output);
 }
 exports.getChangesOnHead = getChangesOnHead;
-async function getChangesSinceMergeBase(baseRef, ref, initialFetchDepth) {
+async function getChangesSinceMergeBase(base, ref, initialFetchDepth) {
+    const baseRef = `remotes/origin/${base}`;
     async function hasMergeBase() {
         return (await exec_1.default('git', ['merge-base', baseRef, ref], { ignoreReturnCode: true })).code === 0;
     }
     let noMergeBase = false;
     core.startGroup(`Searching for merge-base ${baseRef}...${ref}`);
     try {
-        let init = true;
-        let lastCommitCount = await getCommitCount();
-        let depth = Math.max(lastCommitCount * 2, initialFetchDepth);
-        while (!(await hasMergeBase())) {
-            if (init) {
-                await exec_1.default('git', ['fetch', `--depth=${depth}`, 'origin', `${baseRef}:${baseRef}`, `${ref}`]);
-                init = false;
-            }
-            else {
-                await exec_1.default('git', ['fetch', `--deepen=${depth}`, 'origin', baseRef, ref]);
-            }
-            const commitCount = await getCommitCount();
-            if (commitCount === lastCommitCount) {
-                core.info('No more commits were fetched');
-                core.info('Last attempt will be to fetch full history');
-                await exec_1.default('git', ['fetch', '--unshallow']);
-                if (!(await hasMergeBase())) {
-                    noMergeBase = true;
+        if (!(await hasMergeBase())) {
+            await exec_1.default('git', ['fetch', `--depth=${initialFetchDepth}`, 'origin', base, ref]);
+            let depth = initialFetchDepth;
+            let lastCommitCount = await getCommitCount();
+            while (!(await hasMergeBase())) {
+                depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER);
+                await exec_1.default('git', ['fetch', `--deepen=${depth}`, 'origin', base, ref]);
+                const commitCount = await getCommitCount();
+                if (commitCount === lastCommitCount) {
+                    core.info('No more commits were fetched');
+                    core.info('Last attempt will be to fetch full history');
+                    await exec_1.default('git', ['fetch']);
+                    if (!(await hasMergeBase())) {
+                        noMergeBase = true;
+                    }
+                    break;
                 }
-                break;
+                lastCommitCount = commitCount;
             }
-            depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER);
-            lastCommitCount = commitCount;
         }
     }
     finally {
