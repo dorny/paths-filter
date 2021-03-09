@@ -109,7 +109,7 @@ async function getChangedFilesFromGit(base: string, initialFetchDepth: number): 
     if (baseSha === git.NULL_SHA) {
       if (defaultRef && baseRef !== defaultRef) {
         core.info(`First push of a branch detected - changes will be detected against the default branch ${defaultRef}`)
-        return await git.getChangesSinceMergeBase(defaultRef, initialFetchDepth)
+        return await git.getChangesSinceMergeBase(defaultRef, ref, initialFetchDepth)
       } else {
         core.info('Initial push detected - all files will be listed as added')
         return await git.listAllFilesAsAdded()
@@ -122,7 +122,7 @@ async function getChangedFilesFromGit(base: string, initialFetchDepth: number): 
 
   // Changes introduced by current branch against the base branch
   core.info(`Changes will be detected against the branch ${baseRef}`)
-  return await git.getChangesSinceMergeBase(baseRef, initialFetchDepth)
+  return await git.getChangesSinceMergeBase(baseRef, ref, initialFetchDepth)
 }
 
 // Uses github REST api to get list of files changed in PR

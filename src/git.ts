@@ -54,23 +54,23 @@ export async function getChangesOnHead(): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChangesSinceMergeBase(base: string, initialFetchDepth: number): Promise<File[]> {
+export async function getChangesSinceMergeBase(base: string, ref: string, initialFetchDepth: number): Promise<File[]> {
   const baseRef = `remotes/origin/${base}`
 
   async function hasMergeBase(): Promise<boolean> {
-    return (await exec('git', ['merge-base', baseRef, HEAD], {ignoreReturnCode: true})).code === 0
+    return (await exec('git', ['merge-base', baseRef, ref], {ignoreReturnCode: true})).code === 0
   }
 
   let noMergeBase = false
-  core.startGroup(`Searching for merge-base ${baseRef}...${HEAD}`)
+  core.startGroup(`Searching for merge-base ${baseRef}...${ref}`)
   try {
     if (!(await hasMergeBase())) {
-      await exec('git', ['fetch', `--depth=${initialFetchDepth}`, 'origin', base, HEAD])
+      await exec('git', ['fetch', `--depth=${initialFetchDepth}`, 'origin', base, ref])
       let depth = initialFetchDepth
       let lastCommitCount = await getCommitCount()
       while (!(await hasMergeBase())) {
         depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER)
-        await exec('git', ['fetch', `--deepen=${depth}`, 'origin', base, HEAD])
+        await exec('git', ['fetch', `--deepen=${depth}`, 'origin', base, ref])
         const commitCount = await getCommitCount()
         if (commitCount === lastCommitCount) {
           core.info('No more commits were fetched')
@@ -94,11 +94,11 @@ export async function getChangesSinceMergeBase(base: string, initialFetchDepth: 
   }
 
   // Get changes introduced on HEAD compared to ref
-  core.startGroup(`Change detection ${baseRef}...${HEAD}`)
+  core.startGroup(`Change detection ${baseRef}...${ref}`)
   let output = ''
   try {
     // Three dots '...' change detection - finds merge-base and compares against it
-    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}...${HEAD}`])).stdout
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}...${ref}`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
