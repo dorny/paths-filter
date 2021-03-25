@@ -121,7 +121,7 @@ async function getChangedFilesFromGit(base: string, initialFetchDepth: number): 
   }
 
   // Changes introduced by current branch against the base branch
-  core.info(`Changes will be detected against the branch ${baseRef}`)
+  core.info(`Changes will be detected against ${baseRef}`)
   return await git.getChangesSinceMergeBase(baseRef, ref, initialFetchDepth)
 }
 

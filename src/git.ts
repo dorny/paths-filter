@@ -63,7 +63,7 @@ export async function getChangesSinceMergeBase(base: string, ref: string, initia
   }
 
   let noMergeBase = false
-  core.startGroup(`Searching for merge-base ${baseRef}...${ref}`)
+  core.startGroup(`Searching for merge-base ${base}...${ref}`)
   try {
     baseRef = await getFullRef(base)
     if (!(await hasMergeBase())) {

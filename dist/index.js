@@ -3871,7 +3871,7 @@ async function getChangesSinceMergeBase(base, ref, initialFetchDepth) {
         return (baseRef !== undefined && (await exec_1.default('git', ['merge-base', baseRef, ref], { ignoreReturnCode: true })).code === 0);
     }
     let noMergeBase = false;
-    core.startGroup(`Searching for merge-base ${baseRef}...${ref}`);
+    core.startGroup(`Searching for merge-base ${base}...${ref}`);
     try {
         baseRef = await getFullRef(base);
         if (!(await hasMergeBase())) {
@@ -4776,7 +4776,7 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
         return await git.getChanges(baseSha);
     }
     // Changes introduced by current branch against the base branch
-    core.info(`Changes will be detected against the branch ${baseRef}`);
+    core.info(`Changes will be detected against ${baseRef}`);
     return await git.getChangesSinceMergeBase(baseRef, ref, initialFetchDepth);
 }
 // Uses github REST api to get list of files changed in PR
