@@ -3866,15 +3866,26 @@ async function getChangesOnHead() {
 }
 exports.getChangesOnHead = getChangesOnHead;
 async function getChangesSinceMergeBase(base, ref, initialFetchDepth) {
-    const baseRef = `remotes/origin/${base}`;
+    let baseRef;
     async function hasMergeBase() {
-        return (await exec_1.default('git', ['merge-base', baseRef, ref], { ignoreReturnCode: true })).code === 0;
+        return (baseRef !== undefined && (await exec_1.default('git', ['merge-base', baseRef, ref], { ignoreReturnCode: true })).code === 0);
     }
     let noMergeBase = false;
-    core.startGroup(`Searching for merge-base ${baseRef}...${ref}`);
+    core.startGroup(`Searching for merge-base ${base}...${ref}`);
     try {
+        baseRef = await getFullRef(base);
         if (!(await hasMergeBase())) {
-            await exec_1.default('git', ['fetch', `--depth=${initialFetchDepth}`, 'origin', base, ref]);
+            await exec_1.default('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, ref]);
+            if (baseRef === undefined) {
+                baseRef = await getFullRef(base);
+                if (baseRef === undefined) {
+                    await exec_1.default('git', ['fetch', '--tags', `--depth=1`, 'origin', base, ref]);
+                    baseRef = await getFullRef(base);
+                    if (baseRef === undefined) {
+                        throw new Error(`Could not determine what is ${base} - fetch works but it's not a branch or tag`);
+                    }
+                }
+            }
             let depth = initialFetchDepth;
             let lastCommitCount = await getCommitCount();
             while (!(await hasMergeBase())) {
@@ -3897,16 +3908,17 @@ async function getChangesSinceMergeBase(base, ref, initialFetchDepth) {
     finally {
         core.endGroup();
     }
+    let diffArg = `${baseRef}...${ref}`;
     if (noMergeBase) {
-        core.warning('No merge base found - all files will be listed as added');
-        return await listAllFilesAsAdded();
+        core.warning('No merge base found - change detection will use direct <commit>..<commit> comparison');
+        diffArg = `${baseRef}..${ref}`;
     }
-    // Get changes introduced on HEAD compared to ref
-    core.startGroup(`Change detection ${baseRef}...${ref}`);
+    // Get changes introduced on ref compared to base
+    core.startGroup(`Change detection ${diffArg}`);
     let output = '';
     try {
         // Three dots '...' change detection - finds merge-base and compares against it
-        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}...${ref}`])).stdout;
+        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -3993,6 +4005,24 @@ async function getCommitCount() {
     const output = (await exec_1.default('git', ['rev-list', '--count', '--all'])).stdout;
     const count = parseInt(output);
     return isNaN(count) ? 0 : count;
+}
+async function getFullRef(shortName) {
+    if (isGitSha(shortName)) {
+        return shortName;
+    }
+    const output = (await exec_1.default('git', ['show-ref', shortName], { ignoreReturnCode: true })).stdout;
+    const refs = output
+        .split(/\r?\n/g)
+        .map(l => { var _a, _b; return (_b = (_a = l.match(/refs\/.*$/)) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : ''; })
+        .filter(l => l !== '');
+    if (refs.length === 0) {
+        return undefined;
+    }
+    const remoteRef = refs.find(ref => ref.startsWith('refs/remotes/origin/'));
+    if (remoteRef) {
+        return remoteRef;
+    }
+    return refs[0];
 }
 function fixStdOutNullTermination() {
     // Previous command uses NULL as delimiters and output is printed to stdout.
@@ -4743,7 +4773,7 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
         return await git.getChanges(baseSha);
     }
     // Changes introduced by current branch against the base branch
-    core.info(`Changes will be detected against the branch ${baseRef}`);
+    core.info(`Changes will be detected against ${baseRef}`);
     return await git.getChangesSinceMergeBase(baseRef, ref, initialFetchDepth);
 }
 // Uses github REST api to get list of files changed in PR

@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.9.3
+- [Fix change detection when base is a tag](https://github.com/dorny/paths-filter/pull/78)
+
 ## v2.9.2
 - [Fix fetching git history](https://github.com/dorny/paths-filter/pull/75)
 
