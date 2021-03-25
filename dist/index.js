@@ -4010,22 +4010,19 @@ async function getFullRef(shortName) {
     if (isGitSha(shortName)) {
         return shortName;
     }
-    const remoteRef = `refs/remotes/origin/${shortName}`;
-    const tagRef = `refs/tags/${shortName}`;
-    const headRef = `refs/heads/${shortName}`;
-    if (await verifyRef(remoteRef)) {
+    const output = (await exec_1.default('git', ['show-ref', shortName], { ignoreReturnCode: true })).stdout;
+    const refs = output
+        .split(/\r?\n/g)
+        .map(l => { var _a, _b; return (_b = (_a = l.match(/refs\/.*$/)) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : ''; })
+        .filter(l => l !== '');
+    if (refs.length === 0) {
+        return undefined;
+    }
+    const remoteRef = refs.find(ref => ref.startsWith('refs/remotes/origin/'));
+    if (remoteRef) {
         return remoteRef;
     }
-    else if (await verifyRef(tagRef)) {
-        return tagRef;
-    }
-    else if (await verifyRef(headRef)) {
-        return headRef;
-    }
-    return undefined;
-}
-async function verifyRef(ref) {
-    return (await exec_1.default('git', ['show-ref', '--verify', ref], { ignoreReturnCode: true })).code === 0;
+    return refs[0];
 }
 function fixStdOutNullTermination() {
     // Previous command uses NULL as delimiters and output is printed to stdout.

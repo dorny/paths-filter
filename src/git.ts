@@ -207,22 +207,22 @@ async function getFullRef(shortName: string): Promise<string | undefined> {
     return shortName
   }
 
-  const remoteRef = `refs/remotes/origin/${shortName}`
-  const tagRef = `refs/tags/${shortName}`
-  const headRef = `refs/heads/${shortName}`
-  if (await verifyRef(remoteRef)) {
-    return remoteRef
-  } else if (await verifyRef(tagRef)) {
-    return tagRef
-  } else if (await verifyRef(headRef)) {
-    return headRef
+  const output = (await exec('git', ['show-ref', shortName], {ignoreReturnCode: true})).stdout
+  const refs = output
+    .split(/\r?\n/g)
+    .map(l => l.match(/refs\/.*$/)?.[0] ?? '')
+    .filter(l => l !== '')
+
+  if (refs.length === 0) {
+    return undefined
   }
 
-  return undefined
-}
+  const remoteRef = refs.find(ref => ref.startsWith('refs/remotes/origin/'))
+  if (remoteRef) {
+    return remoteRef
+  }
 
-async function verifyRef(ref: string): Promise<boolean> {
-  return (await exec('git', ['show-ref', '--verify', ref], {ignoreReturnCode: true})).code === 0
+  return refs[0]
 }
 
 function fixStdOutNullTermination(): void {
