@@ -57,7 +57,9 @@ export async function getChangesOnHead(): Promise<File[]> {
 export async function getChangesSinceMergeBase(base: string, ref: string, initialFetchDepth: number): Promise<File[]> {
   let baseRef: string | undefined
   async function hasMergeBase(): Promise<boolean> {
-    return baseRef !== undefined && (await exec('git', ['merge-base', baseRef, ref], {ignoreReturnCode: true})).code === 0
+    return (
+      baseRef !== undefined && (await exec('git', ['merge-base', baseRef, ref], {ignoreReturnCode: true})).code === 0
+    )
   }
 
   let noMergeBase = false
@@ -200,8 +202,8 @@ async function getCommitCount(): Promise<number> {
   return isNaN(count) ? 0 : count
 }
 
-async function getFullRef(shortName: string) {
-  if(isGitSha(shortName)) {
+async function getFullRef(shortName: string): Promise<string | undefined> {
+  if (isGitSha(shortName)) {
     return shortName
   }
 
