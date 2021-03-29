@@ -71,7 +71,9 @@ export async function getChangesSinceMergeBase(base: string, ref: string, initia
       if (baseRef === undefined) {
         baseRef = await getFullRef(base)
         if (baseRef === undefined) {
-          await exec('git', ['fetch', '--tags', `--depth=1`, 'origin', base, ref])
+          await exec('git', ['fetch', '--tags', '--depth=1', 'origin', base, ref], {
+            ignoreReturnCode: true // returns exit code 1 if tags on remote were updated - we can safely ignore it
+          })
           baseRef = await getFullRef(base)
           if (baseRef === undefined) {
             throw new Error(`Could not determine what is ${base} - fetch works but it's not a branch or tag`)
