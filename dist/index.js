@@ -3875,21 +3875,21 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
         return (await exec_1.default('git', ['merge-base', baseRef, headRef], { ignoreReturnCode: true })).code === 0;
     }
     let noMergeBase = false;
-    core.startGroup(`Searching for merge-base ${base}...${headRef}`);
+    core.startGroup(`Searching for merge-base ${base}...${head}`);
     try {
         baseRef = await getFullRef(base);
         headRef = await getFullRef(head);
         if (!(await hasMergeBase())) {
             await exec_1.default('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head]);
             if (baseRef === undefined || headRef === undefined) {
-                baseRef = baseRef !== null && baseRef !== void 0 ? baseRef : await getFullRef(base);
-                headRef = headRef !== null && headRef !== void 0 ? headRef : await getFullRef(head);
+                baseRef = baseRef !== null && baseRef !== void 0 ? baseRef : (await getFullRef(base));
+                headRef = headRef !== null && headRef !== void 0 ? headRef : (await getFullRef(head));
                 if (baseRef === undefined || headRef === undefined) {
                     await exec_1.default('git', ['fetch', '--tags', '--depth=1', 'origin', base, head], {
                         ignoreReturnCode: true // returns exit code 1 if tags on remote were updated - we can safely ignore it
                     });
-                    baseRef = baseRef !== null && baseRef !== void 0 ? baseRef : await getFullRef(base);
-                    headRef = headRef !== null && headRef !== void 0 ? headRef : await getFullRef(head);
+                    baseRef = baseRef !== null && baseRef !== void 0 ? baseRef : (await getFullRef(base));
+                    headRef = headRef !== null && headRef !== void 0 ? headRef : (await getFullRef(head));
                     if (baseRef === undefined) {
                         throw new Error(`Could not determine what is ${base} - fetch works but it's not a branch or tag`);
                     }
