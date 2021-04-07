@@ -9,6 +9,12 @@ inputs:
   working-directory:
     description: 'Relative path under $GITHUB_WORKSPACE where the repository was checked out.'
     required: false
+  ref:
+    description: |
+      Git reference (e.g. branch name) from which the changes will be detected.
+      This option is ignored if action is triggered by pull_request event.
+    default: ${{ github.ref }}
+    required: false
   base:
     description: |
       Git reference (e.g. branch name) against which the changes will be detected. Defaults to repository default branch (e.g. master).

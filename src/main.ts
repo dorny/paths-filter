@@ -19,6 +19,7 @@ async function run(): Promise<void> {
     }
 
     const token = core.getInput('token', {required: false})
+    const ref = core.getInput('ref', {required: false})
     const base = core.getInput('base', {required: false})
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
@@ -31,7 +32,7 @@ async function run(): Promise<void> {
     }
 
     const filter = new Filter(filtersYaml)
-    const files = await getChangedFiles(token, base, initialFetchDepth)
+    const files = await getChangedFiles(token, base, ref, initialFetchDepth)
     const results = filter.match(files)
     exportResults(results, listFiles)
   } catch (error) {
@@ -55,7 +56,7 @@ function getConfigFileContent(configPath: string): string {
   return fs.readFileSync(configPath, {encoding: 'utf8'})
 }
 
-async function getChangedFiles(token: string, base: string, initialFetchDepth: number): Promise<File[]> {
+async function getChangedFiles(token: string, base: string, ref: string, initialFetchDepth: number): Promise<File[]> {
   // if base is 'HEAD' only local uncommitted changes will be detected
   // This is the simplest case as we don't need to fetch more commits or evaluate current/before refs
   if (base === git.HEAD) {
@@ -70,18 +71,18 @@ async function getChangedFiles(token: string, base: string, initialFetchDepth: n
     core.info('Github token is not available - changes will be detected from PRs merge commit')
     return await git.getChangesInLastCommit()
   } else {
-    return getChangedFilesFromGit(base, initialFetchDepth)
+    return getChangedFilesFromGit(base, ref, initialFetchDepth)
   }
 }
 
-async function getChangedFilesFromGit(base: string, initialFetchDepth: number): Promise<File[]> {
+async function getChangedFilesFromGit(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
   const defaultRef = github.context.payload.repository?.default_branch
 
   const beforeSha =
     github.context.eventName === 'push' ? (github.context.payload as Webhooks.WebhookPayloadPush).before : null
 
   const ref =
-    git.getShortName(github.context.ref) ||
+    git.getShortName(head || github.context.ref) ||
     (core.warning(`'ref' field is missing in event payload - using current branch, tag or commit SHA`),
     await git.getCurrentRef())
 
