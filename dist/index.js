@@ -3865,26 +3865,36 @@ async function getChangesOnHead() {
     return parseGitDiffOutput(output);
 }
 exports.getChangesOnHead = getChangesOnHead;
-async function getChangesSinceMergeBase(base, ref, initialFetchDepth) {
+async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
     let baseRef;
+    let headRef;
     async function hasMergeBase() {
-        return (baseRef !== undefined && (await exec_1.default('git', ['merge-base', baseRef, ref], { ignoreReturnCode: true })).code === 0);
+        if (baseRef === undefined || headRef === undefined) {
+            return false;
+        }
+        return (await exec_1.default('git', ['merge-base', baseRef, headRef], { ignoreReturnCode: true })).code === 0;
     }
     let noMergeBase = false;
-    core.startGroup(`Searching for merge-base ${base}...${ref}`);
+    core.startGroup(`Searching for merge-base ${base}...${head}`);
     try {
         baseRef = await getFullRef(base);
+        headRef = await getFullRef(head);
         if (!(await hasMergeBase())) {
-            await exec_1.default('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, ref]);
-            if (baseRef === undefined) {
-                baseRef = await getFullRef(base);
-                if (baseRef === undefined) {
-                    await exec_1.default('git', ['fetch', '--tags', '--depth=1', 'origin', base, ref], {
+            await exec_1.default('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head]);
+            if (baseRef === undefined || headRef === undefined) {
+                baseRef = baseRef !== null && baseRef !== void 0 ? baseRef : (await getFullRef(base));
+                headRef = headRef !== null && headRef !== void 0 ? headRef : (await getFullRef(head));
+                if (baseRef === undefined || headRef === undefined) {
+                    await exec_1.default('git', ['fetch', '--tags', '--depth=1', 'origin', base, head], {
                         ignoreReturnCode: true // returns exit code 1 if tags on remote were updated - we can safely ignore it
                     });
-                    baseRef = await getFullRef(base);
+                    baseRef = baseRef !== null && baseRef !== void 0 ? baseRef : (await getFullRef(base));
+                    headRef = headRef !== null && headRef !== void 0 ? headRef : (await getFullRef(head));
                     if (baseRef === undefined) {
                         throw new Error(`Could not determine what is ${base} - fetch works but it's not a branch or tag`);
+                    }
+                    if (headRef === undefined) {
+                        throw new Error(`Could not determine what is ${head} - fetch works but it's not a branch or tag`);
                     }
                 }
             }
@@ -3892,7 +3902,7 @@ async function getChangesSinceMergeBase(base, ref, initialFetchDepth) {
             let lastCommitCount = await getCommitCount();
             while (!(await hasMergeBase())) {
                 depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER);
-                await exec_1.default('git', ['fetch', `--deepen=${depth}`, 'origin', base, ref]);
+                await exec_1.default('git', ['fetch', `--deepen=${depth}`, 'origin', base, head]);
                 const commitCount = await getCommitCount();
                 if (commitCount === lastCommitCount) {
                     core.info('No more commits were fetched');
@@ -3910,16 +3920,16 @@ async function getChangesSinceMergeBase(base, ref, initialFetchDepth) {
     finally {
         core.endGroup();
     }
-    let diffArg = `${baseRef}...${ref}`;
+    // Three dots '...' change detection - finds merge-base and compares against it
+    let diffArg = `${baseRef}...${headRef}`;
     if (noMergeBase) {
         core.warning('No merge base found - change detection will use direct <commit>..<commit> comparison');
-        diffArg = `${baseRef}..${ref}`;
+        diffArg = `${baseRef}..${headRef}`;
     }
     // Get changes introduced on ref compared to base
     core.startGroup(`Change detection ${diffArg}`);
     let output = '';
     try {
-        // Three dots '...' change detection - finds merge-base and compares against it
         output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout;
     }
     finally {
@@ -4690,6 +4700,7 @@ async function run() {
             process.chdir(workingDirectory);
         }
         const token = core.getInput('token', { required: false });
+        const ref = core.getInput('ref', { required: false });
         const base = core.getInput('base', { required: false });
         const filtersInput = core.getInput('filters', { required: true });
         const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
@@ -4700,7 +4711,8 @@ async function run() {
             return;
         }
         const filter = new filter_1.Filter(filtersYaml);
-        const files = await getChangedFiles(token, base, initialFetchDepth);
+        const files = await getChangedFiles(token, base, ref, initialFetchDepth);
+        core.info(`Detected ${files.length} changed files`);
         const results = filter.match(files);
         exportResults(results, listFiles);
     }
@@ -4720,7 +4732,7 @@ function getConfigFileContent(configPath) {
     }
     return fs.readFileSync(configPath, { encoding: 'utf8' });
 }
-async function getChangedFiles(token, base, initialFetchDepth) {
+async function getChangedFiles(token, base, ref, initialFetchDepth) {
     // if base is 'HEAD' only local uncommitted changes will be detected
     // This is the simplest case as we don't need to fetch more commits or evaluate current/before refs
     if (base === git.HEAD) {
@@ -4735,14 +4747,14 @@ async function getChangedFiles(token, base, initialFetchDepth) {
         return await git.getChangesInLastCommit();
     }
     else {
-        return getChangedFilesFromGit(base, initialFetchDepth);
+        return getChangedFilesFromGit(base, ref, initialFetchDepth);
     }
 }
-async function getChangedFilesFromGit(base, initialFetchDepth) {
+async function getChangedFilesFromGit(base, head, initialFetchDepth) {
     var _a;
     const defaultRef = (_a = github.context.payload.repository) === null || _a === void 0 ? void 0 : _a.default_branch;
     const beforeSha = github.context.eventName === 'push' ? github.context.payload.before : null;
-    const ref = git.getShortName(github.context.ref) ||
+    const ref = git.getShortName(head || github.context.ref) ||
         (core.warning(`'ref' field is missing in event payload - using current branch, tag or commit SHA`),
             await git.getCurrentRef());
     const baseRef = git.getShortName(base) || defaultRef;
@@ -4781,47 +4793,58 @@ async function getChangedFilesFromGit(base, initialFetchDepth) {
 // Uses github REST api to get list of files changed in PR
 async function getChangedFilesFromApi(token, pullRequest) {
     core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from Github API`);
-    core.info(`Number of changed_files is ${pullRequest.changed_files}`);
-    const client = new github.GitHub(token);
-    const pageSize = 100;
-    const files = [];
-    for (let page = 1; (page - 1) * pageSize < pullRequest.changed_files; page++) {
-        core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, page: ${page}, per_page: ${pageSize})`);
-        const response = await client.pulls.listFiles({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            pull_number: pullRequest.number,
-            page,
-            per_page: pageSize
-        });
-        for (const row of response.data) {
-            core.info(`[${row.status}] ${row.filename}`);
-            // There's no obvious use-case for detection of renames
-            // Therefore we treat it as if rename detection in git diff was turned off.
-            // Rename is replaced by delete of original filename and add of new filename
-            if (row.status === file_1.ChangeStatus.Renamed) {
-                files.push({
-                    filename: row.filename,
-                    status: file_1.ChangeStatus.Added
-                });
-                files.push({
-                    // 'previous_filename' for some unknown reason isn't in the type definition or documentation
-                    filename: row.previous_filename,
-                    status: file_1.ChangeStatus.Deleted
-                });
+    try {
+        const client = new github.GitHub(token);
+        const per_page = 100;
+        const files = [];
+        for (let page = 1;; page++) {
+            core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, page: ${page}, per_page: ${per_page})`);
+            const response = await client.pulls.listFiles({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                pull_number: pullRequest.number,
+                per_page,
+                page
+            });
+            if (response.status !== 200) {
+                throw new Error(`Fetching list of changed files from GitHub API failed with error code ${response.status}`);
             }
-            else {
-                // Github status and git status variants are same except for deleted files
-                const status = row.status === 'removed' ? file_1.ChangeStatus.Deleted : row.status;
-                files.push({
-                    filename: row.filename,
-                    status
-                });
+            core.info(`Received ${response.data.length} items`);
+            if (response.data.length === 0) {
+                core.info('All changed files has been fetched from GitHub API');
+                break;
+            }
+            for (const row of response.data) {
+                core.info(`[${row.status}] ${row.filename}`);
+                // There's no obvious use-case for detection of renames
+                // Therefore we treat it as if rename detection in git diff was turned off.
+                // Rename is replaced by delete of original filename and add of new filename
+                if (row.status === file_1.ChangeStatus.Renamed) {
+                    files.push({
+                        filename: row.filename,
+                        status: file_1.ChangeStatus.Added
+                    });
+                    files.push({
+                        // 'previous_filename' for some unknown reason isn't in the type definition or documentation
+                        filename: row.previous_filename,
+                        status: file_1.ChangeStatus.Deleted
+                    });
+                }
+                else {
+                    // Github status and git status variants are same except for deleted files
+                    const status = row.status === 'removed' ? file_1.ChangeStatus.Deleted : row.status;
+                    files.push({
+                        filename: row.filename,
+                        status
+                    });
+                }
             }
         }
+        return files;
     }
-    core.endGroup();
-    return files;
+    finally {
+        core.endGroup();
+    }
 }
 function exportResults(results, format) {
     core.info('Results:');

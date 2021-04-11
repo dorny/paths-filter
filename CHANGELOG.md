@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.10.0
+- [Add ref input parameter](https://github.com/dorny/paths-filter/pull/82)
+- [Fix change detection in PR when pullRequest.changed_files is incorrect](https://github.com/dorny/paths-filter/pull/83)
+
 ## v2.9.3
 - [Fix change detection when base is a tag](https://github.com/dorny/paths-filter/pull/78)
 

@@ -54,29 +54,37 @@ export async function getChangesOnHead(): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChangesSinceMergeBase(base: string, ref: string, initialFetchDepth: number): Promise<File[]> {
+export async function getChangesSinceMergeBase(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
   let baseRef: string | undefined
+  let headRef: string | undefined
   async function hasMergeBase(): Promise<boolean> {
-    return (
-      baseRef !== undefined && (await exec('git', ['merge-base', baseRef, ref], {ignoreReturnCode: true})).code === 0
-    )
+    if (baseRef === undefined || headRef === undefined) {
+      return false
+    }
+    return (await exec('git', ['merge-base', baseRef, headRef], {ignoreReturnCode: true})).code === 0
   }
 
   let noMergeBase = false
-  core.startGroup(`Searching for merge-base ${base}...${ref}`)
+  core.startGroup(`Searching for merge-base ${base}...${head}`)
   try {
     baseRef = await getFullRef(base)
+    headRef = await getFullRef(head)
     if (!(await hasMergeBase())) {
-      await exec('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, ref])
-      if (baseRef === undefined) {
-        baseRef = await getFullRef(base)
-        if (baseRef === undefined) {
-          await exec('git', ['fetch', '--tags', '--depth=1', 'origin', base, ref], {
+      await exec('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head])
+      if (baseRef === undefined || headRef === undefined) {
+        baseRef = baseRef ?? (await getFullRef(base))
+        headRef = headRef ?? (await getFullRef(head))
+        if (baseRef === undefined || headRef === undefined) {
+          await exec('git', ['fetch', '--tags', '--depth=1', 'origin', base, head], {
             ignoreReturnCode: true // returns exit code 1 if tags on remote were updated - we can safely ignore it
           })
-          baseRef = await getFullRef(base)
+          baseRef = baseRef ?? (await getFullRef(base))
+          headRef = headRef ?? (await getFullRef(head))
           if (baseRef === undefined) {
             throw new Error(`Could not determine what is ${base} - fetch works but it's not a branch or tag`)
+          }
+          if (headRef === undefined) {
+            throw new Error(`Could not determine what is ${head} - fetch works but it's not a branch or tag`)
           }
         }
       }
@@ -85,7 +93,7 @@ export async function getChangesSinceMergeBase(base: string, ref: string, initia
       let lastCommitCount = await getCommitCount()
       while (!(await hasMergeBase())) {
         depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER)
-        await exec('git', ['fetch', `--deepen=${depth}`, 'origin', base, ref])
+        await exec('git', ['fetch', `--deepen=${depth}`, 'origin', base, head])
         const commitCount = await getCommitCount()
         if (commitCount === lastCommitCount) {
           core.info('No more commits were fetched')
@@ -103,17 +111,17 @@ export async function getChangesSinceMergeBase(base: string, ref: string, initia
     core.endGroup()
   }
 
-  let diffArg = `${baseRef}...${ref}`
+  // Three dots '...' change detection - finds merge-base and compares against it
+  let diffArg = `${baseRef}...${headRef}`
   if (noMergeBase) {
     core.warning('No merge base found - change detection will use direct <commit>..<commit> comparison')
-    diffArg = `${baseRef}..${ref}`
+    diffArg = `${baseRef}..${headRef}`
   }
 
   // Get changes introduced on ref compared to base
   core.startGroup(`Change detection ${diffArg}`)
   let output = ''
   try {
-    // Three dots '...' change detection - finds merge-base and compares against it
     output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout
   } finally {
     fixStdOutNullTermination()

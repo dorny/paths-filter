@@ -66,13 +66,11 @@ For more scenarios see [examples](#examples) section.
 
 
 # What's New
+- Add `ref` input parameter
 - Add `list-files: csv` format
 - Configure matrix job to run for each folder with changes using `changes` output
 - Improved listing of matching files with `list-files: shell` and `list-files: escape` options
-- Support local changes
-- Fixed retrieval of all changes via Github API when there are 100+ changes
 - Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
-- Support workflows triggered by any event
 
 For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/master/CHANGELOG.md)
 
@@ -110,6 +108,13 @@ For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/
     # This option is ignored if action is triggered by pull_request event.
     # Default: repository default branch (e.g. master)
     base: ''
+
+    # Git reference (e.g. branch name) from which the changes will be detected.
+    # Useful when workflow can be triggered only on default branch (e.g. repository_dispatch event)
+    # but you want to get changes on different branch.
+    # This option is ignored if action is triggered by pull_request event.
+    # default: ${{ github.ref }}
+    ref:
 
     # How many commits are initially fetched from base branch.
     # If needed, each subsequent fetch doubles the
