@@ -3920,6 +3920,7 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
     finally {
         core.endGroup();
     }
+    // Three dots '...' change detection - finds merge-base and compares against it
     let diffArg = `${baseRef}...${headRef}`;
     if (noMergeBase) {
         core.warning('No merge base found - change detection will use direct <commit>..<commit> comparison');
@@ -3929,7 +3930,6 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
     core.startGroup(`Change detection ${diffArg}`);
     let output = '';
     try {
-        // Three dots '...' change detection - finds merge-base and compares against it
         output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout;
     }
     finally {
