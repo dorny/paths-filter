@@ -132,47 +132,61 @@ async function getChangedFilesFromApi(
   pullRequest: Webhooks.WebhookPayloadPullRequestPullRequest
 ): Promise<File[]> {
   core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from Github API`)
-  core.info(`Number of changed_files is ${pullRequest.changed_files}`)
-  const client = new github.GitHub(token)
-  const pageSize = 100
-  const files: File[] = []
-  for (let page = 1; (page - 1) * pageSize < pullRequest.changed_files; page++) {
-    core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, page: ${page}, per_page: ${pageSize})`)
-    const response = await client.pulls.listFiles({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      pull_number: pullRequest.number,
-      page,
-      per_page: pageSize
-    })
-    for (const row of response.data) {
-      core.info(`[${row.status}] ${row.filename}`)
-      // There's no obvious use-case for detection of renames
-      // Therefore we treat it as if rename detection in git diff was turned off.
-      // Rename is replaced by delete of original filename and add of new filename
-      if (row.status === ChangeStatus.Renamed) {
-        files.push({
-          filename: row.filename,
-          status: ChangeStatus.Added
-        })
-        files.push({
-          // 'previous_filename' for some unknown reason isn't in the type definition or documentation
-          filename: (<any>row).previous_filename as string,
-          status: ChangeStatus.Deleted
-        })
-      } else {
-        // Github status and git status variants are same except for deleted files
-        const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
-        files.push({
-          filename: row.filename,
-          status
-        })
+  try {
+    const client = new github.GitHub(token)
+    const per_page = 100
+    const files: File[] = []
+
+    for (let page = 1; ; page++) {
+      core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, page: ${page}, per_page: ${per_page})`)
+      const response = await client.pulls.listFiles({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        pull_number: pullRequest.number,
+        per_page,
+        page
+      })
+
+      if (response.status !== 200) {
+        throw new Error(`Fetching list of changed files from GitHub API failed with error code ${response.status}`)
+      }
+
+      if (response.data.length === 0) {
+        break
+      }
+
+      core.info(`Received ${response.data.length} items`)
+      for (const row of response.data) {
+        core.info(`[${row.status}] ${row.filename}`)
+        // There's no obvious use-case for detection of renames
+        // Therefore we treat it as if rename detection in git diff was turned off.
+        // Rename is replaced by delete of original filename and add of new filename
+        if (row.status === ChangeStatus.Renamed) {
+          files.push({
+            filename: row.filename,
+            status: ChangeStatus.Added
+          })
+          files.push({
+            // 'previous_filename' for some unknown reason isn't in the type definition or documentation
+            filename: (<any>row).previous_filename as string,
+            status: ChangeStatus.Deleted
+          })
+        } else {
+          // Github status and git status variants are same except for deleted files
+          const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
+          files.push({
+            filename: row.filename,
+            status
+          })
+        }
       }
     }
-  }
 
-  core.endGroup()
-  return files
+    core.info(`Found ${files.length} changed files`)
+    return files
+  } finally {
+    core.endGroup()
+  }
 }
 
 function exportResults(results: FilterResults, format: ExportFormat): void {
