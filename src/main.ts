@@ -33,6 +33,7 @@ async function run(): Promise<void> {
 
     const filter = new Filter(filtersYaml)
     const files = await getChangedFiles(token, base, ref, initialFetchDepth)
+    core.info(`Detected ${files.length} changed files`)
     const results = filter.match(files)
     exportResults(results, listFiles)
   } catch (error) {
@@ -151,11 +152,12 @@ async function getChangedFilesFromApi(
         throw new Error(`Fetching list of changed files from GitHub API failed with error code ${response.status}`)
       }
 
+      core.info(`Received ${response.data.length} items`)
       if (response.data.length === 0) {
+        core.info('All changed files has been fetched from GitHub API')
         break
       }
 
-      core.info(`Received ${response.data.length} items`)
       for (const row of response.data) {
         core.info(`[${row.status}] ${row.filename}`)
         // There's no obvious use-case for detection of renames
@@ -182,7 +184,6 @@ async function getChangedFilesFromApi(
       }
     }
 
-    core.info(`Found ${files.length} changed files`)
     return files
   } finally {
     core.endGroup()
