@@ -18,20 +18,16 @@ export async function getChangesInLastCommit(): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChanges(baseRef: string): Promise<File[]> {
-  if (!(await hasCommit(baseRef))) {
-    // Fetch single commit
-    core.startGroup(`Fetching ${baseRef} from origin`)
-    await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', baseRef])
-    core.endGroup()
-  }
+export async function getChanges(base: string, head: string): Promise<File[]> {
+  const baseRef = await ensureRefAvailable(base)
+  const headRef = await ensureRefAvailable(head)
 
   // Get differences between ref and HEAD
-  core.startGroup(`Change detection ${baseRef}..HEAD`)
+  core.startGroup(`Change detection ${base}..${head}`)
   let output = ''
   try {
     // Two dots '..' change detection - directly compares two versions
-    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..HEAD`])).stdout
+    output = (await exec('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -67,24 +63,28 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
   let noMergeBase = false
   core.startGroup(`Searching for merge-base ${base}...${head}`)
   try {
-    baseRef = await getFullRef(base)
-    headRef = await getFullRef(head)
+    baseRef = await getLocalRef(base)
+    headRef = await getLocalRef(head)
     if (!(await hasMergeBase())) {
       await exec('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head])
       if (baseRef === undefined || headRef === undefined) {
-        baseRef = baseRef ?? (await getFullRef(base))
-        headRef = headRef ?? (await getFullRef(head))
+        baseRef = baseRef ?? (await getLocalRef(base))
+        headRef = headRef ?? (await getLocalRef(head))
         if (baseRef === undefined || headRef === undefined) {
           await exec('git', ['fetch', '--tags', '--depth=1', 'origin', base, head], {
             ignoreReturnCode: true // returns exit code 1 if tags on remote were updated - we can safely ignore it
           })
-          baseRef = baseRef ?? (await getFullRef(base))
-          headRef = headRef ?? (await getFullRef(head))
+          baseRef = baseRef ?? (await getLocalRef(base))
+          headRef = headRef ?? (await getLocalRef(head))
           if (baseRef === undefined) {
-            throw new Error(`Could not determine what is ${base} - fetch works but it's not a branch or tag`)
+            throw new Error(
+              `Could not determine what is ${base} - fetch works but it's not a branch, tag or commit SHA`
+            )
           }
           if (headRef === undefined) {
-            throw new Error(`Could not determine what is ${head} - fetch works but it's not a branch or tag`)
+            throw new Error(
+              `Could not determine what is ${head} - fetch works but it's not a branch, tag or commit SHA`
+            )
           }
         }
       }
@@ -212,9 +212,9 @@ async function getCommitCount(): Promise<number> {
   return isNaN(count) ? 0 : count
 }
 
-async function getFullRef(shortName: string): Promise<string | undefined> {
+async function getLocalRef(shortName: string): Promise<string | undefined> {
   if (isGitSha(shortName)) {
-    return shortName
+    return hasCommit(shortName) ? shortName : undefined
   }
 
   const output = (await exec('git', ['show-ref', shortName], {ignoreReturnCode: true})).stdout
@@ -233,6 +233,27 @@ async function getFullRef(shortName: string): Promise<string | undefined> {
   }
 
   return refs[0]
+}
+
+async function ensureRefAvailable(name: string): Promise<string> {
+  core.startGroup(`Ensuring ${name} is fetched from origin`)
+  try {
+    let ref = await getLocalRef(name)
+    if (ref === undefined) {
+      await exec('git', ['fetch', '--depth=1', '--no-tags', 'origin', name])
+    }
+    ref = await getLocalRef(name)
+    if (ref === undefined) {
+      await exec('git', ['fetch', '--depth=1', '--tags', 'origin', name])
+    }
+    ref = await getLocalRef(name)
+    if (ref === undefined) {
+      throw new Error(`Could not determine what is ${name} - fetch works but it's not a branch, tag or commit SHA`)
+    }
+    return ref
+  } finally {
+    core.endGroup()
+  }
 }
 
 function fixStdOutNullTermination(): void {

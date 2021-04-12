@@ -13,7 +13,6 @@ inputs:
     description: |
       Git reference (e.g. branch name) from which the changes will be detected.
       This option is ignored if action is triggered by pull_request event.
-    default: ${{ github.ref }}
     required: false
   base:
     description: |
