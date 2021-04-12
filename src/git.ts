@@ -198,12 +198,7 @@ export function isGitSha(ref: string): boolean {
 }
 
 async function hasCommit(ref: string): Promise<boolean> {
-  core.startGroup(`Checking if commit for ${ref} is locally available`)
-  try {
-    return (await exec('git', ['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).code === 0
-  } finally {
-    core.endGroup()
-  }
+  return (await exec('git', ['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).code === 0
 }
 
 async function getCommitCount(): Promise<number> {

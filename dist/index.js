@@ -4001,13 +4001,7 @@ function isGitSha(ref) {
 }
 exports.isGitSha = isGitSha;
 async function hasCommit(ref) {
-    core.startGroup(`Checking if commit for ${ref} is locally available`);
-    try {
-        return (await exec_1.default('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).code === 0;
-    }
-    finally {
-        core.endGroup();
-    }
+    return (await exec_1.default('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).code === 0;
 }
 async function getCommitCount() {
     const output = (await exec_1.default('git', ['rev-list', '--count', '--all'])).stdout;
