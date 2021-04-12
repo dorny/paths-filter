@@ -3967,7 +3967,7 @@ async function listAllFilesAsAdded() {
 }
 exports.listAllFilesAsAdded = listAllFilesAsAdded;
 async function getCurrentRef() {
-    core.startGroup(`Determining current ref`);
+    core.startGroup(`Get current git ref`);
     try {
         const branch = (await exec_1.default('git', ['branch', '--show-current'])).stdout.trim();
         if (branch) {
@@ -4010,7 +4010,7 @@ async function getCommitCount() {
 }
 async function getLocalRef(shortName) {
     if (isGitSha(shortName)) {
-        return await hasCommit(shortName) ? shortName : undefined;
+        return (await hasCommit(shortName)) ? shortName : undefined;
     }
     const output = (await exec_1.default('git', ['show-ref', shortName], { ignoreReturnCode: true })).stdout;
     const refs = output
@@ -4032,14 +4032,14 @@ async function ensureRefAvailable(name) {
         let ref = await getLocalRef(name);
         if (ref === undefined) {
             await exec_1.default('git', ['fetch', '--depth=1', '--no-tags', 'origin', name]);
-        }
-        ref = await getLocalRef(name);
-        if (ref === undefined) {
-            await exec_1.default('git', ['fetch', '--depth=1', '--tags', 'origin', name]);
-        }
-        ref = await getLocalRef(name);
-        if (ref === undefined) {
-            throw new Error(`Could not determine what is ${name} - fetch works but it's not a branch, tag or commit SHA`);
+            ref = await getLocalRef(name);
+            if (ref === undefined) {
+                await exec_1.default('git', ['fetch', '--depth=1', '--tags', 'origin', name]);
+                ref = await getLocalRef(name);
+                if (ref === undefined) {
+                    throw new Error(`Could not determine what is ${name} - fetch works but it's not a branch, tag or commit SHA`);
+                }
+            }
         }
         return ref;
     }
