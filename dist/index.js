@@ -4010,7 +4010,7 @@ async function getCommitCount() {
 }
 async function getLocalRef(shortName) {
     if (isGitSha(shortName)) {
-        return hasCommit(shortName) ? shortName : undefined;
+        return await hasCommit(shortName) ? shortName : undefined;
     }
     const output = (await exec_1.default('git', ['show-ref', shortName], { ignoreReturnCode: true })).stdout;
     const refs = output

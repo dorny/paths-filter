@@ -209,7 +209,7 @@ async function getCommitCount(): Promise<number> {
 
 async function getLocalRef(shortName: string): Promise<string | undefined> {
   if (isGitSha(shortName)) {
-    return hasCommit(shortName) ? shortName : undefined
+    return (await hasCommit(shortName)) ? shortName : undefined
   }
 
   const output = (await exec('git', ['show-ref', shortName], {ignoreReturnCode: true})).stdout
