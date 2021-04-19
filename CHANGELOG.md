@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.10.1
+- [Improve robustness of change detection](https://github.com/dorny/paths-filter/pull/85)
+
 ## v2.10.0
 - [Add ref input parameter](https://github.com/dorny/paths-filter/pull/82)
 - [Fix change detection in PR when pullRequest.changed_files is incorrect](https://github.com/dorny/paths-filter/pull/83)
