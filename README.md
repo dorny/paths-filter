@@ -1,9 +1,9 @@
 # Paths Changes Filter
 
-This [Github Action](https://github.com/features/actions) enables conditional execution of workflow steps and jobs,
-based on the files modified by pull request, feature branch or in pushed commits.
+[Github Action](https://github.com/features/actions) that enables conditional execution of workflow steps and jobs, based on the files modified by pull request, on a feature
+branch, or by the recently pushed commits.
 
-It saves time and resources especially in monorepo setups, where you can run slow tasks (e.g. integration tests or deployments) only for changed components.
+Run slow tasks like integration tests or deployments only for changed components. It saves time and resources, especially in monorepo setups.
 Github workflows built-in [path filters](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#onpushpull_requestpaths)
 don't allow this because they don't work on a level of individual jobs or steps.
 
@@ -17,27 +17,27 @@ don't allow this because they don't work on a level of individual jobs or steps.
   - Workflow triggered by **[pull_request](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request)**
     or **[pull_request_target](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target)** event
   - Changes are detected against the pull request base branch
-  - Uses Github REST API to fetch list of modified files
+  - Uses Github REST API to fetch a list of modified files
 - **Feature branches:**
   - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)**
   or any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
   - The `base` input parameter must not be the same as the branch that triggered the workflow
-  - Changes are detected against the merge-base with configured base branch or default branch
+  - Changes are detected against the merge-base with the configured base branch or the default branch
   - Uses git commands to detect changes - repository must be already [checked out](https://github.com/actions/checkout)
-- **Master, Release or other long-lived branches:**
+- **Master, Release, or other long-lived branches:**
   - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)** event
-  when `base` input parameter is same as the branch that triggered the workflow:
+  when `base` input parameter is the same as the branch that triggered the workflow:
     - Changes are detected against the most recent commit on the same branch before the push
   - Workflow triggered by any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
   when `base` input parameter is commit SHA:
     - Changes are detected against the provided `base` commit
   - Workflow triggered by any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
-  when `base` input parameter is same as the branch that triggered the workflow:
-    - Changes are detected from last commit
+  when `base` input parameter is the same as the branch that triggered the workflow:
+    - Changes are detected from the last commit
   - Uses git commands to detect changes - repository must be already [checked out](https://github.com/actions/checkout)
 - **Local changes**
   - Workflow triggered by any event when `base` input parameter is set to `HEAD`
-  - Changes are detected against current HEAD
+  - Changes are detected against the current HEAD
   - Untracked files are ignored
 
 ## Example
@@ -57,10 +57,10 @@ For more scenarios see [examples](#examples) section.
 
 ## Notes:
 - Paths expressions are evaluated using [picomatch](https://github.com/micromatch/picomatch) library.
-  Documentation for path expression format can be found on project github page.
+  Documentation for path expression format can be found on the project GitHub page.
 - Picomatch [dot](https://github.com/micromatch/picomatch#options) option is set to true.
-  Globbing will match also paths where file or folder name starts with a dot.
-- It's recommended to quote your path expressions with `'` or `"`. Otherwise you will get an error if it starts with `*`.
+  Globbing will also match paths where file or folder name starts with a dot.
+- It's recommended to quote your path expressions with `'` or `"`. Otherwise, you will get an error if it starts with `*`.
 - Local execution with [act](https://github.com/nektos/act) works only with alternative runner image. Default runner doesn't have `git` binary.
   - Use: `act -P ubuntu-latest=nektos/act-environments-ubuntu:18.04`
 
@@ -72,7 +72,7 @@ For more scenarios see [examples](#examples) section.
 - Improved listing of matching files with `list-files: shell` and `list-files: escape` options
 - Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
 
-For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/master/CHANGELOG.md)
+For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob/master/CHANGELOG.md)
 
 # Usage
 
@@ -80,29 +80,27 @@ For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/
 - uses: dorny/paths-filter@v2
   with:
     # Defines filters applied to detected changed files.
-    # Each filter has a name and list of rules.
+    # Each filter has a name and a list of rules.
     # Rule is a glob expression - paths of all changed
     # files are matched against it.
     # Rule can optionally specify if the file
-    # should be added, modified or deleted.
-    # For each filter there will be corresponding output variable to
+    # should be added, modified, or deleted.
+    # For each filter, there will be a corresponding output variable to
     # indicate if there's a changed file matching any of the rules.
-    # Optionally there can be a second output variable
+    # Optionally, there can be a second output variable
     # set to list of all files matching the filter.
-    # Filters can be provided inline as a string (containing valid YAML document)
-    # or as a relative path to separate file (e.g.: .github/filters.yaml).
-    # Multiline string is evaluated as embedded filter definition,
-    # single line string is evaluated as relative path to separate file.
+    # Filters can be provided inline as a string (containing valid YAML document),
+    # or as a relative path to a file (e.g.: .github/filters.yaml).
     # Filters syntax is documented by example - see examples section.
     filters: ''
 
-    # Branch, tag or commit SHA against which the changes will be detected.
-    # If it references same branch it was pushed to,
+    # Branch, tag, or commit SHA against which the changes will be detected.
+    # If it references the same branch it was pushed to,
     # changes are detected against the most recent commit before the push.
-    # Otherwise it uses git merge-base to find best common ancestor between
+    # Otherwise, it uses git merge-base to find the best common ancestor between
     # current branch (HEAD) and base.
     # When merge-base is found, it's used for change detection - only changes
-    # introduced by current branch are considered.
+    # introduced by the current branch are considered.
     # All files are considered as added if there is no common ancestor with
     # base branch or no previous commit.
     # This option is ignored if action is triggered by pull_request event.
@@ -110,16 +108,16 @@ For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/
     base: ''
 
     # Git reference (e.g. branch name) from which the changes will be detected.
-    # Useful when workflow can be triggered only on default branch (e.g. repository_dispatch event)
-    # but you want to get changes on different branch.
+    # Useful when workflow can be triggered only on the default branch (e.g. repository_dispatch event)
+    # but you want to get changes on a different branch.
     # This option is ignored if action is triggered by pull_request event.
     # default: ${{ github.ref }}
     ref:
 
-    # How many commits are initially fetched from base branch.
+    # How many commits are initially fetched from the base branch.
     # If needed, each subsequent fetch doubles the
     # previously requested number of commits until the merge-base
-    # is found or there are no more commits in the history.
+    # is found, or there are no more commits in the history.
     # This option takes effect only when changes are detected
     # using git against base branch (feature branch workflow).
     # Default: 100
@@ -128,11 +126,11 @@ For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/
     # Enables listing of files matching the filter:
     #   'none'  - Disables listing of matching files (default).
     #   'csv'   - Coma separated list of filenames.
-    #             If needed it uses double quotes to wrap filename with unsafe characters.
-    #   'json'  - Matching files paths are formatted as JSON array.
-    #   'shell' - Space delimited list usable as command line argument list in Linux shell.
-    #             If needed it uses single or double quotes to wrap filename with unsafe characters.
-    #   'escape'- Space delimited list usable as command line argument list in Linux shell.
+    #             If needed, it uses double quotes to wrap filename with unsafe characters.
+    #   'json'  - File paths are formatted as JSON array.
+    #   'shell' - Space delimited list usable as command-line argument list in Linux shell.
+    #             If needed, it uses single or double quotes to wrap filename with unsafe characters.
+    #   'escape'- Space delimited list usable as command-line argument list in Linux shell.
     #             Backslash escapes every potentially unsafe character.
     # Default: none
     list-files: ''
@@ -140,23 +138,23 @@ For more information see [CHANGELOG](https://github.com/dorny/paths-filter/blob/
     # Relative path under $GITHUB_WORKSPACE where the repository was checked out.
     working-directory: ''
 
-    # Personal access token used to fetch list of changed files
+    # Personal access token used to fetch a list of changed files
     # from Github REST API.
-    # It's used only if action is triggered by pull request event.
+    # It's only used if action is triggered by a pull request event.
     # Github token from workflow context is used as default value.
-    # If empty string is provided, action falls back to detect
+    # If an empty string is provided, the action falls back to detect
     # changes using git commands.
     # Default: ${{ github.token }}
     token: ''
 ```
 
 ## Outputs
-- For each filter it sets output variable named by the filter to the text:
+- For each filter, it sets output variable named by the filter to the text:
    - `'true'` - if **any** of changed files matches any of filter rules
    - `'false'` - if **none** of changed files matches any of filter rules
-- For each filter it sets output variable with name `${FILTER_NAME}_count` to the count of matching files.
-- If enabled, for each filter it sets output variable with name `${FILTER_NAME}_files`. It will contain list of all files matching the filter.
-- `changes` - JSON array with names of all filters matching any of changed files.
+- For each filter, it sets an output variable with the name `${FILTER_NAME}_count` to the count of matching files.
+- If enabled, for each filter it sets an output variable with the name `${FILTER_NAME}_files`. It will contain a list of all files matching the filter.
+- `changes` - JSON array with names of all filters matching any of the changed files.
 
 # Examples
 
@@ -283,7 +281,7 @@ jobs:
 ```yaml
 on:
   pull_request:
-    branches: # PRs to following branches will trigger the workflow
+    branches: # PRs to the following branches will trigger the workflow
       - master
       - develop
 jobs:
@@ -329,7 +327,7 @@ jobs:
 ```yaml
 on:
   push:
-    branches: # Push to following branches will trigger the workflow
+    branches: # Push to the following branches will trigger the workflow
       - master
       - develop
       - release/**
@@ -341,8 +339,8 @@ jobs:
     - uses: dorny/paths-filter@v2
       id: filter
       with:
-        # Use context to get branch where commits were pushed.
-        # If there is only one long lived branch (e.g. master),
+        # Use context to get the branch where commits were pushed.
+        # If there is only one long-lived branch (e.g. master),
         # you can specify it directly.
         # If it's not configured, the repository default branch is used.
         base: ${{ github.ref }}
@@ -366,11 +364,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-      # Some action which modifies files tracked by git (e.g. code linter)
+      # Some action that modifies files tracked by git (e.g. code linter)
     - uses: johndoe/some-action@v1
 
       # Filter to detect which files were modified
-      # Changes could be for example automatically committed
+      # Changes could be, for example, automatically committed
     - uses: dorny/paths-filter@v2
       id: filter
       with:
@@ -421,10 +419,10 @@ jobs:
       id: filter
       with:
         # Changed file can be 'added', 'modified', or 'deleted'.
-        # By default the type of change is not considered.
-        # Optionally it's possible to specify it using nested
-        # dictionary, where type(s) of change composes the key.
-        # Multiple change types can be specified using `|` as delimiter.
+        # By default, the type of change is not considered.
+        # Optionally, it's possible to specify it using nested
+        # dictionary, where the type of change composes the key.
+        # Multiple change types can be specified using `|` as the delimiter.
         filters: |
           shared: &shared
             - common/**
@@ -451,7 +449,7 @@ jobs:
     # Enable listing of files matching each filter.
     # Paths to files will be available in `${FILTER_NAME}_files` output variable.
     # Paths will be escaped and space-delimited.
-    # Output is usable as command line argument list in Linux shell
+    # Output is usable as command-line argument list in Linux shell
     list-files: shell
 
     # In this example changed files will be checked by linter.
@@ -478,7 +476,7 @@ jobs:
     # Paths will be formatted as JSON array
     list-files: json
 
-    # In this example all changed files are passed to following action to do
+    # In this example all changed files are passed to the following action to do
     # some custom processing.
     filters: |
       changed:
