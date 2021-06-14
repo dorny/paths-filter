@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.10.2
+- [Fix getLocalRef() returns wrong ref](https://github.com/dorny/paths-filter/pull/91)
+
 ## v2.10.1
 - [Improve robustness of change detection](https://github.com/dorny/paths-filter/pull/85)
 
