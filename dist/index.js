@@ -4015,8 +4015,9 @@ async function getLocalRef(shortName) {
     const output = (await exec_1.default('git', ['show-ref', shortName], { ignoreReturnCode: true })).stdout;
     const refs = output
         .split(/\r?\n/g)
-        .map(l => { var _a, _b; return (_b = (_a = l.match(/refs\/.*$/)) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : ''; })
-        .filter(l => l !== '');
+        .map(l => l.match(/refs\/(?:(?:heads)|(?:tags)|(?:remotes\/origin))\/(.*)$/))
+        .filter(match => match !== null && match[1] === shortName)
+        .map(match => { var _a; return (_a = match === null || match === void 0 ? void 0 : match[0]) !== null && _a !== void 0 ? _a : ''; }); // match can't be null here but compiler doesn't understand that
     if (refs.length === 0) {
         return undefined;
     }

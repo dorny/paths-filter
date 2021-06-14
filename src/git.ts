@@ -215,8 +215,9 @@ async function getLocalRef(shortName: string): Promise<string | undefined> {
   const output = (await exec('git', ['show-ref', shortName], {ignoreReturnCode: true})).stdout
   const refs = output
     .split(/\r?\n/g)
-    .map(l => l.match(/refs\/.*$/)?.[0] ?? '')
-    .filter(l => l !== '')
+    .map(l => l.match(/refs\/(?:(?:heads)|(?:tags)|(?:remotes\/origin))\/(.*)$/))
+    .filter(match => match !== null && match[1] === shortName)
+    .map(match => match?.[0] ?? '') // match can't be null here but compiler doesn't understand that
 
   if (refs.length === 0) {
     return undefined
