@@ -1,10 +1,10 @@
 # Paths Changes Filter
 
-[Github Action](https://github.com/features/actions) that enables conditional execution of workflow steps and jobs, based on the files modified by pull request, on a feature
+[GitHub Action](https://github.com/features/actions) that enables conditional execution of workflow steps and jobs, based on the files modified by pull request, on a feature
 branch, or by the recently pushed commits.
 
 Run slow tasks like integration tests or deployments only for changed components. It saves time and resources, especially in monorepo setups.
-Github workflows built-in [path filters](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#onpushpull_requestpaths)
+GitHub workflows built-in [path filters](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#onpushpull_requestpaths)
 don't allow this because they don't work on a level of individual jobs or steps.
 
 **Real world usage examples:**
@@ -17,7 +17,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
   - Workflow triggered by **[pull_request](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request)**
     or **[pull_request_target](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target)** event
   - Changes are detected against the pull request base branch
-  - Uses Github REST API to fetch a list of modified files
+  - Uses GitHub REST API to fetch a list of modified files
 - **Feature branches:**
   - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)**
   or any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
@@ -139,9 +139,9 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     working-directory: ''
 
     # Personal access token used to fetch a list of changed files
-    # from Github REST API.
+    # from GitHub REST API.
     # It's only used if action is triggered by a pull request event.
-    # Github token from workflow context is used as default value.
+    # GitHub token from workflow context is used as default value.
     # If an empty string is provided, the action falls back to detect
     # changes using git commands.
     # Default: ${{ github.token }}
