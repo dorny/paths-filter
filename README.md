@@ -50,7 +50,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
         - 'src/**'
 
   # run only if some file in 'src' folder was changed
-  if: steps.changes.outputs.src == 'true'
+- if: steps.changes.outputs.src == 'true'
   run: ...
 ```
 For more scenarios see [examples](#examples) section.
