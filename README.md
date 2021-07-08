@@ -8,11 +8,12 @@ GitHub workflows built-in [path filters](https://docs.github.com/en/actions/refe
 don't allow this because they don't work on a level of individual jobs or steps.
 
 **Real world usage examples:**
+
 - [sentry.io](https://sentry.io/) - [backend-test-py3.6.yml](https://github.com/getsentry/sentry/blob/ca0e43dc5602a9ab2e06d3f6397cc48fb5a78541/.github/workflows/backend-test-py3.6.yml#L32)
 - [GoogleChrome/web.dev](https://web.dev/) - [lint-and-test-workflow.yml](https://github.com/GoogleChrome/web.dev/blob/e1f0c28964e99ce6a996c1e3fd3ee1985a7a04f6/.github/workflows/lint-and-test-workflow.yml#L33)
 
+## Supported workflows
 
-## Supported workflows:
 - **Pull requests:**
   - Workflow triggered by **[pull_request](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request)**
     or **[pull_request_target](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target)** event
@@ -41,6 +42,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
   - Untracked files are ignored
 
 ## Example
+
 ```yaml
 - uses: dorny/paths-filter@v2
   id: changes
@@ -53,9 +55,11 @@ don't allow this because they don't work on a level of individual jobs or steps.
 - if: steps.changes.outputs.src == 'true'
   run: ...
 ```
+
 For more scenarios see [examples](#examples) section.
 
-## Notes:
+## Notes
+
 - Paths expressions are evaluated using [picomatch](https://github.com/micromatch/picomatch) library.
   Documentation for path expression format can be found on the project GitHub page.
 - Picomatch [dot](https://github.com/micromatch/picomatch#options) option is set to true.
@@ -64,8 +68,8 @@ For more scenarios see [examples](#examples) section.
 - Local execution with [act](https://github.com/nektos/act) works only with alternative runner image. Default runner doesn't have `git` binary.
   - Use: `act -P ubuntu-latest=nektos/act-environments-ubuntu:18.04`
 
+## What's New
 
-# What's New
 - Add `ref` input parameter
 - Add `list-files: csv` format
 - Configure matrix job to run for each folder with changes using `changes` output
@@ -74,7 +78,7 @@ For more scenarios see [examples](#examples) section.
 
 For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob/master/CHANGELOG.md)
 
-# Usage
+## Usage
 
 ```yaml
 - uses: dorny/paths-filter@v2
@@ -149,16 +153,17 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
 ```
 
 ## Outputs
+
 - For each filter, it sets output variable named by the filter to the text:
-   - `'true'` - if **any** of changed files matches any of filter rules
-   - `'false'` - if **none** of changed files matches any of filter rules
+  - `'true'` - if **any** of changed files matches any of filter rules
+  - `'false'` - if **none** of changed files matches any of filter rules
 - For each filter, it sets an output variable with the name `${FILTER_NAME}_count` to the count of matching files.
 - If enabled, for each filter it sets an output variable with the name `${FILTER_NAME}_files`. It will contain a list of all files matching the filter.
 - `changes` - JSON array with names of all filters matching any of the changed files.
 
-# Examples
+## Examples
 
-## Conditional execution
+### Conditional execution
 
 <details>
   <summary>Execute <b>step</b> in a workflow job only if some file in a subfolder is changed</summary>
@@ -193,6 +198,7 @@ jobs:
       if: steps.filter.outputs.backend == 'true' || steps.filter.outputs.frontend == 'true'
       run: ...
 ```
+
 </details>
 
 <details>
@@ -236,6 +242,7 @@ jobs:
       - uses: actions/checkout@v2
       - ...
 ```
+
 </details>
 
 <details>
@@ -271,9 +278,10 @@ jobs:
       - uses: actions/checkout@v2
       - ...
 ```
+
 </details>
 
-## Change detection workflows
+### Change detection workflows
 
 <details>
   <summary><b>Pull requests:</b> Detect changes against PR base branch</summary>
@@ -294,6 +302,7 @@ jobs:
       with:
         filters: ... # Configure your filters
 ```
+
 </details>
 
 <details>
@@ -319,6 +328,7 @@ jobs:
         base: develop # Change detection against merge-base with this branch
         filters: ... # Configure your filters
 ```
+
 </details>
 
 <details>
@@ -346,6 +356,7 @@ jobs:
         base: ${{ github.ref }}
         filters: ... # Configure your filters
 ```
+
 </details>
 
 <details>
@@ -375,9 +386,10 @@ jobs:
         base: HEAD
         filters: ... # Configure your filters
 ```
+
 </details>
 
-## Advanced options
+### Advanced options
 
 <details>
   <summary>Define filter rules in own file</summary>
@@ -389,6 +401,7 @@ jobs:
         # Path to file where filters are defined
         filters: .github/filters.yaml
 ```
+
 </details>
 
 <details>
@@ -409,6 +422,7 @@ jobs:
             - *shared
             - src/**
 ```
+
 </details>
 
 <details>
@@ -434,10 +448,10 @@ jobs:
           addedOrModifiedAnchors:
             - added|modified: *shared
 ```
+
 </details>
 
-
-## Custom processing of changed files
+### Custom processing of changed files
 
 <details>
   <summary>Passing list of modified files as command line args in Linux shell</summary>
@@ -462,6 +476,7 @@ jobs:
   if: ${{ steps.filter.outputs.markdown == 'true' }}
   run: npx textlint ${{ steps.filter.outputs.markdown_files }}
 ```
+
 </details>
 
 <details>
@@ -486,11 +501,13 @@ jobs:
   with:
     files: ${{ steps.filter.outputs.changed_files }}
 ```
+
 </details>
 
-# See also
+## See also
+
 - [test-reporter](https://github.com/dorny/test-reporter) - Displays test results from popular testing frameworks directly in GitHub
 
-# License
+## License
 
 The scripts and documentation in this project are released under the [MIT License](https://github.com/dorny/paths-filter/blob/master/LICENSE)
