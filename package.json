@@ -40,7 +40,7 @@
     "@typescript-eslint/parser": "^3.3.0",
     "@zeit/ncc": "^0.22.3",
     "eslint": "^7.3.0",
-    "eslint-plugin-github": "^2.0.0",
+    "eslint-plugin-github": "^4.3.5",
     "eslint-plugin-jest": "^22.21.0",
     "jest": "^26.0.1",
     "jest-circus": "^26.0.1",
