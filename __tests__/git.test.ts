@@ -2,8 +2,8 @@ import * as git from '../src/git'
 import {ChangeStatus} from '../src/file'
 
 describe('parsing output of the git diff command', () => {
-  test('parseGitDiffOutput returns files with correct change status', async () => {
-    const files = git.parseGitDiffOutput(
+  test('parseGitDiffNameStatusOutput returns files with correct change status', async () => {
+    const files = git.parseGitDiffNameStatusOutput(
       'A\u0000LICENSE\u0000' + 'M\u0000src/index.ts\u0000' + 'D\u0000src/main.ts\u0000'
     )
     expect(files.length).toBe(3)

@@ -4,7 +4,7 @@ import * as github from '@actions/github'
 import {Webhooks} from '@octokit/webhooks'
 
 import {Filter, FilterResults} from './filter'
-import {File, ChangeStatus} from './file'
+import {File, ChangeStatus, FileNumstat} from './file'
 import * as git from './git'
 import {backslashEscape, shellEscape} from './list-format/shell-escape'
 import {csvEscape} from './list-format/csv-escape'
@@ -24,6 +24,7 @@ async function run(): Promise<void> {
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
     const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
+    const stat = core.getInput('stat', {required: false}).toLowerCase() || 'none'
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
 
     if (!isExportFormat(listFiles)) {
@@ -159,12 +160,12 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 async function getChangedFilesFromApi(
   token: string,
   prNumber: Webhooks.WebhookPayloadPullRequestPullRequest
-): Promise<File[]> {
+): Promise<(File & FileNumstat)[]> {
   core.startGroup(`Fetching list of changed files for PR#${prNumber.number} from Github API`)
   try {
     const client = new github.GitHub(token)
     const per_page = 100
-    const files: File[] = []
+    const files: (File & FileNumstat)[] = []
 
     for (let page = 1; ; page++) {
       core.info(`Invoking listFiles(pull_number: ${prNumber.number}, page: ${page}, per_page: ${per_page})`)
@@ -194,19 +195,25 @@ async function getChangedFilesFromApi(
         if (row.status === ChangeStatus.Renamed) {
           files.push({
             filename: row.filename,
-            status: ChangeStatus.Added
+            status: ChangeStatus.Added,
+            additions: row.additions,
+            deletions: row.deletions,
           })
           files.push({
             // 'previous_filename' for some unknown reason isn't in the type definition or documentation
             filename: (<any>row).previous_filename as string,
-            status: ChangeStatus.Deleted
+            status: ChangeStatus.Deleted,
+            additions: row.additions,
+            deletions: row.deletions,
           })
         } else {
           // Github status and git status variants are same except for deleted files
           const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
           files.push({
             filename: row.filename,
-            status
+            status,
+            additions: row.additions,
+            deletions: row.deletions,
           })
         }
       }
@@ -220,10 +227,10 @@ async function getChangedFilesFromApi(
 
 function exportResults(results: FilterResults, format: ExportFormat): void {
   core.info('Results:')
-  const changes = []
+  const changes: string[] = []
   for (const [key, files] of Object.entries(results)) {
-    const value = files.length > 0
-    core.startGroup(`Filter ${key} = ${value}`)
+    const hasMatchingFiles = files.length > 0
+    core.startGroup(`Filter ${key} = ${hasMatchingFiles}`)
     if (files.length > 0) {
       changes.push(key)
       core.info('Matching files:')
@@ -234,12 +241,19 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
       core.info('Matching files: none')
     }
 
-    core.setOutput(key, value)
+    core.setOutput(key, hasMatchingFiles)
     core.setOutput(`${key}_count`, files.length)
     if (format !== 'none') {
       const filesValue = serializeExport(files, format)
       core.setOutput(`${key}_files`, filesValue)
     }
+
+    const additionCount: number = files.reduce((sum, f) => sum + f.additions, 0)
+    const deletionCount: number = files.reduce((sum, f) => sum + f.deletions, 0)
+    core.setOutput(`${key}_addition_count`, additionCount)
+    core.setOutput(`${key}_deletion_count`, deletionCount)
+    core.setOutput(`${key}_change_count`, additionCount + deletionCount)
+
     core.endGroup()
   }
 
