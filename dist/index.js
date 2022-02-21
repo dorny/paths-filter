@@ -4732,18 +4732,22 @@ async function run() {
         const base = core.getInput('base', { required: false });
         const filtersInput = core.getInput('filters', { required: true });
         const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
-        const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
-        const stat = core.getInput('stat', { required: false }).toLowerCase() || 'none';
+        const listFilesFormat = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
+        const statFormat = core.getInput('stat', { required: false }).toLowerCase() || 'none';
         const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10;
-        if (!isExportFormat(listFiles)) {
-            core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`);
+        if (!isFilesExportFormat(listFilesFormat)) {
+            core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFilesFormat}'`);
+            return;
+        }
+        if (!isStatExportFormat(statFormat)) {
+            core.setFailed(`Input parameter 'stat' is set to invalid value '${statFormat}'`);
             return;
         }
         const filter = new filter_1.Filter(filtersYaml);
         const files = await getChangedFiles(token, base, ref, initialFetchDepth);
         core.info(`Detected ${files.length} changed files`);
         const results = filter.match(files);
-        exportResults(results, listFiles);
+        exportResults(results, listFilesFormat, statFormat);
     }
     catch (error) {
         core.setFailed(error.message);
@@ -4904,9 +4908,10 @@ async function getChangedFilesFromApi(token, prNumber) {
         core.endGroup();
     }
 }
-function exportResults(results, format) {
+function exportResults(results, filesFormat, statFormat) {
     core.info('Results:');
     const changes = [];
+    const changeStats = {};
     for (const [key, files] of Object.entries(results)) {
         const hasMatchingFiles = files.length > 0;
         core.startGroup(`Filter ${key} = ${hasMatchingFiles}`);
@@ -4922,8 +4927,8 @@ function exportResults(results, format) {
         }
         core.setOutput(key, hasMatchingFiles);
         core.setOutput(`${key}_count`, files.length);
-        if (format !== 'none') {
-            const filesValue = serializeExport(files, format);
+        if (filesFormat !== 'none') {
+            const filesValue = serializeExportChangedFiles(files, filesFormat);
             core.setOutput(`${key}_files`, filesValue);
         }
         const additionCount = files.reduce((sum, f) => sum + f.additions, 0);
@@ -4931,6 +4936,9 @@ function exportResults(results, format) {
         core.setOutput(`${key}_addition_count`, additionCount);
         core.setOutput(`${key}_deletion_count`, deletionCount);
         core.setOutput(`${key}_change_count`, additionCount + deletionCount);
+        changeStats[key] = {
+            additionCount, deletionCount, fileCount: files.length
+        };
         core.endGroup();
     }
     if (results['changes'] === undefined) {
@@ -4941,8 +4949,12 @@ function exportResults(results, format) {
     else {
         core.info('Cannot set changes output variable - name already used by filter output');
     }
+    if (statFormat !== 'none') {
+        const statValue = serializeExportStat(changeStats, statFormat);
+        core.setOutput(`stat`, statValue);
+    }
 }
-function serializeExport(files, format) {
+function serializeExportChangedFiles(files, format) {
     const fileNames = files.map(file => file.filename);
     switch (format) {
         case 'csv':
@@ -4957,7 +4969,21 @@ function serializeExport(files, format) {
             return '';
     }
 }
-function isExportFormat(value) {
+function serializeExportStat(stat, format) {
+    switch (format) {
+        case 'csv':
+            return Object.keys(stat).sort().map(k => [csv_escape_1.csvEscape(k), stat[k].additionCount, stat[k].deletionCount, stat[k].fileCount]
+                .join(',')).join('\n');
+        case 'json':
+            return JSON.stringify(stat);
+        default:
+            return '';
+    }
+}
+function isFilesExportFormat(value) {
+    return ['none', 'csv', 'shell', 'json', 'escape'].includes(value);
+}
+function isStatExportFormat(value) {
     return ['none', 'csv', 'shell', 'json', 'escape'].includes(value);
 }
 run();

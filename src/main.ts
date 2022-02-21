@@ -9,7 +9,8 @@ import * as git from './git'
 import {backslashEscape, shellEscape} from './list-format/shell-escape'
 import {csvEscape} from './list-format/csv-escape'
 
-type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape'
+type FilesExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape'
+type StatExportFormat = 'none' | 'csv' | 'json'
 
 async function run(): Promise<void> {
   try {
@@ -23,12 +24,17 @@ async function run(): Promise<void> {
     const base = core.getInput('base', {required: false})
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
-    const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
-    const stat = core.getInput('stat', {required: false}).toLowerCase() || 'none'
+    const listFilesFormat = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
+    const statFormat = core.getInput('stat', {required: false}).toLowerCase() || 'none'
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
 
-    if (!isExportFormat(listFiles)) {
-      core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`)
+    if (!isFilesExportFormat(listFilesFormat)) {
+      core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFilesFormat}'`)
+      return
+    }
+
+    if (!isStatExportFormat(statFormat)) {
+      core.setFailed(`Input parameter 'stat' is set to invalid value '${statFormat}'`)
       return
     }
 
@@ -36,7 +42,7 @@ async function run(): Promise<void> {
     const files = await getChangedFiles(token, base, ref, initialFetchDepth)
     core.info(`Detected ${files.length} changed files`)
     const results = filter.match(files)
-    exportResults(results, listFiles)
+    exportResults(results, listFilesFormat, statFormat)
   } catch (error) {
     core.setFailed(error.message)
   }
@@ -231,7 +237,7 @@ interface Stat {
   fileCount: number
 }
 
-function exportResults(results: FilterResults, format: ExportFormat): void {
+function exportResults(results: FilterResults, filesFormat: FilesExportFormat, statFormat: StatExportFormat): void {
   core.info('Results:')
   const changes: string[] = []
   const changeStats: {[key: string]: Stat} = {}
@@ -251,8 +257,8 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
 
     core.setOutput(key, hasMatchingFiles)
     core.setOutput(`${key}_count`, files.length)
-    if (format !== 'none') {
-      const filesValue = serializeExportChangedFiles(files, format)
+    if (filesFormat !== 'none') {
+      const filesValue = serializeExportChangedFiles(files, filesFormat)
       core.setOutput(`${key}_files`, filesValue)
     }
 
@@ -276,13 +282,13 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
     core.info('Cannot set changes output variable - name already used by filter output')
   }
 
-  if (format !== 'none') {
-    const statValue = serializeExportStat(changeStats, format)
+  if (statFormat !== 'none') {
+    const statValue = serializeExportStat(changeStats, statFormat)
     core.setOutput(`stat`, statValue)
   }
 }
 
-function serializeExportChangedFiles(files: File[], format: ExportFormat): string {
+function serializeExportChangedFiles(files: File[], format: FilesExportFormat): string {
   const fileNames = files.map(file => file.filename)
   switch (format) {
     case 'csv':
@@ -298,7 +304,7 @@ function serializeExportChangedFiles(files: File[], format: ExportFormat): strin
   }
 }
 
-function serializeExportStat(stat: {[key: string]: Stat}, format: ExportFormat): string {
+function serializeExportStat(stat: {[key: string]: Stat}, format: StatExportFormat): string {
   switch (format) {
     case 'csv':
       return Object.keys(stat).sort().map(k =>
@@ -307,17 +313,17 @@ function serializeExportStat(stat: {[key: string]: Stat}, format: ExportFormat):
       ).join('\n')
     case 'json':
       return JSON.stringify(stat)
-    case 'escape':
-      return ''
-    case 'shell':
-      return ''
     default:
       return ''
   }
 }
 
-function isExportFormat(value: string): value is ExportFormat {
+function isFilesExportFormat(value: string): value is FilesExportFormat {
   return ['none', 'csv', 'shell', 'json', 'escape'].includes(value)
+}
+
+function isStatExportFormat(value: string): value is StatExportFormat {
+  return ['none', 'csv', 'json'].includes(value)
 }
 
 run()
