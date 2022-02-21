@@ -1,4 +1,6 @@
-error:
-  - not_existing_path/**/*
+tests:
+  - "__tests__/**"
+src:
+  - "src/**"
 any:
   - "**/*"
