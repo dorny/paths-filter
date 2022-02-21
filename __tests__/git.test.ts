@@ -2,8 +2,8 @@ import * as git from '../src/git'
 import {ChangeStatus} from '../src/file'
 
 describe('parsing output of the git diff command', () => {
-  test('parseGitDiffOutput returns files with correct change status', async () => {
-    const files = git.parseGitDiffOutput(
+  test('parseGitDiffNameStatusOutput returns files with correct change status', async () => {
+    const files = git.parseGitDiffNameStatusOutput(
       'A\u0000LICENSE\u0000' + 'M\u0000src/index.ts\u0000' + 'D\u0000src/main.ts\u0000'
     )
     expect(files.length).toBe(3)
@@ -13,6 +13,19 @@ describe('parsing output of the git diff command', () => {
     expect(files[1].status).toBe(ChangeStatus.Modified)
     expect(files[2].filename).toBe('src/main.ts')
     expect(files[2].status).toBe(ChangeStatus.Deleted)
+  })
+
+  test('parseGitDiffNumstatOutput returns files with correct change status', async () => {
+    const files = git.parseGitDiffNumstatOutput(
+      '4\t2\tLICENSE\u0000' + '5\t0\tsrc/index.ts\u0000'
+    )
+    expect(files.length).toBe(2)
+    expect(files[0].filename).toBe('LICENSE')
+    expect(files[0].additions).toBe(4)
+    expect(files[0].deletions).toBe(2)
+    expect(files[1].filename).toBe('src/index.ts')
+    expect(files[1].additions).toBe(5)
+    expect(files[1].deletions).toBe(0)
   })
 })
 

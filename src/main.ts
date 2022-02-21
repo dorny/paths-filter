@@ -24,6 +24,7 @@ async function run(): Promise<void> {
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
     const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
+    const stat = core.getInput('stat', {required: false}).toLowerCase() || 'none'
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
 
     if (!isExportFormat(listFiles)) {
@@ -194,19 +195,25 @@ async function getChangedFilesFromApi(
         if (row.status === ChangeStatus.Renamed) {
           files.push({
             filename: row.filename,
-            status: ChangeStatus.Added
+            status: ChangeStatus.Added,
+            additions: row.additions,
+            deletions: row.deletions,
           })
           files.push({
             // 'previous_filename' for some unknown reason isn't in the type definition or documentation
             filename: (<any>row).previous_filename as string,
-            status: ChangeStatus.Deleted
+            status: ChangeStatus.Deleted,
+            additions: row.additions,
+            deletions: row.deletions,
           })
         } else {
           // Github status and git status variants are same except for deleted files
           const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
           files.push({
             filename: row.filename,
-            status
+            status,
+            additions: row.additions,
+            deletions: row.deletions,
           })
         }
       }
@@ -218,12 +225,20 @@ async function getChangedFilesFromApi(
   }
 }
 
+interface Stat {
+  additionCount: number,
+  deletionCount: number,
+  fileCount: number
+}
+
 function exportResults(results: FilterResults, format: ExportFormat): void {
   core.info('Results:')
-  const changes = []
+  const changes: string[] = []
+  const changeStats: {[key: string]: Stat} = {}
+
   for (const [key, files] of Object.entries(results)) {
-    const value = files.length > 0
-    core.startGroup(`Filter ${key} = ${value}`)
+    const hasMatchingFiles = files.length > 0
+    core.startGroup(`Filter ${key} = ${hasMatchingFiles}`)
     if (files.length > 0) {
       changes.push(key)
       core.info('Matching files:')
@@ -234,12 +249,22 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
       core.info('Matching files: none')
     }
 
-    core.setOutput(key, value)
+    core.setOutput(key, hasMatchingFiles)
     core.setOutput(`${key}_count`, files.length)
     if (format !== 'none') {
-      const filesValue = serializeExport(files, format)
+      const filesValue = serializeExportChangedFiles(files, format)
       core.setOutput(`${key}_files`, filesValue)
     }
+
+    const additionCount: number = files.reduce((sum, f) => sum + f.additions, 0)
+    const deletionCount: number = files.reduce((sum, f) => sum + f.deletions, 0)
+    core.setOutput(`${key}_addition_count`, additionCount)
+    core.setOutput(`${key}_deletion_count`, deletionCount)
+    core.setOutput(`${key}_change_count`, additionCount + deletionCount)
+    changeStats[key] = {
+      additionCount, deletionCount, fileCount: files.length
+    }
+
     core.endGroup()
   }
 
@@ -250,9 +275,14 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
   } else {
     core.info('Cannot set changes output variable - name already used by filter output')
   }
+
+  if (format !== 'none') {
+    const statValue = serializeExportStat(changeStats, format)
+    core.setOutput(`stat`, statValue)
+  }
 }
 
-function serializeExport(files: File[], format: ExportFormat): string {
+function serializeExportChangedFiles(files: File[], format: ExportFormat): string {
   const fileNames = files.map(file => file.filename)
   switch (format) {
     case 'csv':
@@ -263,6 +293,24 @@ function serializeExport(files: File[], format: ExportFormat): string {
       return fileNames.map(backslashEscape).join(' ')
     case 'shell':
       return fileNames.map(shellEscape).join(' ')
+    default:
+      return ''
+  }
+}
+
+function serializeExportStat(stat: {[key: string]: Stat}, format: ExportFormat): string {
+  switch (format) {
+    case 'csv':
+      return Object.keys(stat).sort().map(k =>
+        [csvEscape(k), stat[k].additionCount, stat[k].deletionCount, stat[k].fileCount]
+          .join(',')
+      ).join('\n')
+    case 'json':
+      return JSON.stringify(stat)
+    case 'escape':
+      return ''
+    case 'shell':
+      return ''
     default:
       return ''
   }
