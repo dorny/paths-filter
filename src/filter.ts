@@ -58,6 +58,13 @@ export class Filter {
     for (const [key, patterns] of Object.entries(this.rules)) {
       result[key] = files.filter(file => this.isMatch(file, patterns))
     }
+
+    if (!this.rules.hasOwnProperty('other')) {
+      const matchingFilenamesList = Object.values(result).flatMap(filteredFiles => filteredFiles.map(file => file.filename))
+      const matchingFilenamesSet = new Set(matchingFilenamesList)
+      result.other = files.filter(file => !matchingFilenamesSet.has(file.filename))
+    }
+
     return result
   }
 
