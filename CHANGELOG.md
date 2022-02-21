@@ -1,5 +1,8 @@
 # Changelog
 
+# v3.0.3
+- Added stat feature which computes diffs in subtrees
+
 ## v3.0.2
 - [Add config parameter for predicate quantifier](https://github.com/dorny/paths-filter/pull/224)
 
