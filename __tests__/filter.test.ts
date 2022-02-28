@@ -133,54 +133,6 @@ describe('matching tests', () => {
   })
 })
 
-describe('matching specific change status', () => {
-  test('does not match modified file as added', () => {
-    const yaml = `
-    add:
-      - added: "**/*"
-    `
-    let filter = new Filter(yaml)
-    const match = filter.match(modified(['file.js']))
-    expect(match.add).toEqual([])
-  })
-
-  test('match added file as added', () => {
-    const yaml = `
-    add:
-      - added: "**/*"
-    `
-    let filter = new Filter(yaml)
-    const files = [{status: ChangeStatus.Added, filename: 'file.js'}]
-    const match = filter.match(files)
-    expect(match.add).toEqual(files)
-  })
-
-  test('matches when multiple statuses are configured', () => {
-    const yaml = `
-    addOrModify:
-      - added|modified: "**/*"
-    `
-    let filter = new Filter(yaml)
-    const files = [{status: ChangeStatus.Modified, filename: 'file.js'}]
-    const match = filter.match(files)
-    expect(match.addOrModify).toEqual(files)
-  })
-
-  test('matches when using an anchor', () => {
-    const yaml = `
-    shared: &shared
-      - common/**/*
-      - config/**/*
-    src:
-      - modified: *shared
-    `
-    let filter = new Filter(yaml)
-    const files = modified(['config/file.js', 'common/anotherFile.js'])
-    const match = filter.match(files)
-    expect(match.src).toEqual(files)
-  })
-})
-
 function modified(paths: string[]): File[] {
   return paths.map(filename => {
     return {filename, status: ChangeStatus.Modified}
