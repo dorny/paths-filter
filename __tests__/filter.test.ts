@@ -117,6 +117,37 @@ describe('matching tests', () => {
     expect(pyMatch.backend).toEqual(pyFiles)
   })
 
+  test('matches single rule with negation', () => {
+    const yaml = `
+    src:
+      - '!src/**/*.js'
+    `
+    const filter = new Filter(yaml)
+    const files = modified(['src/app/module/file.js'])
+    const match = filter.match(files)
+    expect(match.src).toEqual([])
+  })
+
+  test('matches multiple rules with negation', () => {
+    const yaml = `
+    src:
+      - 'src/**/*.ts'
+      - '!src/**/*.test.ts'
+    `
+    const filter = new Filter(yaml)
+    const jsFiles = modified(['src/app/module/file.js'])
+    const tsFiles = modified(['src/app/module/file.ts'])
+    const tsTestFiles = modified(['src/app/module/file.test.ts'])
+
+    const jsMatch = filter.match(jsFiles)
+    const tsMatch = filter.match(tsFiles)
+    const tsTestMatch = filter.match(tsTestFiles)
+
+    expect(jsMatch.src).toEqual([])
+    expect(tsMatch.src).toEqual(tsFiles)
+    expect(tsTestMatch.src).toEqual([])
+  })
+
   test('matches path based on rules included using YAML anchor', () => {
     const yaml = `
     shared: &shared
