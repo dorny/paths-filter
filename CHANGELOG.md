@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.0.0
+- [Breaking: use micromatch instead of picomatch](https://github.com/AurorNZ/paths-filter/pull/1)
+
 ## v2.10.2
 - [Fix getLocalRef() returns wrong ref](https://github.com/dorny/paths-filter/pull/91)
 
