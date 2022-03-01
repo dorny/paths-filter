@@ -87,8 +87,6 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Each filter has a name and a list of rules.
     # Rule is a glob expression - paths of all changed
     # files are matched against it.
-    # Rule can optionally specify if the file
-    # should be added, modified, or deleted.
     # For each filter, there will be a corresponding output variable to
     # indicate if there's a changed file matching any of the rules.
     # Optionally, there can be a second output variable

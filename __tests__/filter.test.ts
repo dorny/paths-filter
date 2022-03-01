@@ -117,6 +117,37 @@ describe('matching tests', () => {
     expect(pyMatch.backend).toEqual(pyFiles)
   })
 
+  test('matches single rule with negation', () => {
+    const yaml = `
+    src:
+      - '!src/**/*.js'
+    `
+    const filter = new Filter(yaml)
+    const files = modified(['src/app/module/file.js'])
+    const match = filter.match(files)
+    expect(match.src).toEqual([])
+  })
+
+  test('matches multiple rules with negation', () => {
+    const yaml = `
+    src:
+      - 'src/**/*.ts'
+      - '!src/**/*.test.ts'
+    `
+    const filter = new Filter(yaml)
+    const jsFiles = modified(['src/app/module/file.js'])
+    const tsFiles = modified(['src/app/module/file.ts'])
+    const tsTestFiles = modified(['src/app/module/file.test.ts'])
+
+    const jsMatch = filter.match(jsFiles)
+    const tsMatch = filter.match(tsFiles)
+    const tsTestMatch = filter.match(tsTestFiles)
+
+    expect(jsMatch.src).toEqual([])
+    expect(tsMatch.src).toEqual(tsFiles)
+    expect(tsTestMatch.src).toEqual([])
+  })
+
   test('matches path based on rules included using YAML anchor', () => {
     const yaml = `
     shared: &shared
@@ -128,54 +159,6 @@ describe('matching tests', () => {
     `
     const filter = new Filter(yaml)
     const files = modified(['config/settings.yml'])
-    const match = filter.match(files)
-    expect(match.src).toEqual(files)
-  })
-})
-
-describe('matching specific change status', () => {
-  test('does not match modified file as added', () => {
-    const yaml = `
-    add:
-      - added: "**/*"
-    `
-    let filter = new Filter(yaml)
-    const match = filter.match(modified(['file.js']))
-    expect(match.add).toEqual([])
-  })
-
-  test('match added file as added', () => {
-    const yaml = `
-    add:
-      - added: "**/*"
-    `
-    let filter = new Filter(yaml)
-    const files = [{status: ChangeStatus.Added, filename: 'file.js'}]
-    const match = filter.match(files)
-    expect(match.add).toEqual(files)
-  })
-
-  test('matches when multiple statuses are configured', () => {
-    const yaml = `
-    addOrModify:
-      - added|modified: "**/*"
-    `
-    let filter = new Filter(yaml)
-    const files = [{status: ChangeStatus.Modified, filename: 'file.js'}]
-    const match = filter.match(files)
-    expect(match.addOrModify).toEqual(files)
-  })
-
-  test('matches when using an anchor', () => {
-    const yaml = `
-    shared: &shared
-      - common/**/*
-      - config/**/*
-    src:
-      - modified: *shared
-    `
-    let filter = new Filter(yaml)
-    const files = modified(['config/file.js', 'common/anotherFile.js'])
     const match = filter.match(files)
     expect(match.src).toEqual(files)
   })
