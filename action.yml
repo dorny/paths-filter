@@ -36,6 +36,16 @@ inputs:
                   Backslash escapes every potentially unsafe character.
     required: true
     default: none
+  stat:
+    description: |
+      Enables listing of that enables output of the file change statistics per filter, similar to `git diff --shortstat`.
+      If some changes do not match any filter, the output includes an additional entry with the filter name 'other'.
+        'none'  - Disables listing of stats (default).
+        'csv'   - Coma separated list that has name of filter, count of additions, count of deletions, count of changed files.
+                  If needed it uses double quotes to wrap name of filter with unsafe characters. For example, `"some filter",12,7,2`.
+        'json'  - Serialized as JSON object where the filter names are keys. For example, `{"some filter": {"additionCount": 12, "deletionCount": 7, "fileCount": 2}}`
+    required: false
+    default: none
   initial-fetch-depth:
     description: |
       How many commits are initially fetched from base branch.
