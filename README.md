@@ -70,6 +70,7 @@ For more scenarios see [examples](#examples) section.
 
 ## What's New
 
+- Add `stat` parameter that enables output of the file changes statistics per filter.
 - Add `ref` input parameter
 - Add `list-files: csv` format
 - Configure matrix job to run for each folder with changes using `changes` output
@@ -160,6 +161,7 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
 - For each filter, it sets an output variable with the name `${FILTER_NAME}_count` to the count of matching files.
 - If enabled, for each filter it sets an output variable with the name `${FILTER_NAME}_files`. It will contain a list of all files matching the filter.
 - `changes` - JSON array with names of all filters matching any of the changed files.
+- If `stat` input is set to an output format, the output variable `stat` contains JSON or CSV value with the change statistics for each filter.
 
 ## Examples
 
@@ -498,6 +500,33 @@ jobs:
         - '**'
 - name: Lint Markdown
   uses: johndoe/some-action@v1
+  with:
+    files: ${{ steps.filter.outputs.changed_files }}
+```
+
+</details>
+
+<details>
+  <summary>Passing number of added lines from a filter to another action</summary>
+
+```yaml
+- uses: dorny/paths-filter@v2
+  id: filter
+  with:
+    # Enable listing of diff stat matching each filter.
+    # Paths to files will be available in `stat` output variable.
+    # Stat will be formatted as JSON object
+    stat: json
+
+    # In this example all changed files are passed to the following action to do
+    # some custom processing.
+    filters: |
+      changed:
+        - '**'
+- name: Lint Markdown
+  uses: johndoe/some-action@v1
+  # Run action only if the change is large enough.
+  if: ${{fromJson(steps.filter.outputs.stat).changed.additionCount > 1000}}
   with:
     files: ${{ steps.filter.outputs.changed_files }}
 ```

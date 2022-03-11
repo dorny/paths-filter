@@ -1,6 +1,6 @@
 import * as jsyaml from 'js-yaml'
 import picomatch from 'picomatch'
-import {File, ChangeStatus} from './file'
+import {File, ChangeStatus, FileStatus} from './file'
 
 // Type definition of object we expect to load from YAML
 interface FilterYaml {
@@ -58,10 +58,17 @@ export class Filter {
     for (const [key, patterns] of Object.entries(this.rules)) {
       result[key] = files.filter(file => this.isMatch(file, patterns))
     }
+
+    if (!this.rules.hasOwnProperty('other')) {
+      const matchingFilenamesList = Object.values(result).flatMap(filteredFiles => filteredFiles.map(file => file.filename))
+      const matchingFilenamesSet = new Set(matchingFilenamesList)
+      result.other = files.filter(file => !matchingFilenamesSet.has(file.filename))
+    }
+
     return result
   }
 
-  private isMatch(file: File, patterns: FilterRuleItem[]): boolean {
+  private isMatch(file: FileStatus, patterns: FilterRuleItem[]): boolean {
     return patterns.some(
       rule => (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.filename)
     )
