@@ -32,24 +32,22 @@
     "picomatch": "^2.2.2"
   },
   "devDependencies": {
-    "@types/jest": "^25.2.3",
+    "@types/jest": "^27.4.0",
     "@types/js-yaml": "^3.12.4",
     "@types/minimatch": "^3.0.3",
     "@types/node": "^14.0.5",
     "@types/picomatch": "^2.2.1",
-    "@typescript-eslint/parser": "^3.3.0",
-    "@zeit/ncc": "^0.22.3",
-    "eslint": "^7.3.0",
-    "eslint-plugin-github": "^2.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.10.2",
+    "@typescript-eslint/parser": "^5.10.2",
+    "@vercel/ncc": "^0.33.1",
+    "eslint": "^8.17.0",
+    "eslint-plugin-github": "^4.3.6",
     "eslint-plugin-jest": "^22.21.0",
-    "jest": "^26.0.1",
-    "jest-circus": "^26.0.1",
+    "jest": "^27.4.7",
+    "jest-circus": "^27.4.6",
     "js-yaml": "^3.14.0",
     "prettier": "^2.0.5",
-    "ts-jest": "^26.0.0",
+    "ts-jest": "^27.1.3",
     "typescript": "^3.9.3"
-  },
-  "jest": {
-    "testEnvironment": "node"
   }
 }
