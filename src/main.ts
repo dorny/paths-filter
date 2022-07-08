@@ -8,6 +8,7 @@ import {File, ChangeStatus} from './file'
 import * as git from './git'
 import {backslashEscape, shellEscape} from './list-format/shell-escape'
 import {csvEscape} from './list-format/csv-escape'
+import {getChanges} from './git'
 
 type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape'
 
@@ -86,7 +87,10 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
       throw new Error(`'token' input parameter is required if action is triggered by 'pull_request_target' event`)
     }
     core.info('Github token is not available - changes will be detected from PRs merge commit')
-    return await git.getChangesInLastCommit()
+    const baseSha = github.context.payload.pull_request?.base.sha
+    const defaultBranch = github.context.payload.repository?.default_branch
+    const currentRef = await git.getCurrentRef()
+    return await git.getChanges(base || baseSha || defaultBranch, currentRef)
   } else {
     return getChangedFilesFromGit(base, ref, initialFetchDepth)
   }
