@@ -18,7 +18,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
   - Workflow triggered by **[pull_request](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request)**
     or **[pull_request_target](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target)** event
   - Changes are detected against the pull request base branch
-  - Uses GitHub REST API to fetch a list of modified files
+  - Uses GitHub REST API to fetch a list of modified files, if base or ref are not provided.
 - **Feature branches:**
   - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)**
   or any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
@@ -40,6 +40,8 @@ don't allow this because they don't work on a level of individual jobs or steps.
   - Workflow triggered by any event when `base` input parameter is set to `HEAD`
   - Changes are detected against the current HEAD
   - Untracked files are ignored
+- **Input Files**
+  - Input list of string to `customfiles` input parameter and get the filtered results.  In case you want to generate list of files elsewhere.
 
 ## Example
 
@@ -107,14 +109,12 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # introduced by the current branch are considered.
     # All files are considered as added if there is no common ancestor with
     # base branch or no previous commit.
-    # This option is ignored if action is triggered by pull_request event.
     # Default: repository default branch (e.g. master)
     base: ''
 
     # Git reference (e.g. branch name) from which the changes will be detected.
     # Useful when workflow can be triggered only on the default branch (e.g. repository_dispatch event)
     # but you want to get changes on a different branch.
-    # This option is ignored if action is triggered by pull_request event.
     # default: ${{ github.ref }}
     ref:
 
@@ -150,6 +150,11 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # changes using git commands.
     # Default: ${{ github.token }}
     token: ''
+
+    # Optionally provide a list of files you ahve generated elsewhere.
+    # Performs the glob matching against these files instead. Negates
+    # all other inputs less filters & list-files.
+    customfiles: ''
 ```
 
 ## Outputs

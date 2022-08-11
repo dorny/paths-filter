@@ -36,6 +36,12 @@ inputs:
                   Backslash escapes every potentially unsafe character.
     required: true
     default: none
+  files:
+    description: |
+      Custom input for files changed if you do your diff elsewhere.
+      Accepts a newline separated list of files, with optional leading status code, as per output of git diff --name-only or git diff --name-status
+      If no status supplied sets status to unmerged. Is set then only filers and list-files inputs are effective.
+    required: false
   initial-fetch-depth:
     description: |
       How many commits are initially fetched from base branch.

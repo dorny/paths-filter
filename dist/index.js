@@ -178,7 +178,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.HEAD = exports.NULL_SHA = void 0;
+exports.statusMap = exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.HEAD = exports.NULL_SHA = void 0;
 const exec_1 = __importDefault(__nccwpck_require__(7757));
 const core = __importStar(__nccwpck_require__(2186));
 const file_1 = __nccwpck_require__(4014);
@@ -307,7 +307,7 @@ function parseGitDiffOutput(output) {
     const files = [];
     for (let i = 0; i + 1 < tokens.length; i += 2) {
         files.push({
-            status: statusMap[tokens[i]],
+            status: exports.statusMap[tokens[i]],
             filename: tokens[i + 1]
         });
     }
@@ -421,7 +421,7 @@ function fixStdOutNullTermination() {
     // Otherwise things like ::set-output wouldn't work.
     core.info('');
 }
-const statusMap = {
+exports.statusMap = {
     A: file_1.ChangeStatus.Added,
     C: file_1.ChangeStatus.Copied,
     D: file_1.ChangeStatus.Deleted,
@@ -536,6 +536,7 @@ async function run() {
         if (workingDirectory) {
             process.chdir(workingDirectory);
         }
+        const customfiles = core.getInput('files', { required: false });
         const token = core.getInput('token', { required: false });
         const ref = core.getInput('ref', { required: false });
         const base = core.getInput('base', { required: false });
@@ -543,12 +544,14 @@ async function run() {
         const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
         const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
         const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10;
+        const files = customfiles
+            ? parseFilesInput(customfiles.split(/\r?\n/))
+            : await getChangedFiles(token, base, ref, initialFetchDepth);
         if (!isExportFormat(listFiles)) {
             core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`);
             return;
         }
         const filter = new filter_1.Filter(filtersYaml);
-        const files = await getChangedFiles(token, base, ref, initialFetchDepth);
         core.info(`Detected ${files.length} changed files`);
         const results = filter.match(files);
         exportResults(results, listFiles);
@@ -556,6 +559,28 @@ async function run() {
     catch (error) {
         core.setFailed(error.message);
     }
+}
+function parseFilesInput(customfiles) {
+    const files = [];
+    for (let i = 0; i + 1 < customfiles.length; i += 1) {
+        var filearray = customfiles[i].split(/\s+/);
+        if (filearray.length == 1) {
+            var filestatus = 'U';
+            var filename = filearray[0];
+        }
+        else if (filearray.length == 2) {
+            var filestatus = filearray[0];
+            var filename = filearray[1];
+        }
+        else {
+            throw new Error(`Line '${i + 1}' in custom file: '${customfiles[i]}' is not parseable.`);
+        }
+        files.push({
+            status: git.statusMap[filestatus],
+            filename: filename
+        });
+    }
+    return files;
 }
 function isPathInput(text) {
     return !(text.includes('\n') || text.includes(':'));
@@ -579,12 +604,12 @@ async function getChangedFiles(token, base, ref, initialFetchDepth) {
         return await git.getChangesOnHead();
     }
     const prEvents = ['pull_request', 'pull_request_review', 'pull_request_review_comment', 'pull_request_target'];
-    if (prEvents.includes(github.context.eventName)) {
+    if (prEvents.includes(github.context.eventName) && !ref && !base) {
         if (ref) {
-            core.warning(`'ref' input parameter is ignored when 'base' is set to HEAD`);
+            core.warning(`'ref' input parameter is ignored when 'base' is not also set on PR events.`);
         }
         if (base) {
-            core.warning(`'base' input parameter is ignored when action is triggered by pull request event`);
+            core.warning(`'base' input parameter is ignored when 'ref' is not also set on PR events.`);
         }
         const pr = github.context.payload.pull_request;
         if (token) {
