@@ -214,3 +214,36 @@ jobs:
     - name: changes-test
       if: contains(fromJSON(steps.filter.outputs.changes), 'error') || !contains(fromJSON(steps.filter.outputs.changes), 'any')
       run: exit 1
+    - name: print context
+      run: |
+        echo "${{ tojson(steps.filter) }}"
+
+  test-ignore-changes:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: |
+        echo "NEW FILE" > local.ts
+        echo "IGNORE FILE" > local.md
+    - run: git add local.ts local.md
+    - uses: ./
+      id: filter
+      with:
+        base: HEAD
+        filters: '.github/filters.yml'
+    - name: print context
+      run: |
+        echo "${{ tojson(steps.filter) }}"
+    - name: filter-test
+      if: steps.filter.outputs.any != 'true'
+      run: exit 1
+    - name: ignore-test
+      if: steps.filter.outputs.anyignore_count != 1
+      run: exit 1
+    - name: ignore_testnull
+      if: steps.filter.outputs.anyignorenull == true
+      run: exit 1
+    - name: ignore_testall
+      if: steps.filter.outputs.anyignoreall_count != 2
+      run: |
+        exit 1

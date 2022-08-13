@@ -6,14 +6,23 @@ import {File, ChangeStatus} from './file'
 interface FilterYaml {
   [name: string]: FilterItemYaml
 }
-type FilterItemYaml =
+type FilterItemYaml = includesFilter | {paths: includesFilter; paths_ignore: excludesFilter} | FilterItemYaml[] // Supports referencing another rule via YAML anchor
+
+type includesFilter =
   | string // Filename pattern, e.g. "path/to/*.js"
+  | string[] // Array of filename patterns e.g. ["path/to/thing/**", "path/to/another/**"]
   | {[changeTypes: string]: string | string[]} // Change status and filename, e.g. added|modified: "path/to/*.js"
-  | FilterItemYaml[] // Supports referencing another rule via YAML anchor
+
+type excludesFilter = string[] // Filename pattern, e.g. "path/to/*.js"
 
 // Minimatch options used in all matchers
-const MatchOptions = {
-  dot: true
+type matchoptions = {
+  dot: boolean
+  ignore: string[]
+}
+const defaultMatchOptions: matchoptions = {
+  dot: true,
+  ignore: []
 }
 
 // Internal representation of one item in named filter rule
@@ -43,7 +52,7 @@ export class Filter {
       return
     }
 
-    const doc = jsyaml.safeLoad(yaml) as FilterYaml
+    const doc = jsyaml.load(yaml) as FilterYaml
     if (typeof doc !== 'object') {
       this.throwInvalidFormatError('Root element is not an object')
     }
@@ -67,9 +76,11 @@ export class Filter {
     )
   }
 
-  private parseFilterItemYaml(item: FilterItemYaml): FilterRuleItem[] {
+  private parseFilterItemYaml(item: FilterItemYaml, excludes: excludesFilter = []): FilterRuleItem[] {
+    var MatchOptions: matchoptions = Object.assign(defaultMatchOptions)
+    MatchOptions.ignore = excludes
     if (Array.isArray(item)) {
-      return flat(item.map(i => this.parseFilterItemYaml(i)))
+      return flat(item.map(i => this.parseFilterItemYaml(i, excludes)))
     }
 
     if (typeof item === 'string') {
@@ -77,21 +88,25 @@ export class Filter {
     }
 
     if (typeof item === 'object') {
-      return Object.entries(item).map(([key, pattern]) => {
-        if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
-          this.throwInvalidFormatError(
-            `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`
-          )
-        }
-        return {
-          status: key
-            .split('|')
-            .map(x => x.trim())
-            .filter(x => x.length > 0)
-            .map(x => x.toLowerCase()) as ChangeStatus[],
-          isMatch: picomatch(pattern, MatchOptions)
-        }
-      })
+      if (item.paths_ignore && item.paths) {
+        return this.parseFilterItemYaml(item.paths, item.paths_ignore as excludesFilter)
+      } else {
+        return Object.entries(item).map(([key, pattern]) => {
+          if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
+            this.throwInvalidFormatError(
+              `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`
+            )
+          }
+          return {
+            status: key
+              .split('|')
+              .map(x => x.trim())
+              .filter(x => x.length > 0)
+              .map(x => x.toLowerCase()) as ChangeStatus[],
+            isMatch: picomatch(pattern, MatchOptions)
+          }
+        })
+      }
     }
 
     this.throwInvalidFormatError(`Unexpected element type '${typeof item}'`)

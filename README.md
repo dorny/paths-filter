@@ -95,6 +95,8 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # indicate if there's a changed file matching any of the rules.
     # Optionally, there can be a second output variable
     # set to list of all files matching the filter.
+    # Optionally, filters can be an object including path, meaning the rule, and paths_ignore,
+    # being a an array of rules to ignore.
     # Filters can be provided inline as a string (containing valid YAML document),
     # or as a relative path to a file (e.g.: .github/filters.yaml).
     # Filters syntax is documented by example - see examples section.
@@ -151,7 +153,7 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Default: ${{ github.token }}
     token: ''
 
-    # Optionally provide a list of files you ahve generated elsewhere.
+    # Optionally provide a list of files you have generated elsewhere.
     # Performs the glob matching against these files instead. Negates
     # all other inputs less filters & list-files.
     customfiles: ''
@@ -207,7 +209,7 @@ jobs:
 </details>
 
 <details>
-  <summary>Execute <b>job</b> in a workflow only if some file in a subfolder is changed</summary>
+  <summary>Execute <b>job</b> in a workflow only if some file in a subfolder is changed. Note excluding frontend's readme.</summary>
 
 ```yml
 jobs:
@@ -227,7 +229,10 @@ jobs:
           backend:
             - 'backend/**'
           frontend:
-            - 'frontend/**'
+            - 
+              paths: ['frontend/**']
+              paths_ignore:
+                - 'frontend/README.md'
 
   # JOB to build and test backend code
   backend:
