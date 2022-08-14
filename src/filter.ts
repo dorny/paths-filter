@@ -83,14 +83,12 @@ export class Filter {
   private parseFilterItemYaml(item: FilterItemYaml, excludes: excludesFilter = []): FilterRuleItem[] {
     var MatchOptions: matchoptions = Object.assign(defaultMatchOptions)
     MatchOptions.ignore = excludes
+    if (typeof item === 'string' || this.isStringsArray(item as string[])) {
+      return [{status: undefined, isMatch: picomatch(item as string | string[], MatchOptions)}]
+    }
     if (Array.isArray(item)) {
       return flat(item.map(i => this.parseFilterItemYaml(i, excludes)))
     }
-
-    if (typeof item === 'string') {
-      return [{status: undefined, isMatch: picomatch(item, MatchOptions)}]
-    }
-
     if (typeof item === 'object') {
       var len = Object.keys(item).length
       if (len == 2 && item.paths_ignore && item.paths) {
