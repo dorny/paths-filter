@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {Filter, FilterResults} from './filter'
+import {excludesFilter, Filter, FilterResults} from './filter'
 import {File, ChangeStatus} from './file'
 import * as git from './git'
 import {backslashEscape, shellEscape} from './list-format/shell-escape'
@@ -13,7 +13,8 @@ async function run(): Promise<void> {
     if (workingDirectory) {
       process.chdir(workingDirectory)
     }
-
+    const globalIgnore = core.getInput('global-ignore', {required: false})
+    const globalIgnoreArray: excludesFilter = globalIgnore ? getConfigFileContent(globalIgnore).split(/\r?\n/) : []
     const customfiles = core.getInput('files', {required: false})
     const token = core.getInput('token', {required: false})
     const ref = core.getInput('ref', {required: false})
@@ -32,7 +33,7 @@ async function run(): Promise<void> {
       return
     }
 
-    const filter = new Filter(filtersYaml)
+    const filter = new Filter(filtersYaml, globalIgnoreArray)
     core.info(`Detected ${files.length} changed files`)
     const results = filter.match(files)
     exportResults(results, listFiles)

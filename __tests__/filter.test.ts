@@ -192,6 +192,26 @@ describe('matching specific change status', () => {
     const match = filter.match(files)
     expect(match.ignore).toEqual(modified(['config/settings.yml']))
   })
+  test('matches path based on rules including using global ignore', () => {
+    const yaml = `
+    ignore:
+      - 
+        paths: ["**/*"]
+        paths_ignore:
+          - "**.md"
+    ignoreall:
+          - 
+            paths: ["**/*"]
+            paths_ignore:
+              - "**.md"
+              - "**.yml"
+    `
+    const filter = new Filter(yaml, ['**.this'])
+    const files = modified(['config/settings.yml', 'config/settings.md', 'nothing/todo/with.this'])
+    const match = filter.match(files)
+    expect(match.ignore).toEqual(modified(['config/settings.yml']))
+    expect(match.ignoreall).toEqual([])
+  })
 })
 
 function modified(paths: string[]): File[] {

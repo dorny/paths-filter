@@ -12,16 +12,12 @@ type includesFilter =
   | string[] // Array of filename patterns e.g. ["path/to/thing/**", "path/to/another/**"]
   | {[changeTypes: string]: string | string[]} // Change status and filename, e.g. added|modified: "path/to/*.js"
 
-type excludesFilter = string[] // Filename pattern, e.g. "path/to/*.js"
+export type excludesFilter = string[] // Filename pattern, e.g. "path/to/*.js"
 
 // Minimatch options used in all matchers
 type matchoptions = {
   dot: boolean
-  ignore: string[]
-}
-const defaultMatchOptions: matchoptions = {
-  dot: true,
-  ignore: []
+  ignore: excludesFilter
 }
 
 // Internal representation of one item in named filter rule
@@ -37,16 +33,15 @@ export interface FilterResults {
 
 export class Filter {
   rules: {[key: string]: FilterRuleItem[]} = {}
-
   // Creates instance of Filter and load rules from YAML if it's provided
-  constructor(yaml?: string) {
+  constructor(yaml?: string, globalIgnoreArray: excludesFilter = []) {
     if (yaml) {
-      this.load(yaml)
+      this.load(yaml, globalIgnoreArray)
     }
   }
 
   // Load rules from YAML string
-  load(yaml: string): void {
+  load(yaml: string, globalIgnoreArray: excludesFilter): void {
     const doc = jsyaml.load(yaml) as FilterYaml
     if (typeof doc !== 'object') {
       this.throwInvalidFormatError('Root element is not an object')
@@ -62,7 +57,7 @@ export class Filter {
           )} type: ${typeof item} isarray?: ${Array.isArray(item)}`
         )
       }
-      this.rules[key] = this.parseFilterItemYaml(item)
+      this.rules[key] = this.parseFilterItemYaml(item, [], globalIgnoreArray)
     }
   }
 
@@ -80,19 +75,23 @@ export class Filter {
     )
   }
 
-  private parseFilterItemYaml(item: FilterItemYaml, excludes: excludesFilter = []): FilterRuleItem[] {
-    var MatchOptions: matchoptions = Object.assign(defaultMatchOptions)
-    MatchOptions.ignore = excludes
+  private parseFilterItemYaml(
+    item: FilterItemYaml,
+    excludes: excludesFilter = [],
+    globalIgnoreArray: excludesFilter
+  ): FilterRuleItem[] {
+    let MatchOptions: matchoptions = {dot: true, ignore: []}
+    MatchOptions.ignore.push(...excludes, ...globalIgnoreArray)
     if (typeof item === 'string' || this.isStringsArray(item as string[])) {
       return [{status: undefined, isMatch: picomatch(item as string | string[], MatchOptions)}]
     }
     if (Array.isArray(item)) {
-      return flat(item.map(i => this.parseFilterItemYaml(i, excludes)))
+      return flat(item.map(i => this.parseFilterItemYaml(i, excludes, globalIgnoreArray)))
     }
     if (typeof item === 'object') {
       var len = Object.keys(item).length
       if (len == 2 && item.paths_ignore && item.paths) {
-        return this.parseFilterItemYaml(item.paths, item.paths_ignore as excludesFilter)
+        return this.parseFilterItemYaml(item.paths, item.paths_ignore as excludesFilter, globalIgnoreArray)
       } else if (len == 1) {
         return Object.entries(item).map(([key, pattern]) => {
           if (

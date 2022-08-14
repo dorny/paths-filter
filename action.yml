@@ -50,6 +50,11 @@ inputs:
       This option takes effect only when changes are detected using git against different base branch.
     required: false
     default: '100'
+  global-ignore:
+    description: |
+      Globally set ignore patterns on all filters via a file. Accepts a file path to a file with new line separate list.
+      Like a .gitignore but for your filtering.
+    required: false
 outputs:
   changes:
     description: JSON array with names of all filters matching any of changed files

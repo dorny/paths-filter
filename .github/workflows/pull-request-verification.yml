@@ -247,3 +247,39 @@ jobs:
       if: steps.filter.outputs.anyignoreall_count != 2
       run: |
         exit 1
+
+  test-global-ignore:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: |
+        echo "NEW FILE" > local.ts
+        echo "IGNORE FILE" > local.md
+    - run: git add local.ts local.md
+    - uses: ./
+      id: filter
+      with:
+        base: HEAD
+        filters: |
+          error:
+            - not_existing_path/**/*
+          any:
+            - "**/*"
+          anyignore:
+            - 
+              paths: "**/*"
+              paths_ignore:
+                - "**local.md"
+        global-ignore: .github/filterignore
+    - name: print context
+      run: |
+        echo "${{ tojson(steps.filter) }}"
+    - name: filter-test
+      if: steps.filter.outputs.any_count != 1
+      run: exit 1
+    - name: ignore-test
+      if: steps.filter.outputs.anyignore == true
+      run: exit 1
+    - name: ignore_testnull
+      if: steps.filter.outputs.error == true
+      run: exit 1
