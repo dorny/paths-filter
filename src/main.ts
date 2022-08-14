@@ -49,10 +49,14 @@ function parseFilesInput(customfiles: string[]): File[] {
   const files: File[] = []
   for (let i = 0; i + 1 < customfiles.length; i += 1) {
     var filearray = customfiles[i].split(/\s+/)
-    if (filearray.length == 1) {
+    if (filearray.length == 1 && typeof filearray[0] === 'string') {
       var filestatus = 'U'
       var filename = filearray[0]
-    } else if (filearray.length == 2) {
+    } else if (
+      filearray.length == 2 &&
+      Object.keys(git.statusMap).includes(filearray[0]) &&
+      typeof filearray[1] === 'string'
+    ) {
       var filestatus = filearray[0]
       var filename = filearray[1]
     } else {

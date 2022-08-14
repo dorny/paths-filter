@@ -1,7 +1,6 @@
 import * as jsyaml from 'js-yaml'
 import picomatch from 'picomatch'
 import {File, ChangeStatus} from './file'
-
 // Type definition of object we expect to load from YAML
 interface FilterYaml {
   [name: string]: FilterItemYaml
@@ -48,16 +47,21 @@ export class Filter {
 
   // Load rules from YAML string
   load(yaml: string): void {
-    if (!yaml) {
-      return
-    }
-
     const doc = jsyaml.load(yaml) as FilterYaml
     if (typeof doc !== 'object') {
       this.throwInvalidFormatError('Root element is not an object')
     }
 
     for (const [key, item] of Object.entries(doc)) {
+      if (typeof key !== 'string') {
+        this.throwInvalidFormatError(`Filter rule element at the root key: ${JSON.stringify(key)} must be a string.`)
+      } else if (typeof item !== 'string' && !Array.isArray(item)) {
+        this.throwInvalidFormatError(
+          `Filter rules must only be an array or a single string but we got ${JSON.stringify(
+            item
+          )} type: ${typeof item} isarray?: ${Array.isArray(item)}`
+        )
+      }
       this.rules[key] = this.parseFilterItemYaml(item)
     }
   }
@@ -88,13 +92,19 @@ export class Filter {
     }
 
     if (typeof item === 'object') {
-      if (item.paths_ignore && item.paths) {
+      var len = Object.keys(item).length
+      if (len == 2 && item.paths_ignore && item.paths) {
         return this.parseFilterItemYaml(item.paths, item.paths_ignore as excludesFilter)
-      } else {
+      } else if (len == 1) {
         return Object.entries(item).map(([key, pattern]) => {
-          if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
+          if (
+            typeof key !== 'string' ||
+            (typeof pattern !== 'string' && (!Array.isArray(pattern) ? true : !this.isStringsArray(pattern)))
+          ) {
             this.throwInvalidFormatError(
-              `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`
+              `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${pattern}:${typeof pattern} Where pattern isArray:${Array.isArray(
+                pattern
+              )} isArrayofStrings:${this.isStringsArray(pattern)} found.`
             )
           }
           return {
@@ -102,16 +112,38 @@ export class Filter {
               .split('|')
               .map(x => x.trim())
               .filter(x => x.length > 0)
-              .map(x => x.toLowerCase()) as ChangeStatus[],
-            isMatch: picomatch(pattern, MatchOptions)
+              .map(x => this.isChangeStatus(x) && x.toLowerCase()) as ChangeStatus[],
+            isMatch: picomatch(pattern as string | string[], MatchOptions)
           }
         })
+      } else {
+        this.throwInvalidFormatError(
+          `Expected a filter rule object with keys paths & paths_ignore, or a single key for change status filter. Instead object keys: ${JSON.stringify(
+            Object.keys(item)
+          )} found.`
+        )
       }
     }
 
     this.throwInvalidFormatError(`Unexpected element type '${typeof item}'`)
   }
 
+  private isStringsArray(arr: any) {
+    if (Array.isArray(arr) ? arr.every(i => typeof i === 'string') : false) {
+      return true
+    }
+  }
+
+  private isChangeStatus(test: string): test is ChangeStatus {
+    if (Object.values(ChangeStatus).includes(test as ChangeStatus)) {
+      return true
+    }
+    this.throwInvalidFormatError(
+      `Change Status Filter Validation: Expected one of ${JSON.stringify(
+        Object.values(ChangeStatus)
+      )}, instead ${test} found.`
+    )
+  }
   private throwInvalidFormatError(message: string): never {
     throw new Error(`Invalid filter YAML format: ${message}.`)
   }
