@@ -14,7 +14,9 @@ async function run(): Promise<void> {
       process.chdir(workingDirectory)
     }
     const globalIgnore = core.getInput('global-ignore', {required: false})
-    const globalIgnoreArray: excludesFilter = globalIgnore ? getConfigFileContent(globalIgnore).split(/\r?\n/) : []
+    const globalIgnoreArray: excludesFilter = globalIgnore
+      ? ignoreComments(getConfigFileContent(globalIgnore).split(/\r?\n/))
+      : []
     const customfiles = core.getInput('files', {required: false})
     const token = core.getInput('token', {required: false})
     const ref = core.getInput('ref', {required: false})
@@ -25,7 +27,7 @@ async function run(): Promise<void> {
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
 
     const files = customfiles
-      ? parseFilesInput(customfiles.split(/\r?\n/))
+      ? parseFilesInput(ignoreComments(customfiles.split(/\r?\n/)))
       : await getChangedFiles(token, base, ref, initialFetchDepth)
 
     if (!isExportFormat(listFiles)) {
@@ -63,7 +65,6 @@ function parseFilesInput(customfiles: string[]): File[] {
     } else {
       throw new Error(`Line '${i + 1}' in custom file: '${customfiles[i]}' is not parseable.`)
     }
-
     files.push({
       status: git.statusMap[filestatus],
       filename: filename
@@ -74,6 +75,16 @@ function parseFilesInput(customfiles: string[]): File[] {
 
 function isPathInput(text: string): boolean {
   return !(text.includes('\n') || text.includes(':'))
+}
+
+function ignoreComments(stringArray: string[]): string[] {
+  const nocomments: string[] = []
+  for (let i = 0; i + 1 < stringArray.length; i += 1) {
+    if (!stringArray[i].startsWith('#')) {
+      nocomments.push(stringArray[i])
+    }
+  }
+  return nocomments
 }
 
 function getConfigFileContent(configPath: string): string {
