@@ -72,11 +72,11 @@ For more scenarios see [examples](#examples) section.
 
 ## What's New
 
-- Add `ref` input parameter
-- Add `list-files: csv` format
-- Configure matrix job to run for each folder with changes using `changes` output
-- Improved listing of matching files with `list-files: shell` and `list-files: escape` options
-- Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
+- Add customfiles input.  Input a string formatted the way git diff outputs, to do your own diffs when you want.
+- Add paths-ignore to each filter rule, which will exclude files matching those patterns.
+- Add globalignore input as a filename, formatted like a .gitignore. Always excludes files matching those globs.
+- Input is validated with more explicit errors if filters are not correctly formatted.
+- Performance improvements: Minifies the build for a smaller package.  Runs a single instance of picomatch with an array of string where possible.
 
 For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob/master/CHANGELOG.md)
 
@@ -157,6 +157,10 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Performs the glob matching against these files instead. Negates
     # all other inputs less filters & list-files.
     customfiles: ''
+
+    # Optionally provide a filename in your directory to globally ignore patterns.
+    # File must be formatted as a newline separated list of glob patterns, like a .gitignore.
+    global-ignore: ''
 ```
 
 ## Outputs
