@@ -9,7 +9,7 @@
     "format": "prettier --write **/*.ts",
     "format-check": "prettier --check **/*.ts",
     "lint": "eslint src/**/*.ts",
-    "pack": "ncc build -m",
+    "pack": "ncc build -m --license licenses.txt",
     "test": "jest",
     "all": "npm run build && npm run format && npm run lint && npm run pack && npm test"
   },
@@ -31,21 +31,25 @@
     "picomatch": "^2.3.1"
   },
   "devDependencies": {
-    "@types/jest": "^28.1.6",
+    "@types/jest": "^28.1.7",
     "@types/js-yaml": "^4.0.5",
-    "@types/node": "^18.7.3",
+    "@types/node": "^18.7.5",
     "@types/picomatch": "^2.3.0",
-    "@typescript-eslint/eslint-plugin": "^5.33.0",
-    "@typescript-eslint/parser": "^5.33.0",
+    "@typescript-eslint/eslint-plugin": "^5.33.1",
+    "@typescript-eslint/parser": "^5.33.1",
     "@vercel/ncc": "^0.34.0",
-    "eslint": "^8.21.0",
+    "eslint": "^8.22.0",
     "eslint-plugin-github": "^4.3.7",
-    "eslint-plugin-jest": "^26.8.2",
+    "eslint-plugin-jest": "^26.8.3",
     "jest": "^28.1.3",
     "jest-circus": "^28.1.3",
     "js-yaml": "^4.1.0",
     "prettier": "^2.7.1",
-    "ts-jest": "^28.0.7",
+    "ts-jest": "^28.0.8",
     "typescript": "^4.7.4"
+  },
+  "engines" : { 
+    "npm" : ">=7.0.0",
+    "node" : ">=16.0.0"
   }
 }
