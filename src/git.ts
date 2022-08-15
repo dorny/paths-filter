@@ -260,7 +260,7 @@ function fixStdOutNullTermination(): void {
   core.info('')
 }
 
-const statusMap: {[char: string]: ChangeStatus} = {
+export const statusMap: {[char: string]: ChangeStatus} = {
   A: ChangeStatus.Added,
   C: ChangeStatus.Copied,
   D: ChangeStatus.Deleted,

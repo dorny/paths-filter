@@ -36,6 +36,12 @@ inputs:
                   Backslash escapes every potentially unsafe character.
     required: true
     default: none
+  files:
+    description: |
+      Custom input for files changed if you do your diff elsewhere.
+      Accepts a newline separated list of files, with optional leading status code, as per output of git diff --name-only or git diff --name-status
+      If no status supplied sets status to unmerged. Is set then only filers and list-files inputs are effective.
+    required: false
   initial-fetch-depth:
     description: |
       How many commits are initially fetched from base branch.
@@ -44,11 +50,16 @@ inputs:
       This option takes effect only when changes are detected using git against different base branch.
     required: false
     default: '100'
+  global-ignore:
+    description: |
+      Globally set ignore patterns on all filters via a file. Accepts a file path to a file with new line separate list.
+      Like a .gitignore but for your filtering.
+    required: false
 outputs:
   changes:
     description: JSON array with names of all filters matching any of changed files
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'dist/index.js'
 branding:
   color: blue

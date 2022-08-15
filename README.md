@@ -18,7 +18,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
   - Workflow triggered by **[pull_request](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request)**
     or **[pull_request_target](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target)** event
   - Changes are detected against the pull request base branch
-  - Uses GitHub REST API to fetch a list of modified files
+  - Uses GitHub REST API to fetch a list of modified files, if base or ref are not provided.
 - **Feature branches:**
   - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)**
   or any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
@@ -40,6 +40,8 @@ don't allow this because they don't work on a level of individual jobs or steps.
   - Workflow triggered by any event when `base` input parameter is set to `HEAD`
   - Changes are detected against the current HEAD
   - Untracked files are ignored
+- **Input Files**
+  - Input list of string to `customfiles` input parameter and get the filtered results.  In case you want to generate list of files elsewhere.
 
 ## Example
 
@@ -70,11 +72,11 @@ For more scenarios see [examples](#examples) section.
 
 ## What's New
 
-- Add `ref` input parameter
-- Add `list-files: csv` format
-- Configure matrix job to run for each folder with changes using `changes` output
-- Improved listing of matching files with `list-files: shell` and `list-files: escape` options
-- Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
+- Add customfiles input.  Input a string formatted the way git diff outputs, to do your own diffs when you want.
+- Add paths-ignore to each filter rule, which will exclude files matching those patterns.
+- Add globalignore input as a filename, formatted like a .gitignore. Always excludes files matching those globs.
+- Input is validated with more explicit errors if filters are not correctly formatted.
+- Performance improvements: Minifies the build for a smaller package.  Runs a single instance of picomatch with an array of string where possible.
 
 For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob/master/CHANGELOG.md)
 
@@ -93,6 +95,8 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # indicate if there's a changed file matching any of the rules.
     # Optionally, there can be a second output variable
     # set to list of all files matching the filter.
+    # Optionally, filters can be an object including path, meaning the rule, and paths_ignore,
+    # being a an array of rules to ignore.
     # Filters can be provided inline as a string (containing valid YAML document),
     # or as a relative path to a file (e.g.: .github/filters.yaml).
     # Filters syntax is documented by example - see examples section.
@@ -107,14 +111,12 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # introduced by the current branch are considered.
     # All files are considered as added if there is no common ancestor with
     # base branch or no previous commit.
-    # This option is ignored if action is triggered by pull_request event.
     # Default: repository default branch (e.g. master)
     base: ''
 
     # Git reference (e.g. branch name) from which the changes will be detected.
     # Useful when workflow can be triggered only on the default branch (e.g. repository_dispatch event)
     # but you want to get changes on a different branch.
-    # This option is ignored if action is triggered by pull_request event.
     # default: ${{ github.ref }}
     ref:
 
@@ -150,6 +152,15 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # changes using git commands.
     # Default: ${{ github.token }}
     token: ''
+
+    # Optionally provide a list of files you have generated elsewhere.
+    # Performs the glob matching against these files instead. Negates
+    # all other inputs less filters & list-files.
+    customfiles: ''
+
+    # Optionally provide a filename in your directory to globally ignore patterns.
+    # File must be formatted as a newline separated list of glob patterns, like a .gitignore.
+    global-ignore: ''
 ```
 
 ## Outputs
@@ -202,7 +213,7 @@ jobs:
 </details>
 
 <details>
-  <summary>Execute <b>job</b> in a workflow only if some file in a subfolder is changed</summary>
+  <summary>Execute <b>job</b> in a workflow only if some file in a subfolder is changed. Note excluding frontend's readme.</summary>
 
 ```yml
 jobs:
@@ -222,7 +233,10 @@ jobs:
           backend:
             - 'backend/**'
           frontend:
-            - 'frontend/**'
+            - 
+              paths: ['frontend/**']
+              paths_ignore:
+                - 'frontend/README.md'
 
   # JOB to build and test backend code
   backend:
