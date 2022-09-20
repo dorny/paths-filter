@@ -29,18 +29,26 @@ export interface FilterResults {
 
 export class Filter {
   rules: {[key: string]: FilterRuleItem[]} = {}
+  excludeRules: FilterRuleItem[] = []
 
   // Creates instance of Filter and load rules from YAML if it's provided
-  constructor(yaml?: string) {
+  constructor(yaml?: string, excludeYaml?: string) {
     if (yaml) {
-      this.load(yaml)
+      this.load(yaml, excludeYaml)
     }
   }
 
   // Load rules from YAML string
-  load(yaml: string): void {
+  load(yaml: string, excludeYaml?: string): void {
     if (!yaml) {
       return
+    }
+
+    if (excludeYaml) {
+      const excludeDoc = jsyaml.safeLoad(excludeYaml) as FilterYaml
+      for (const [key, item] of Object.entries(excludeDoc)) {
+        this.excludeRules = this.excludeRules.concat(this.parseFilterItemYaml(item))
+      }
     }
 
     const doc = jsyaml.safeLoad(yaml) as FilterYaml
@@ -56,7 +64,7 @@ export class Filter {
   match(files: File[]): FilterResults {
     const result: FilterResults = {}
     for (const [key, patterns] of Object.entries(this.rules)) {
-      result[key] = files.filter(file => this.isMatch(file, patterns))
+      result[key] = files.filter(file => this.isMatch(file, patterns) && !this.isMatch(file, this.excludeRules))
     }
     return result
   }

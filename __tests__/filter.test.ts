@@ -20,6 +20,23 @@ describe('yaml filter parsing tests', () => {
 })
 
 describe('matching tests', () => {
+  test('excludes are dropped from the match', () => {
+    const yaml = `
+    src:
+      - src/**/*.js
+    `
+    const yamlExclude = `
+    src:
+      - src/app/**
+    `
+    let filter = new Filter(yaml, yamlExclude)
+    const matchedExcpected = modified(['src/file.js'])
+    const files = modified(['src/app/module/file.js', 'src/app/file.js']).concat(matchedExcpected)
+
+    const match = filter.match(files)
+    expect(match.src).toEqual(matchedExcpected)
+  })
+
   test('matches single inline rule', () => {
     const yaml = `
     src: "src/**/*.js"

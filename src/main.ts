@@ -23,6 +23,7 @@ async function run(): Promise<void> {
     const base = core.getInput('base', {required: false})
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
+    const filtersExcludeYml = core.getInput('filters-exclude', {required: false})
     const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
 
@@ -31,10 +32,11 @@ async function run(): Promise<void> {
       return
     }
 
-    const filter = new Filter(filtersYaml)
+    const filter = new Filter(filtersYaml, filtersExcludeYml)
     const files = await getChangedFiles(token, base, ref, initialFetchDepth)
-    core.info(`Detected ${files.length} changed files`)
+    core.info(`Detected ${files.length} changed files.`)
     const results = filter.match(files)
+
     exportResults(results, listFiles)
   } catch (error) {
     core.setFailed(error.message)

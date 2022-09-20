@@ -83,16 +83,23 @@ const MatchOptions = {
 };
 class Filter {
     // Creates instance of Filter and load rules from YAML if it's provided
-    constructor(yaml) {
+    constructor(yaml, excludeYaml) {
         this.rules = {};
+        this.excludeRules = [];
         if (yaml) {
-            this.load(yaml);
+            this.load(yaml, excludeYaml);
         }
     }
     // Load rules from YAML string
-    load(yaml) {
+    load(yaml, excludeYaml) {
         if (!yaml) {
             return;
+        }
+        if (excludeYaml) {
+            const excludeDoc = jsyaml.safeLoad(excludeYaml);
+            for (const [key, item] of Object.entries(excludeDoc)) {
+                this.excludeRules = this.excludeRules.concat(this.parseFilterItemYaml(item));
+            }
         }
         const doc = jsyaml.safeLoad(yaml);
         if (typeof doc !== 'object') {
@@ -105,7 +112,7 @@ class Filter {
     match(files) {
         const result = {};
         for (const [key, patterns] of Object.entries(this.rules)) {
-            result[key] = files.filter(file => this.isMatch(file, patterns));
+            result[key] = files.filter(file => this.isMatch(file, patterns) && !this.isMatch(file, this.excludeRules));
         }
         return result;
     }
@@ -541,15 +548,16 @@ async function run() {
         const base = core.getInput('base', { required: false });
         const filtersInput = core.getInput('filters', { required: true });
         const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
+        const filtersExcludeYml = core.getInput('filters-exclude', { required: false });
         const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
         const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10;
         if (!isExportFormat(listFiles)) {
             core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`);
             return;
         }
-        const filter = new filter_1.Filter(filtersYaml);
+        const filter = new filter_1.Filter(filtersYaml, filtersExcludeYml);
         const files = await getChangedFiles(token, base, ref, initialFetchDepth);
-        core.info(`Detected ${files.length} changed files`);
+        core.info(`Detected ${files.length} changed files.`);
         const results = filter.match(files);
         exportResults(results, listFiles);
     }

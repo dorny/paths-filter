@@ -23,6 +23,9 @@ inputs:
   filters:
     description: 'Path to the configuration file or YAML string with filters definition'
     required: true
+  filters-exclude:
+    description: 'YAML string with filters exclude definition'
+    required: false
   list-files:
     description: |
       Enables listing of files matching the filter:
