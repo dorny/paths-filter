@@ -2,3 +2,19 @@ error:
   - not_existing_path/**/*
 any:
   - "**/*"
+anyignore:
+  - 
+    paths: "**/*"
+    paths_ignore:
+      - "**/*.md"
+anyignorenull:
+  - 
+    paths: "**/*"
+    paths_ignore:
+      - "**local.ts"
+      - "**local.md"
+anyignoreall:
+  - 
+    paths: "**/*"
+    paths_ignore:
+      - "**/*.no"

@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.0.0
+- [Adds customfiles, paths-ignore, globalignore, and validate input. Update packages, minify build.](https://github.com/dorny/paths-filter/pull/##)
+
 ## v2.10.2
 - [Fix getLocalRef() returns wrong ref](https://github.com/dorny/paths-filter/pull/91)
 
