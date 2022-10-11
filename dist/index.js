@@ -1,31 +1,6 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 7757:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const exec_1 = __nccwpck_require__(1514);
-// Wraps original exec() function
-// Returns exit code and whole stdout/stderr
-async function exec(commandLine, args, options) {
-    options = options || {};
-    let stdout = '';
-    let stderr = '';
-    options.listeners = {
-        stdout: (data) => (stdout += data.toString()),
-        stderr: (data) => (stderr += data.toString())
-    };
-    const code = await exec_1.exec(commandLine, args, options);
-    return { code, stdout, stderr };
-}
-exports["default"] = exec;
-
-
-/***/ }),
-
 /***/ 4014:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -174,12 +149,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.HEAD = exports.NULL_SHA = void 0;
-const exec_1 = __importDefault(__nccwpck_require__(7757));
+const exec_1 = __nccwpck_require__(1514);
 const core = __importStar(__nccwpck_require__(2186));
 const file_1 = __nccwpck_require__(4014);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
@@ -188,7 +160,7 @@ async function getChangesInLastCommit() {
     core.startGroup(`Change detection in last commit`);
     let output = '';
     try {
-        output = (await exec_1.default('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout;
+        output = (await exec_1.getExecOutput('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -205,7 +177,8 @@ async function getChanges(base, head) {
     let output = '';
     try {
         // Two dots '..' change detection - directly compares two versions
-        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`])).stdout;
+        output = (await exec_1.getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`]))
+            .stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -219,7 +192,7 @@ async function getChangesOnHead() {
     core.startGroup(`Change detection on HEAD`);
     let output = '';
     try {
-        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout;
+        output = (await exec_1.getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -235,7 +208,7 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
         if (baseRef === undefined || headRef === undefined) {
             return false;
         }
-        return (await exec_1.default('git', ['merge-base', baseRef, headRef], { ignoreReturnCode: true })).code === 0;
+        return (await exec_1.getExecOutput('git', ['merge-base', baseRef, headRef], { ignoreReturnCode: true })).exitCode === 0;
     }
     let noMergeBase = false;
     core.startGroup(`Searching for merge-base ${base}...${head}`);
@@ -243,12 +216,12 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
         baseRef = await getLocalRef(base);
         headRef = await getLocalRef(head);
         if (!(await hasMergeBase())) {
-            await exec_1.default('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head]);
+            await exec_1.getExecOutput('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head]);
             if (baseRef === undefined || headRef === undefined) {
                 baseRef = baseRef !== null && baseRef !== void 0 ? baseRef : (await getLocalRef(base));
                 headRef = headRef !== null && headRef !== void 0 ? headRef : (await getLocalRef(head));
                 if (baseRef === undefined || headRef === undefined) {
-                    await exec_1.default('git', ['fetch', '--tags', '--depth=1', 'origin', base, head], {
+                    await exec_1.getExecOutput('git', ['fetch', '--tags', '--depth=1', 'origin', base, head], {
                         ignoreReturnCode: true // returns exit code 1 if tags on remote were updated - we can safely ignore it
                     });
                     baseRef = baseRef !== null && baseRef !== void 0 ? baseRef : (await getLocalRef(base));
@@ -265,12 +238,12 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
             let lastCommitCount = await getCommitCount();
             while (!(await hasMergeBase())) {
                 depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER);
-                await exec_1.default('git', ['fetch', `--deepen=${depth}`, 'origin', base, head]);
+                await exec_1.getExecOutput('git', ['fetch', `--deepen=${depth}`, 'origin', base, head]);
                 const commitCount = await getCommitCount();
                 if (commitCount === lastCommitCount) {
                     core.info('No more commits were fetched');
                     core.info('Last attempt will be to fetch full history');
-                    await exec_1.default('git', ['fetch']);
+                    await exec_1.getExecOutput('git', ['fetch']);
                     if (!(await hasMergeBase())) {
                         noMergeBase = true;
                     }
@@ -293,7 +266,7 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
     core.startGroup(`Change detection ${diffArg}`);
     let output = '';
     try {
-        output = (await exec_1.default('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout;
+        output = (await exec_1.getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -318,7 +291,7 @@ async function listAllFilesAsAdded() {
     core.startGroup('Listing all files tracked by git');
     let output = '';
     try {
-        output = (await exec_1.default('git', ['ls-files', '-z'])).stdout;
+        output = (await exec_1.getExecOutput('git', ['ls-files', '-z'])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -336,15 +309,15 @@ exports.listAllFilesAsAdded = listAllFilesAsAdded;
 async function getCurrentRef() {
     core.startGroup(`Get current git ref`);
     try {
-        const branch = (await exec_1.default('git', ['branch', '--show-current'])).stdout.trim();
+        const branch = (await exec_1.getExecOutput('git', ['branch', '--show-current'])).stdout.trim();
         if (branch) {
             return branch;
         }
-        const describe = await exec_1.default('git', ['describe', '--tags', '--exact-match'], { ignoreReturnCode: true });
-        if (describe.code === 0) {
+        const describe = await exec_1.getExecOutput('git', ['describe', '--tags', '--exact-match'], { ignoreReturnCode: true });
+        if (describe.exitCode === 0) {
             return describe.stdout.trim();
         }
-        return (await exec_1.default('git', ['rev-parse', exports.HEAD])).stdout.trim();
+        return (await exec_1.getExecOutput('git', ['rev-parse', exports.HEAD])).stdout.trim();
     }
     finally {
         core.endGroup();
@@ -368,10 +341,10 @@ function isGitSha(ref) {
 }
 exports.isGitSha = isGitSha;
 async function hasCommit(ref) {
-    return (await exec_1.default('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).code === 0;
+    return (await exec_1.getExecOutput('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).exitCode === 0;
 }
 async function getCommitCount() {
-    const output = (await exec_1.default('git', ['rev-list', '--count', '--all'])).stdout;
+    const output = (await exec_1.getExecOutput('git', ['rev-list', '--count', '--all'])).stdout;
     const count = parseInt(output);
     return isNaN(count) ? 0 : count;
 }
@@ -379,7 +352,7 @@ async function getLocalRef(shortName) {
     if (isGitSha(shortName)) {
         return (await hasCommit(shortName)) ? shortName : undefined;
     }
-    const output = (await exec_1.default('git', ['show-ref', shortName], { ignoreReturnCode: true })).stdout;
+    const output = (await exec_1.getExecOutput('git', ['show-ref', shortName], { ignoreReturnCode: true })).stdout;
     const refs = output
         .split(/\r?\n/g)
         .map(l => l.match(/refs\/(?:(?:heads)|(?:tags)|(?:remotes\/origin))\/(.*)$/))
@@ -399,10 +372,10 @@ async function ensureRefAvailable(name) {
     try {
         let ref = await getLocalRef(name);
         if (ref === undefined) {
-            await exec_1.default('git', ['fetch', '--depth=1', '--no-tags', 'origin', name]);
+            await exec_1.getExecOutput('git', ['fetch', '--depth=1', '--no-tags', 'origin', name]);
             ref = await getLocalRef(name);
             if (ref === undefined) {
-                await exec_1.default('git', ['fetch', '--depth=1', '--tags', 'origin', name]);
+                await exec_1.getExecOutput('git', ['fetch', '--depth=1', '--tags', 'origin', name]);
                 ref = await getLocalRef(name);
                 if (ref === undefined) {
                     throw new Error(`Could not determine what is ${name} - fetch works but it's not a branch, tag or commit SHA`);
@@ -657,23 +630,17 @@ async function getChangedFilesFromApi(token, prNumber) {
         const client = new github.GitHub(token);
         const per_page = 100;
         const files = [];
-        for (let page = 1;; page++) {
-            core.info(`Invoking listFiles(pull_number: ${prNumber.number}, page: ${page}, per_page: ${per_page})`);
-            const response = await client.pulls.listFiles({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                pull_number: prNumber.number,
-                per_page,
-                page
-            });
+        core.info(`Invoking listFiles(pull_number: ${prNumber.number}, per_page: ${per_page})`);
+        for await (const response of client.paginate.iterator(client.pulls.listFiles.endpoint.merge({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            pull_number: prNumber.number,
+            per_page
+        }))) {
             if (response.status !== 200) {
                 throw new Error(`Fetching list of changed files from GitHub API failed with error code ${response.status}`);
             }
             core.info(`Received ${response.data.length} items`);
-            if (response.data.length === 0) {
-                core.info('All changed files has been fetched from GitHub API');
-                break;
-            }
             for (const row of response.data) {
                 core.info(`[${row.status}] ${row.filename}`);
                 // There's no obvious use-case for detection of renames
@@ -1365,6 +1332,25 @@ exports.toCommandProperties = toCommandProperties;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -1374,14 +1360,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getExecOutput = exports.exec = void 0;
+const string_decoder_1 = __nccwpck_require__(1576);
 const tr = __importStar(__nccwpck_require__(8159));
 /**
  * Exec a command.
@@ -1407,6 +1388,51 @@ function exec(commandLine, args, options) {
     });
 }
 exports.exec = exec;
+/**
+ * Exec a command and get the output.
+ * Output will be streamed to the live console.
+ * Returns promise with the exit code and collected stdout and stderr
+ *
+ * @param     commandLine           command to execute (can include additional args). Must be correctly escaped.
+ * @param     args                  optional arguments for tool. Escaping is handled by the lib.
+ * @param     options               optional exec options.  See ExecOptions
+ * @returns   Promise<ExecOutput>   exit code, stdout, and stderr
+ */
+function getExecOutput(commandLine, args, options) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function* () {
+        let stdout = '';
+        let stderr = '';
+        //Using string decoder covers the case where a mult-byte character is split
+        const stdoutDecoder = new string_decoder_1.StringDecoder('utf8');
+        const stderrDecoder = new string_decoder_1.StringDecoder('utf8');
+        const originalStdoutListener = (_a = options === null || options === void 0 ? void 0 : options.listeners) === null || _a === void 0 ? void 0 : _a.stdout;
+        const originalStdErrListener = (_b = options === null || options === void 0 ? void 0 : options.listeners) === null || _b === void 0 ? void 0 : _b.stderr;
+        const stdErrListener = (data) => {
+            stderr += stderrDecoder.write(data);
+            if (originalStdErrListener) {
+                originalStdErrListener(data);
+            }
+        };
+        const stdOutListener = (data) => {
+            stdout += stdoutDecoder.write(data);
+            if (originalStdoutListener) {
+                originalStdoutListener(data);
+            }
+        };
+        const listeners = Object.assign(Object.assign({}, options === null || options === void 0 ? void 0 : options.listeners), { stdout: stdOutListener, stderr: stdErrListener });
+        const exitCode = yield exec(commandLine, args, Object.assign(Object.assign({}, options), { listeners }));
+        //flush any remaining characters
+        stdout += stdoutDecoder.end();
+        stderr += stderrDecoder.end();
+        return {
+            exitCode,
+            stdout,
+            stderr
+        };
+    });
+}
+exports.getExecOutput = getExecOutput;
 //# sourceMappingURL=exec.js.map
 
 /***/ }),
@@ -1416,6 +1442,25 @@ exports.exec = exec;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -1425,20 +1470,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.argStringToArray = exports.ToolRunner = void 0;
 const os = __importStar(__nccwpck_require__(2037));
 const events = __importStar(__nccwpck_require__(2361));
 const child = __importStar(__nccwpck_require__(2081));
 const path = __importStar(__nccwpck_require__(1017));
 const io = __importStar(__nccwpck_require__(7436));
 const ioUtil = __importStar(__nccwpck_require__(1962));
+const timers_1 = __nccwpck_require__(9512);
 /* eslint-disable @typescript-eslint/unbound-method */
 const IS_WINDOWS = process.platform === 'win32';
 /*
@@ -1508,11 +1548,12 @@ class ToolRunner extends events.EventEmitter {
                 s = s.substring(n + os.EOL.length);
                 n = s.indexOf(os.EOL);
             }
-            strBuffer = s;
+            return s;
         }
         catch (err) {
             // streaming lines to console is best effort.  Don't fail a build.
             this._debug(`error processing line. Failed with error ${err}`);
+            return '';
         }
     }
     _getSpawnFileName() {
@@ -1794,7 +1835,7 @@ class ToolRunner extends events.EventEmitter {
             // if the tool is only a file name, then resolve it from the PATH
             // otherwise verify it exists (add extension on Windows if necessary)
             this.toolPath = yield io.which(this.toolPath, true);
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 this._debug(`exec tool: ${this.toolPath}`);
                 this._debug('arguments:');
                 for (const arg of this.args) {
@@ -1808,9 +1849,12 @@ class ToolRunner extends events.EventEmitter {
                 state.on('debug', (message) => {
                     this._debug(message);
                 });
+                if (this.options.cwd && !(yield ioUtil.exists(this.options.cwd))) {
+                    return reject(new Error(`The cwd: ${this.options.cwd} does not exist!`));
+                }
                 const fileName = this._getSpawnFileName();
                 const cp = child.spawn(fileName, this._getSpawnArgs(optionsNonNull), this._getSpawnOptions(this.options, fileName));
-                const stdbuffer = '';
+                let stdbuffer = '';
                 if (cp.stdout) {
                     cp.stdout.on('data', (data) => {
                         if (this.options.listeners && this.options.listeners.stdout) {
@@ -1819,14 +1863,14 @@ class ToolRunner extends events.EventEmitter {
                         if (!optionsNonNull.silent && optionsNonNull.outStream) {
                             optionsNonNull.outStream.write(data);
                         }
-                        this._processLineBuffer(data, stdbuffer, (line) => {
+                        stdbuffer = this._processLineBuffer(data, stdbuffer, (line) => {
                             if (this.options.listeners && this.options.listeners.stdline) {
                                 this.options.listeners.stdline(line);
                             }
                         });
                     });
                 }
-                const errbuffer = '';
+                let errbuffer = '';
                 if (cp.stderr) {
                     cp.stderr.on('data', (data) => {
                         state.processStderr = true;
@@ -1841,7 +1885,7 @@ class ToolRunner extends events.EventEmitter {
                                 : optionsNonNull.outStream;
                             s.write(data);
                         }
-                        this._processLineBuffer(data, errbuffer, (line) => {
+                        errbuffer = this._processLineBuffer(data, errbuffer, (line) => {
                             if (this.options.listeners && this.options.listeners.errline) {
                                 this.options.listeners.errline(line);
                             }
@@ -1888,7 +1932,7 @@ class ToolRunner extends events.EventEmitter {
                     }
                     cp.stdin.end(this.options.input);
                 }
-            });
+            }));
         });
     }
 }
@@ -1974,7 +2018,7 @@ class ExecState extends events.EventEmitter {
             this._setResult();
         }
         else if (this.processExited) {
-            this.timeout = setTimeout(ExecState.HandleTimeout, this.delay, this);
+            this.timeout = timers_1.setTimeout(ExecState.HandleTimeout, this.delay, this);
         }
     }
     _debug(message) {
@@ -36137,6 +36181,22 @@ module.exports = require("punycode");
 
 "use strict";
 module.exports = require("stream");
+
+/***/ }),
+
+/***/ 1576:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("string_decoder");
+
+/***/ }),
+
+/***/ 9512:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("timers");
 
 /***/ }),
 
