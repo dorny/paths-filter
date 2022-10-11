@@ -9,8 +9,8 @@ don't allow this because they don't work on a level of individual jobs or steps.
 
 **Real world usage examples:**
 
-- [sentry.io](https://sentry.io/) - [backend-test-py3.6.yml](https://github.com/getsentry/sentry/blob/ca0e43dc5602a9ab2e06d3f6397cc48fb5a78541/.github/workflows/backend-test-py3.6.yml#L32)
-- [GoogleChrome/web.dev](https://web.dev/) - [lint-and-test-workflow.yml](https://github.com/GoogleChrome/web.dev/blob/e1f0c28964e99ce6a996c1e3fd3ee1985a7a04f6/.github/workflows/lint-and-test-workflow.yml#L33)
+- [sentry.io](https://sentry.io/) - [backend.yml](https://github.com/getsentry/sentry/blob/2ebe01feab863d89aa7564e6d243b6d80c230ddc/.github/workflows/backend.yml#L36)
+- [GoogleChrome/web.dev](https://web.dev/) - [lint-workflow.yml](https://github.com/GoogleChrome/web.dev/blob/3a57b721e7df6fc52172f676ca68d16153bda6a3/.github/workflows/lint-workflow.yml#L26)
 
 ## Supported workflows
 
