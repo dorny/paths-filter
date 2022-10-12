@@ -673,6 +673,18 @@ async function getChangedFilesFromApi(token, prNumber) {
         core.endGroup();
     }
 }
+
+function setOutput(name, value) {
+  const filePath = process.env['GITHUB_OUTPUT'] || '';
+  if (filePath) {
+      return file_command_1.issueFileCommand('OUTPUT', file_command_1.prepareKeyValueMessage(name, value));
+  }
+  process.stdout.write(os.EOL);
+  command_1.issueCommand('set-output', { name }, value);
+  command_1.issueCommand('set-output', { name }, utils_1.toCommandValue(value));
+}
+exports.setOutput = setOutput;
+
 function exportResults(results, format) {
     core.info('Results:');
     const changes = [];
