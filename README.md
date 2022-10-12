@@ -173,7 +173,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3.1.0
+    - uses: actions/checkout@v3
     - uses: dorny/paths-filter@v2
       id: filter
       with:
@@ -230,7 +230,7 @@ jobs:
     if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
       - ...
 
   # JOB to build and test frontend code
@@ -239,7 +239,7 @@ jobs:
     if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
       - ...
 ```
 
@@ -275,7 +275,7 @@ jobs:
         package: ${{ fromJSON(needs.changes.outputs.packages) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
       - ...
 ```
 
@@ -296,7 +296,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3.1.0
+    - uses: actions/checkout@v3
     - uses: dorny/paths-filter@v2
       id: filter
       with:
@@ -317,7 +317,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3.1.0
+    - uses: actions/checkout@v3
       with:
         # This may save additional git fetch roundtrip if
         # merge-base is found within latest 20 commits
@@ -345,7 +345,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3.1.0
+    - uses: actions/checkout@v3
     - uses: dorny/paths-filter@v2
       id: filter
       with:
@@ -373,7 +373,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3.1.0
+    - uses: actions/checkout@v3
 
       # Some action that modifies files tracked by git (e.g. code linter)
     - uses: johndoe/some-action@v1
