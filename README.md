@@ -19,6 +19,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
     or **[pull_request_target](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target)** event
   - Changes are detected against the pull request base branch
   - Uses GitHub REST API to fetch a list of modified files
+  - Requires [pull-requests: read](https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs) permission
 - **Feature branches:**
   - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)**
   or any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
@@ -209,6 +210,9 @@ jobs:
   # JOB to run change detection
   changes:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
     # Set job outputs to values from filter step
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
@@ -253,6 +257,9 @@ jobs:
   # JOB to run change detection
   changes:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
     outputs:
       # Expose matched filters as job 'packages' output variable
       packages: ${{ steps.filter.outputs.changes }}
@@ -295,6 +302,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
     steps:
     - uses: actions/checkout@v3
     - uses: dorny/paths-filter@v2
