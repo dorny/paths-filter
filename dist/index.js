@@ -995,7 +995,7 @@ exports.getBooleanInput = getBooleanInput;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setOutput(name, value) {
     process.stdout.write(os.EOL);
-    command_1.issueCommand('set-output', { name }, value);;
+    command_1.issueCommand('set-output', { name }, value);
 }
 exports.setOutput = setOutput;
 /**
