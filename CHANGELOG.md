@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.11.1
+- [Update @actions/core to v1.10.0 - Fixes warning about deprecated set-output](https://github.com/dorny/paths-filter/pull/167)
+- [Document need for pull-requests: read permission](https://github.com/dorny/paths-filter/pull/168)
+- [Updating to actions/checkout@v3](https://github.com/dorny/paths-filter/pull/164)
+
 ## v2.11.0
 - [Set list-files input parameter as not required](https://github.com/dorny/paths-filter/pull/157)
 - [Update Node.js](https://github.com/dorny/paths-filter/pull/161)
