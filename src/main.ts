@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import type {Octokit} from '@octokit/rest'
 import {Webhooks} from '@octokit/webhooks'
 
 import {Filter, FilterResults} from './filter'
@@ -170,25 +171,19 @@ async function getChangedFilesFromApi(
     const per_page = 100
     const files: File[] = []
 
-    for (let page = 1; ; page++) {
-      core.info(`Invoking listFiles(pull_number: ${prNumber.number}, page: ${page}, per_page: ${per_page})`)
-      const response = await client.pulls.listFiles({
+    core.info(`Invoking listFiles(pull_number: ${prNumber.number}, per_page: ${per_page})`)
+    for await (const response of client.paginate.iterator(
+      client.pulls.listFiles.endpoint.merge({
         owner: github.context.repo.owner,
         repo: github.context.repo.repo,
         pull_number: prNumber.number,
-        per_page,
-        page
+        per_page
       })
-
+    ) as AsyncIterableIterator<Octokit.Response<Octokit.PullsListFilesResponse>>) {
       if (response.status !== 200) {
         throw new Error(`Fetching list of changed files from GitHub API failed with error code ${response.status}`)
       }
-
       core.info(`Received ${response.data.length} items`)
-      if (response.data.length === 0) {
-        core.info('All changed files has been fetched from GitHub API')
-        break
-      }
 
       for (const row of response.data) {
         core.info(`[${row.status}] ${row.filename}`)
