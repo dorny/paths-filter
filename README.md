@@ -11,6 +11,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
 
 - [sentry.io](https://sentry.io/) - [backend.yml](https://github.com/getsentry/sentry/blob/2ebe01feab863d89aa7564e6d243b6d80c230ddc/.github/workflows/backend.yml#L36)
 - [GoogleChrome/web.dev](https://web.dev/) - [lint-workflow.yml](https://github.com/GoogleChrome/web.dev/blob/3a57b721e7df6fc52172f676ca68d16153bda6a3/.github/workflows/lint-workflow.yml#L26)
+- [blog post Configuring python linting to be part of CI/CD using GitHub actions](https://dev.to/freshbooks/configuring-python-linting-to-be-part-of-cicd-using-github-actions-1731#what-files-does-it-run-against) 
 
 ## Supported workflows
 
