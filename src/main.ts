@@ -220,7 +220,7 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
     const value = files.length > 0
     core.startGroup(`Filter ${key} = ${value}`)
     if (files.length > 0) {
-      if(key !== "unMatched"){
+      if (key !== 'unMatched') {
         changes.push(key)
       }
       core.info('Matching files:')

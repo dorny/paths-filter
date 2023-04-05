@@ -82,6 +82,11 @@ class Filter {
         for (const [key, patterns] of Object.entries(this.rules)) {
             result[key] = files.filter(file => this.isMatch(file, patterns));
         }
+        const matchedFiles = [];
+        for (const [key, files] of Object.entries(result)) {
+            matchedFiles.push(...files);
+        }
+        result["unMatched"] = files.filter(file => matchedFiles.includes(file));
         return result;
     }
     isMatch(file, patterns) {
@@ -680,7 +685,9 @@ function exportResults(results, format) {
         const value = files.length > 0;
         core.startGroup(`Filter ${key} = ${value}`);
         if (files.length > 0) {
-            changes.push(key);
+            if (key !== "unMatched") {
+                changes.push(key);
+            }
             core.info('Matching files:');
             for (const file of files) {
                 core.info(`${file.filename} [${file.status}]`);
