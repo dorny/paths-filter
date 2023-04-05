@@ -63,7 +63,7 @@ export class Filter {
     for (const [key, files] of Object.entries(result)) {
       matchedFiles.push(...files)
     }
-    result['unMatched'] = files.filter(file => matchedFiles.includes(file))
+    result['unMatched'] = files.filter(file => !matchedFiles.includes(file))
 
     return result
   }

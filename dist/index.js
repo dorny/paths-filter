@@ -86,7 +86,7 @@ class Filter {
         for (const [key, files] of Object.entries(result)) {
             matchedFiles.push(...files);
         }
-        result["unMatched"] = files.filter(file => matchedFiles.includes(file));
+        result['unMatched'] = files.filter(file => !matchedFiles.includes(file));
         return result;
     }
     isMatch(file, patterns) {
@@ -685,7 +685,7 @@ function exportResults(results, format) {
         const value = files.length > 0;
         core.startGroup(`Filter ${key} = ${value}`);
         if (files.length > 0) {
-            if (key !== "unMatched") {
+            if (key !== 'unMatched') {
                 changes.push(key);
             }
             core.info('Matching files:');
