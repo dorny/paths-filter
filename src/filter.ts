@@ -58,6 +58,13 @@ export class Filter {
     for (const [key, patterns] of Object.entries(this.rules)) {
       result[key] = files.filter(file => this.isMatch(file, patterns))
     }
+
+    const matchedFiles: File[] = []
+    for (const [key, files] of Object.entries(result)) {
+      matchedFiles.push(...files)
+    }
+    result["unMatched"] = files.filter(file => matchedFiles.includes(file));
+
     return result
   }
 
