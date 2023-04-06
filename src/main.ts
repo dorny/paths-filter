@@ -214,6 +214,7 @@ async function getChangedFilesFromApi(
 }
 
 function exportResults(results: FilterResults, format: ExportFormat): void {
+  core.info('Hello')
   core.info('Results:')
   const changes = []
   for (const [key, files] of Object.entries(results)) {
