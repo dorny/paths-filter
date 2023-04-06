@@ -12,6 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run: |
+        node -v
         npm install
         npm run all
 
