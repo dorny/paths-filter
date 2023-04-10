@@ -37,7 +37,9 @@ async function run(): Promise<void> {
     const results = filter.match(files)
     exportResults(results, listFiles)
   } catch (error) {
-    core.setFailed(error.message)
+    if (error instanceof Error) {
+      core.setFailed(error.message)
+    }
   }
 }
 
