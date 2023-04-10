@@ -34,7 +34,7 @@ inputs:
                   If needed it uses single or double quotes to wrap filename with unsafe characters.
         'escape'- Space delimited list usable as command line argument list in linux shell.
                   Backslash escapes every potentially unsafe character.
-    required: true
+    required: false
     default: none
   initial-fetch-depth:
     description: |

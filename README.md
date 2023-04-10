@@ -9,8 +9,9 @@ don't allow this because they don't work on a level of individual jobs or steps.
 
 **Real world usage examples:**
 
-- [sentry.io](https://sentry.io/) - [backend-test-py3.6.yml](https://github.com/getsentry/sentry/blob/ca0e43dc5602a9ab2e06d3f6397cc48fb5a78541/.github/workflows/backend-test-py3.6.yml#L32)
-- [GoogleChrome/web.dev](https://web.dev/) - [lint-and-test-workflow.yml](https://github.com/GoogleChrome/web.dev/blob/e1f0c28964e99ce6a996c1e3fd3ee1985a7a04f6/.github/workflows/lint-and-test-workflow.yml#L33)
+- [sentry.io](https://sentry.io/) - [backend.yml](https://github.com/getsentry/sentry/blob/2ebe01feab863d89aa7564e6d243b6d80c230ddc/.github/workflows/backend.yml#L36)
+- [GoogleChrome/web.dev](https://web.dev/) - [lint-workflow.yml](https://github.com/GoogleChrome/web.dev/blob/3a57b721e7df6fc52172f676ca68d16153bda6a3/.github/workflows/lint-workflow.yml#L26)
+- [blog post Configuring python linting to be part of CI/CD using GitHub actions](https://dev.to/freshbooks/configuring-python-linting-to-be-part-of-cicd-using-github-actions-1731#what-files-does-it-run-against) - [py_linter.yml](https://github.com/iamtodor/demo-github-actions-python-linter-configuration/blob/main/.github/workflows/py_linter.yml#L31)
 
 ## Supported workflows
 
@@ -19,6 +20,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
     or **[pull_request_target](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target)** event
   - Changes are detected against the pull request base branch
   - Uses GitHub REST API to fetch a list of modified files
+  - Requires [pull-requests: read](https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs) permission
 - **Feature branches:**
   - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)**
   or any other **[event](https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows)**
@@ -87,6 +89,8 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Each filter has a name and a list of rules.
     # Rule is a glob expression - paths of all changed
     # files are matched against it.
+    # Rule can optionally specify if the file
+    # should be added, modified, or deleted.
     # For each filter, there will be a corresponding output variable to
     # indicate if there's a changed file matching any of the rules.
     # Optionally, there can be a second output variable
@@ -171,7 +175,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: dorny/paths-filter@v2
       id: filter
       with:
@@ -207,6 +211,9 @@ jobs:
   # JOB to run change detection
   changes:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
     # Set job outputs to values from filter step
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
@@ -228,7 +235,7 @@ jobs:
     if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - ...
 
   # JOB to build and test frontend code
@@ -237,7 +244,7 @@ jobs:
     if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - ...
 ```
 
@@ -251,6 +258,9 @@ jobs:
   # JOB to run change detection
   changes:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
     outputs:
       # Expose matched filters as job 'packages' output variable
       packages: ${{ steps.filter.outputs.changes }}
@@ -273,7 +283,7 @@ jobs:
         package: ${{ fromJSON(needs.changes.outputs.packages) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - ...
 ```
 
@@ -293,8 +303,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: dorny/paths-filter@v2
       id: filter
       with:
@@ -315,7 +328,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         # This may save additional git fetch roundtrip if
         # merge-base is found within latest 20 commits
@@ -343,7 +356,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: dorny/paths-filter@v2
       id: filter
       with:
@@ -371,7 +384,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
       # Some action that modifies files tracked by git (e.g. code linter)
     - uses: johndoe/some-action@v1
