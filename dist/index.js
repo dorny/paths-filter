@@ -84,7 +84,8 @@ class Filter {
             result[key] = files.filter(file => this.isMatch(file, patterns));
             matchedFiles.push(...result[key]);
         }
-        result['unMatched'] = files.filter(file => !matchedFiles.includes(file));
+        result['unFilteredChanged'] = files.filter(file => !matchedFiles.includes(file) && file.status !== 'deleted');
+        result['allDeleted'] = files.filter(file => file.status == 'deleted');
         return result;
     }
     isMatch(file, patterns) {
@@ -677,13 +678,14 @@ async function getChangedFilesFromApi(token, prNumber) {
     }
 }
 function exportResults(results, format) {
+    core.info('Hello');
     core.info('Results:');
     const changes = [];
     for (const [key, files] of Object.entries(results)) {
         const value = files.length > 0;
         core.startGroup(`Filter ${key} = ${value}`);
         if (files.length > 0) {
-            if (key !== 'unMatched') {
+            if (key !== 'unFilteredChanged' && key !== 'allDeleted') {
                 changes.push(key);
             }
             core.info('Matching files:');
