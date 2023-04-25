@@ -60,7 +60,8 @@ export class Filter {
       result[key] = files.filter(file => this.isMatch(file, patterns))
       matchedFiles.push(...result[key])
     }
-    result['unMatched'] = files.filter(file => !matchedFiles.includes(file))
+    result['unFilteredChanged'] = files.filter(file => !matchedFiles.includes(file) && file.status !== 'deleted')
+    result['allDeleted'] = files.filter(file => file.status == 'deleted')
 
     return result
   }
