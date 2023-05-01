@@ -68,7 +68,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
     return await git.getChangesOnHead()
   }
 
-  const prEvents = ['pull_request', 'pull_request_review', 'pull_request_review_comment', 'pull_request_target']
+  const prEvents = ['pull_request', 'pull_request_review', 'pull_request_review_comment', 'pull_request_target', 'merge_group']
   if (prEvents.includes(github.context.eventName)) {
     if (ref) {
       core.warning(`'ref' input parameter is ignored when 'base' is set to HEAD`)
