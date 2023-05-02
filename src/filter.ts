@@ -1,6 +1,6 @@
 import * as jsyaml from 'js-yaml'
 import micromatch from 'micromatch'
-import {File, ChangeStatus} from './file'
+import {File} from './file'
 
 // Type definition of object we expect to load from YAML
 interface FilterYaml {
@@ -13,13 +13,6 @@ type FilterItemYaml =
 // Micromatch options used in all matchers
 const MatchOptions: micromatch.Options = {
   dot: true
-}
-
-// Internal representation of one item in named filter rule
-// Created as simplified form of data in FilterItemYaml
-interface FilterRuleItem {
-  /** returns the list of matched files */
-  matcher: (files: string[]) => string[]
 }
 
 export interface FilterResults {
@@ -42,7 +35,7 @@ export class Filter {
       return
     }
 
-    const doc = jsyaml.safeLoad(yaml) as FilterYaml
+    const doc = jsyaml.load(yaml) as FilterYaml
     if (typeof doc !== 'object') {
       this.throwInvalidFormatError('Root element is not an object')
     }

@@ -1,8 +1,6 @@
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {Webhooks} from '@octokit/webhooks'
-
 import {Filter, FilterResults} from './filter'
 import {File, ChangeStatus} from './file'
 import * as git from './git'
@@ -36,7 +34,7 @@ async function run(): Promise<void> {
     core.info(`Detected ${files.length} changed files`)
     const results = filter.match(files)
     exportResults(results, listFiles)
-  } catch (error) {
+  } catch (error: any) {
     core.setFailed(error.message)
   }
 }
@@ -75,8 +73,8 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
     if (base) {
       core.warning(`'base' input parameter is ignored when action is triggered by pull request event`)
     }
-    const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
-    if (token) {
+    const pr = github.context.payload.pull_request
+    if (token && pr) {
       return await getChangedFilesFromApi(token, pr)
     }
     if (github.context.eventName === 'pull_request_target') {
@@ -95,8 +93,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
 async function getChangedFilesFromGit(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
   const defaultBranch = github.context.payload.repository?.default_branch
 
-  const beforeSha =
-    github.context.eventName === 'push' ? (github.context.payload as Webhooks.WebhookPayloadPush).before : null
+  const beforeSha = github.context.eventName === 'push' ? github.context.payload.before : null
 
   const currentRef = await git.getCurrentRef()
 
@@ -158,17 +155,17 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 // Uses github REST api to get list of files changed in PR
 async function getChangedFilesFromApi(
   token: string,
-  prNumber: Webhooks.WebhookPayloadPullRequestPullRequest
+  prNumber: NonNullable<typeof github.context.payload.pull_request>,
 ): Promise<File[]> {
   core.startGroup(`Fetching list of changed files for PR#${prNumber.number} from Github API`)
   try {
-    const client = new github.GitHub(token)
+    const client = github.getOctokit(token)
     const per_page = 100
     const files: File[] = []
 
     for (let page = 1; ; page++) {
       core.info(`Invoking listFiles(pull_number: ${prNumber.number}, page: ${page}, per_page: ${per_page})`)
-      const response = await client.pulls.listFiles({
+      const response = await client.rest.pulls.listFiles({
         owner: github.context.repo.owner,
         repo: github.context.repo.repo,
         pull_number: prNumber.number,
