@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.1
+- [Merged master from upstream](https://github.com/AurorNZ/paths-filter/pull/3) - Thanks @jordanb-afs!
+- [Fixed npm security alerts](https://github.com/AurorNZ/paths-filter/pull/5)
+
 ## v3.0.0
 - [Breaking: use micromatch instead of picomatch](https://github.com/AurorNZ/paths-filter/pull/1)
 
