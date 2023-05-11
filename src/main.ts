@@ -69,12 +69,12 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
   }
 
   const prEvents = ['pull_request', 'pull_request_review', 'pull_request_review_comment', 'pull_request_target']
-  if (prEvents.includes(github.context.eventName)) {
+  if (prEvents.includes(github.context.eventName) && !base && !ref) {
     if (ref) {
-      core.warning(`'ref' input parameter is ignored when 'base' is set to HEAD`)
+      core.warning(`'ref' input parameter is ignored when 'base' is not also set on PR events.`)
     }
     if (base) {
-      core.warning(`'base' input parameter is ignored when action is triggered by pull request event`)
+      core.warning(`'base' input parameter is ignored when 'ref' is not also set on PR events.`)
     }
     const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
     if (token) {

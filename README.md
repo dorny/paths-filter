@@ -18,8 +18,8 @@ don't allow this because they don't work on a level of individual jobs or steps.
 - **Pull requests:**
   - Workflow triggered by **[pull_request](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request)**
     or **[pull_request_target](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target)** event
-  - Changes are detected against the pull request base branch
-  - Uses GitHub REST API to fetch a list of modified files
+  - Changes are detected against the pull request base branch (unless base and ref are explicitly provided)
+  - Uses GitHub REST API to fetch a list of modified files (unless base and ref are explicitly provided)
   - Requires [pull-requests: read](https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs) permission
 - **Feature branches:**
   - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)**
@@ -109,14 +109,12 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # introduced by the current branch are considered.
     # All files are considered as added if there is no common ancestor with
     # base branch or no previous commit.
-    # This option is ignored if action is triggered by pull_request event.
     # Default: repository default branch (e.g. master)
     base: ''
 
     # Git reference (e.g. branch name) from which the changes will be detected.
     # Useful when workflow can be triggered only on the default branch (e.g. repository_dispatch event)
     # but you want to get changes on a different branch.
-    # This option is ignored if action is triggered by pull_request event.
     # default: ${{ github.ref }}
     ref:
 
@@ -292,7 +290,7 @@ jobs:
 ### Change detection workflows
 
 <details>
-  <summary><b>Pull requests:</b> Detect changes against PR base branch</summary>
+  <summary><b>Pull requests (normal use case):</b> Detect changes against PR base branch</summary>
 
 ```yaml
 on:
@@ -311,6 +309,52 @@ jobs:
     - uses: dorny/paths-filter@v2
       id: filter
       with:
+        filters: ... # Configure your filters
+```
+
+</details>
+
+<details>
+  <summary><b>Pull requests (custom use case):</b> Detect changes against tag</summary>
+
+```yaml
+on:
+  pull_request:
+    branches:
+      - develop
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        base: some-custom-git-tag
+        ref: ${{ github.head_ref }} # On a PR, head_ref is the name of the PR branch.
+        filters: ... # Configure your filters
+```
+
+</details>
+
+<details>
+  <summary><b>Pull requests (custom use case):</b> Detect changes since the last commit</summary>
+
+```yaml
+on:
+  pull_request:
+    branches:
+      - develop
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        base: ${{ github.sha }}
+        ref: ${{ github.sha }}
         filters: ... # Configure your filters
 ```
 
