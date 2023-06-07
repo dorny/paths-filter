@@ -519,6 +519,16 @@ jobs:
 
 - [test-reporter](https://github.com/dorny/test-reporter) - Displays test results from popular testing frameworks directly in GitHub
 
+## Troubleshooting
+
+If you are having trouble with this action check for your error message here to see if it can be resolved.
+
+<details>
+  <summary>bad indentation of a mapping entry</summary>
+  
+  This is most likely caused by invalid YAML, (a missing close quote, or mismatched indentation inside your `filters: |`. The easiest way to debug this is to copy your `filters: |` content into a file with yaml syntax highlighting.
+</details>
+
 ## License
 
 The scripts and documentation in this project are released under the [MIT License](https://github.com/dorny/paths-filter/blob/master/LICENSE)
