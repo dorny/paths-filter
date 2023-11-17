@@ -462,6 +462,26 @@ jobs:
 
 </details>
 
+<details>
+  <summary>Using git commands to detect changes</summary>
+
+```yaml
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+          fetch-depth: 2 # To retrieve the preceding commit.
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: .github/filters.yaml
+      token: '' # Use git commands
+```
+
+</details>
+
 ### Custom processing of changed files
 
 <details>
