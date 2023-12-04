@@ -39,7 +39,7 @@
     "@types/picomatch": "^2.2.1",
     "@typescript-eslint/eslint-plugin": "^5.10.2",
     "@typescript-eslint/parser": "^5.10.2",
-    "@vercel/ncc": "^0.33.1",
+    "@vercel/ncc": "^0.38.1",
     "eslint": "^8.17.0",
     "eslint-plugin-github": "^4.3.6",
     "eslint-plugin-jest": "^22.21.0",
