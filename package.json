@@ -1,6 +1,9 @@
 {
   "name": "paths-filter",
   "version": "1.0.0",
+  "engines": {
+    "node": ">= 20"
+  },
   "private": true,
   "description": "Execute your workflow steps only if relevant files are modified.",
   "main": "lib/main.js",

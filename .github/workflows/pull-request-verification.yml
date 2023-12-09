@@ -10,7 +10,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
     - run: |
         npm install
         npm run all
@@ -20,7 +24,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./
       id: filter
       with:
@@ -41,7 +45,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./
       id: filter
       with:
@@ -53,7 +57,7 @@ jobs:
   test-without-token:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./
       id: filter
       with:
@@ -66,7 +70,7 @@ jobs:
   test-wd-without-token:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         path: somewhere
     - uses: ./somewhere
@@ -82,7 +86,7 @@ jobs:
   test-local-changes:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: echo "NEW FILE" > local
     - run: git add local
     - uses: ./
@@ -102,7 +106,7 @@ jobs:
   test-change-type:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: configure GIT user
       run: git config user.email "john@nowhere.local" && git config user.name "John Doe"
     - name: modify working tree
