@@ -72,6 +72,7 @@ For more scenarios see [examples](#examples) section.
 
 ## What's New
 
+- New major release `v3` after update to Node 20 [Breaking change]
 - Add `ref` input parameter
 - Add `list-files: csv` format
 - Configure matrix job to run for each folder with changes using `changes` output
