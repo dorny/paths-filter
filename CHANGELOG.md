@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.12.0
+## v3.0.0
 - [Update to Node.js 20 ](https://github.com/dorny/paths-filter/pull/210)
 - [Update all dependencies](https://github.com/dorny/paths-filter/pull/215)
 
