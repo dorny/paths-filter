@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {Webhooks} from '@octokit/webhooks'
+import {PullRequest, PushEvent} from '@octokit/webhooks-types'
 
 import {Filter, FilterResults} from './filter'
 import {File, ChangeStatus} from './file'
@@ -77,7 +77,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
     if (base) {
       core.warning(`'base' input parameter is ignored when action is triggered by pull request event`)
     }
-    const pr = github.context.payload.pull_request as Webhooks.WebhookPayloadPullRequestPullRequest
+    const pr = github.context.payload.pull_request as PullRequest
     if (token) {
       return await getChangedFilesFromApi(token, pr)
     }
@@ -97,8 +97,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
 async function getChangedFilesFromGit(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
   const defaultBranch = github.context.payload.repository?.default_branch
 
-  const beforeSha =
-    github.context.eventName === 'push' ? (github.context.payload as Webhooks.WebhookPayloadPush).before : null
+  const beforeSha = github.context.eventName === 'push' ? (github.context.payload as PushEvent).before : null
 
   const currentRef = await git.getCurrentRef()
 
@@ -158,13 +157,10 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 }
 
 // Uses github REST api to get list of files changed in PR
-async function getChangedFilesFromApi(
-  token: string,
-  prNumber: Webhooks.WebhookPayloadPullRequestPullRequest
-): Promise<File[]> {
+async function getChangedFilesFromApi(token: string, prNumber: PullRequest): Promise<File[]> {
   core.startGroup(`Fetching list of changed files for PR#${prNumber.number} from Github API`)
   try {
-    const client = new github.GitHub(token)
+    const client = github.getOctokit(token).rest
     const per_page = 100
     const files: File[] = []
 
