@@ -1,5 +1,8 @@
 # Changelog
 
+## v4.0.0
+- [Possibly breaking: Updated dependencies and upgrade to node 20](https://github.com/AurorNZ/paths-filter/pull/9)
+
 ## v3.0.1
 - [Merged master from upstream](https://github.com/AurorNZ/paths-filter/pull/3) - Thanks @jordanb-afs!
 - [Fixed npm security alerts](https://github.com/AurorNZ/paths-filter/pull/5)
