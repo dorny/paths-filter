@@ -10,7 +10,7 @@
     "format": "prettier --write **/*.ts",
     "format-check": "prettier --check **/*.ts",
     "lint": "eslint src/**/*.ts",
-    "pack": "ncc build",
+    "pack": "ncc build -m",
     "test": "jest",
     "all": "npm run build && npm run format && npm run lint && npm run pack && npm test"
   },
@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@octokit/webhooks-types": "^7.3.1",
+    "@tsconfig/node20": "^20.1.2",
     "@types/jest": "^29.5.11",
     "@types/js-yaml": "^4.0.9",
     "@types/micromatch": "^4.0.2",
