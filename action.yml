@@ -48,7 +48,7 @@ outputs:
   changes:
     description: JSON array with names of all filters matching any of changed files
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'
 branding:
   color: blue
