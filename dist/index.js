@@ -555,6 +555,7 @@ function getConfigFileContent(configPath) {
     return fs.readFileSync(configPath, { encoding: 'utf8' });
 }
 async function getChangedFiles(token, base, ref, initialFetchDepth) {
+    var _a, _b;
     // if base is 'HEAD' only local uncommitted changes will be detected
     // This is the simplest case as we don't need to fetch more commits or evaluate current/before refs
     if (base === git.HEAD) {
@@ -581,8 +582,11 @@ async function getChangedFiles(token, base, ref, initialFetchDepth) {
             // At the same time we don't want to fetch any code from forked repository
             throw new Error(`'token' input parameter is required if action is triggered by 'pull_request_target' event`);
         }
-        core.info('Github token is not available - changes will be detected from PRs merge commit');
-        return await git.getChangesInLastCommit();
+        core.info('Github token is not available - changes will be detected using git diff');
+        const baseSha = (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.base.sha;
+        const defaultBranch = (_b = github.context.payload.repository) === null || _b === void 0 ? void 0 : _b.default_branch;
+        const currentRef = await git.getCurrentRef();
+        return await git.getChanges(base || baseSha || defaultBranch, currentRef);
     }
     else {
         return getChangedFilesFromGit(base, ref, initialFetchDepth);
