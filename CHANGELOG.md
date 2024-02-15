@@ -1,7 +1,10 @@
 # Changelog
 
+## v3.0.1
+- [Compare base and ref when token is empty](https://github.com/dorny/paths-filter/pull/133)
+
 ## v3.0.0
-- [Update to Node.js 20 ](https://github.com/dorny/paths-filter/pull/210)
+- [Update to Node.js 20](https://github.com/dorny/paths-filter/pull/210)
 - [Update all dependencies](https://github.com/dorny/paths-filter/pull/215)
 
 ## v2.11.1
