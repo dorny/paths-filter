@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.0
+- [Update to Node.js 20 ](https://github.com/dorny/paths-filter/pull/210)
+- [Update all dependencies](https://github.com/dorny/paths-filter/pull/215)
+
 ## v2.11.1
 - [Update @actions/core to v1.10.0 - Fixes warning about deprecated set-output](https://github.com/dorny/paths-filter/pull/167)
 - [Document need for pull-requests: read permission](https://github.com/dorny/paths-filter/pull/168)
