@@ -271,8 +271,8 @@ jobs:
       id: filter
       with:
         filters: |
-          package1: src/package1
-          package2: src/package2
+          package1: 'src/package1/**'
+          package2: 'src/package2/**'
 
   # JOB to build and test each of modified packages
   build:
