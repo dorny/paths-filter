@@ -153,6 +153,22 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # changes using git commands.
     # Default: ${{ github.token }}
     token: ''
+
+    # Optional parameter to override the default behavior of file matching algorithm. 
+    # By default files that match at least one pattern defined by the filters will be included.
+    # This parameter allows to override the "at least one pattern" behavior to make it so that
+    # all of the patterns have to match or otherwise the file is excluded. 
+    # An example scenario where this is useful if you would like to match all 
+    # .ts files in a sub-directory but not .md files. 
+    # The filters below will match markdown files despite the exclusion syntax UNLESS 
+    # you specify 'every' as the predicate-quantifier parameter. When you do that, 
+    # it will only match the .ts files in the subdirectory as expected.
+    #
+    # backend:
+    #  - 'pkg/a/b/c/**'
+    #  - '!**/*.jpeg'
+    #  - '!**/*.md'
+    predicate-quantifier: 'some'
 ```
 
 ## Outputs
@@ -459,6 +475,32 @@ jobs:
             - added|deleted|modified: '**'
           addedOrModifiedAnchors:
             - added|modified: *shared
+```
+
+</details>
+
+<details>
+  <summary>Detect changes in folder only for some file extensions</summary>
+
+```yaml
+- uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        # This makes it so that all the patterns have to match a file for it to be
+        # considered changed. Because we have the exclusions for .jpeg and .md files
+        # the end result is that if those files are changed they will be ignored
+        # because they don't match the respective rules excluding them.
+        #
+        # This can be leveraged to ensure that you only build & test software changes
+        # that have real impact on the behavior of the code, e.g. you can set up your
+        # build to run when Typescript/Rust/etc. files are changed but markdown
+        # changes in the diff will be ignored and you consume less resources to build.
+        predicate-quantifier: 'every'
+        filters: |
+          backend:
+            - 'pkg/a/b/c/**'
+            - '!**/*.jpeg'
+            - '!**/*.md'
 ```
 
 </details>
