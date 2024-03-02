@@ -4,7 +4,14 @@ import * as github from '@actions/github'
 import {GetResponseDataTypeFromEndpointMethod} from '@octokit/types'
 import {PushEvent, PullRequestEvent} from '@octokit/webhooks-types'
 
-import {Filter, FilterResults} from './filter'
+import {
+  isPredicateQuantifier,
+  Filter,
+  FilterConfig,
+  FilterResults,
+  PredicateQuantifier,
+  SUPPORTED_PREDICATE_QUANTIFIERS
+} from './filter'
 import {File, ChangeStatus} from './file'
 import * as git from './git'
 import {backslashEscape, shellEscape} from './list-format/shell-escape'
@@ -26,13 +33,22 @@ async function run(): Promise<void> {
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
     const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
+    const predicateQuantifier = core.getInput('predicate-quantifier', {required: false}) || PredicateQuantifier.SOME
 
     if (!isExportFormat(listFiles)) {
       core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`)
       return
     }
 
-    const filter = new Filter(filtersYaml)
+    if (!isPredicateQuantifier(predicateQuantifier)) {
+      const predicateQuantifierInvalidErrorMsg =
+        `Input parameter 'predicate-quantifier' is set to invalid value ` +
+        `'${predicateQuantifier}'. Valid values: ${SUPPORTED_PREDICATE_QUANTIFIERS.join(', ')}`
+      throw new Error(predicateQuantifierInvalidErrorMsg)
+    }
+    const filterConfig: FilterConfig = {predicateQuantifier}
+
+    const filter = new Filter(filtersYaml, filterConfig)
     const files = await getChangedFiles(token, base, ref, initialFetchDepth)
     core.info(`Detected ${files.length} changed files`)
     const results = filter.match(files)

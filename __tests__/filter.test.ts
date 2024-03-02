@@ -1,4 +1,4 @@
-import {Filter} from '../src/filter'
+import {Filter, FilterConfig, PredicateQuantifier} from '../src/filter'
 import {File, ChangeStatus} from '../src/file'
 
 describe('yaml filter parsing tests', () => {
@@ -117,6 +117,37 @@ describe('matching tests', () => {
     expect(pyMatch.backend).toEqual(pyFiles)
   })
 
+  test('matches only files that are matching EVERY pattern when set to PredicateQuantifier.EVERY', () => {
+    const yaml = `
+    backend:
+      - 'pkg/a/b/c/**'
+      - '!**/*.jpeg'
+      - '!**/*.md'
+    `
+    const filterConfig: FilterConfig = {predicateQuantifier: PredicateQuantifier.EVERY}
+    const filter = new Filter(yaml, filterConfig)
+
+    const typescriptFiles = modified(['pkg/a/b/c/some-class.ts', 'pkg/a/b/c/src/main/some-class.ts'])
+    const otherPkgTypescriptFiles = modified(['pkg/x/y/z/some-class.ts', 'pkg/x/y/z/src/main/some-class.ts'])
+    const otherPkgJpegFiles = modified(['pkg/x/y/z/some-pic.jpeg', 'pkg/x/y/z/src/main/jpeg/some-pic.jpeg'])
+    const docsFiles = modified([
+      'pkg/a/b/c/some-pics.jpeg',
+      'pkg/a/b/c/src/main/jpeg/some-pic.jpeg',
+      'pkg/a/b/c/src/main/some-docs.md',
+      'pkg/a/b/c/some-docs.md'
+    ])
+
+    const typescriptMatch = filter.match(typescriptFiles)
+    const otherPkgTypescriptMatch = filter.match(otherPkgTypescriptFiles)
+    const docsMatch = filter.match(docsFiles)
+    const otherPkgJpegMatch = filter.match(otherPkgJpegFiles)
+
+    expect(typescriptMatch.backend).toEqual(typescriptFiles)
+    expect(otherPkgTypescriptMatch.backend).toEqual([])
+    expect(docsMatch.backend).toEqual([])
+    expect(otherPkgJpegMatch.backend).toEqual([])
+  })
+
   test('matches path based on rules included using YAML anchor', () => {
     const yaml = `
     shared: &shared
@@ -184,5 +215,11 @@ describe('matching specific change status', () => {
 function modified(paths: string[]): File[] {
   return paths.map(filename => {
     return {filename, status: ChangeStatus.Modified}
+  })
+}
+
+function renamed(paths: string[]): File[] {
+  return paths.map(filename => {
+    return {filename, status: ChangeStatus.Renamed}
   })
 }

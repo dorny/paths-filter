@@ -23,6 +23,48 @@ interface FilterRuleItem {
   isMatch: (str: string) => boolean // Matches the filename
 }
 
+/**
+ * Enumerates the possible logic quantifiers that can be used when determining
+ * if a file is a match or not with multiple patterns.
+ *
+ * The YAML configuration property that is parsed into one of these values is
+ * 'predicate-quantifier' on the top level of the configuration object of the
+ * action.
+ *
+ * The default is to use 'some' which used to be the hardcoded behavior prior to
+ * the introduction of the new mechanism.
+ *
+ * @see https://en.wikipedia.org/wiki/Quantifier_(logic)
+ */
+export enum PredicateQuantifier {
+  /**
+   * When choosing 'every' in the config it means that files will only get matched
+   * if all the patterns are satisfied by the path of the file, not just at least one of them.
+   */
+  EVERY = 'every',
+  /**
+   * When choosing 'some' in the config it means that files will get matched as long as there is
+   * at least one pattern that matches them. This is the default behavior if you don't
+   * specify anything as a predicate quantifier.
+   */
+  SOME = 'some'
+}
+
+/**
+ * Used to define customizations for how the file filtering should work at runtime.
+ */
+export type FilterConfig = {readonly predicateQuantifier: PredicateQuantifier}
+
+/**
+ * An array of strings (at runtime) that contains the valid/accepted values for
+ * the configuration parameter 'predicate-quantifier'.
+ */
+export const SUPPORTED_PREDICATE_QUANTIFIERS = Object.values(PredicateQuantifier)
+
+export function isPredicateQuantifier(x: unknown): x is PredicateQuantifier {
+  return SUPPORTED_PREDICATE_QUANTIFIERS.includes(x as PredicateQuantifier)
+}
+
 export interface FilterResults {
   [key: string]: File[]
 }
@@ -31,7 +73,7 @@ export class Filter {
   rules: {[key: string]: FilterRuleItem[]} = {}
 
   // Creates instance of Filter and load rules from YAML if it's provided
-  constructor(yaml?: string) {
+  constructor(yaml?: string, public readonly filterConfig?: FilterConfig) {
     if (yaml) {
       this.load(yaml)
     }
@@ -62,9 +104,14 @@ export class Filter {
   }
 
   private isMatch(file: File, patterns: FilterRuleItem[]): boolean {
-    return patterns.some(
-      rule => (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.filename)
-    )
+    const aPredicate = (rule: Readonly<FilterRuleItem>) => {
+      return (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.filename)
+    }
+    if (this.filterConfig?.predicateQuantifier === 'every') {
+      return patterns.every(aPredicate)
+    } else {
+      return patterns.some(aPredicate)
+    }
   }
 
   private parseFilterItemYaml(item: FilterItemYaml): FilterRuleItem[] {
