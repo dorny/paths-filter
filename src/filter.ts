@@ -73,7 +73,7 @@ export class Filter {
   rules: {[key: string]: FilterRuleItem[]} = {}
 
   // Creates instance of Filter and load rules from YAML if it's provided
-  constructor(yaml?: string, public readonly filterConfig?: FilterConfig) {
+  constructor(yaml?: string, readonly filterConfig?: FilterConfig) {
     if (yaml) {
       this.load(yaml)
     }
@@ -104,7 +104,7 @@ export class Filter {
   }
 
   private isMatch(file: File, patterns: FilterRuleItem[]): boolean {
-    const aPredicate = (rule: Readonly<FilterRuleItem>) => {
+    const aPredicate = (rule: Readonly<FilterRuleItem>): boolean => {
       return (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.filename)
     }
     if (this.filterConfig?.predicateQuantifier === 'every') {

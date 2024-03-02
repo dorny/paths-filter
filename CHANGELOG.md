@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.0.2
+- [Add config parameter for predicate quantifier](https://github.com/dorny/paths-filter/pull/224)
+
 ## v3.0.1
 - [Compare base and ref when token is empty](https://github.com/dorny/paths-filter/pull/133)
 
