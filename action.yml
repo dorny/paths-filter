@@ -44,6 +44,16 @@ inputs:
       This option takes effect only when changes are detected using git against different base branch.
     required: false
     default: '100'
+  predicate-quantifier:
+    description: |
+      Makes the pattern evaluation customizable when it comes to matching files:
+        'every'- When choosing 'every' in the config it means that files will only get matched if all the 
+                 patterns are satisfied by the path of the file, not just at least one of them.
+        'some' - When choosing 'some' in the config it means that files will get matched as long as there is
+                 at least one pattern that matches them. This is the default behavior if you don't
+                 specify anything as a predicate quantifier. (default)
+    required: false
+    default: some
 outputs:
   changes:
     description: JSON array with names of all filters matching any of changed files
