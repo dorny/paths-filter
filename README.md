@@ -70,6 +70,34 @@ For more scenarios see [examples](#examples) section.
 - Local execution with [act](https://github.com/nektos/act) works only with alternative runner image. Default runner doesn't have `git` binary.
   - Use: `act -P ubuntu-latest=nektos/act-environments-ubuntu:18.04`
 
+### Schedule events (cron)
+
+Workflows triggered by [`schedule` events](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule) (ie cron) must be given special consideration when using this action. As per the GitHub docs:
+
+> Scheduled workflows run on the latest commit on the default or base branch
+
+Unlike for `pull_request` or `push` events, where there's an associated commit (or set of commits) for the branch in question, schedule events are based on time, so there is nothing to compare against, other than maybe "the time of the last run", but that timing cannot be guaranteed.
+
+As such, there is no GitHub Actions webhook payload for schedule events, so when the action tries to calculate the set of changes, it will error:
+
+`This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload`
+
+It's recommended for workflows that will be triggered by a schedule event, to either set the `base` property, or explicitly check for a scheduled event and handle as required (eg always run, or never run, whatever the requirement is). For example, for steps within a single job:
+
+```yaml
+- uses: dorny/paths-filter@v2
+  id: changes
+  if: github.event_name != 'schedule'
+  with:
+    filters: |
+      src:
+        - 'src/**'
+
+  # run only if triggered by a schedule event, or some file in 'src' folder was changed
+- if: github.event_name == 'schedule' || steps.changes.outputs.src == 'true'
+  run: ...
+```
+
 ## What's New
 
 - New major release `v3` after update to Node 20 [Breaking change]
