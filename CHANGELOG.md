@@ -1,5 +1,8 @@
 # Changelog
 
+## v4.0.0
+- Uses node20 & checkouts v4 
+
 ## v3.0.0
 - [Adds customfiles, paths-ignore, globalignore, and validate input. Update packages, minify build.](https://github.com/dorny/paths-filter/pull/##)
 
