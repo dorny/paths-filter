@@ -1,4 +1,4 @@
-# Paths Changes Filter
+# Paths Changes Filter And Diff Stat
 
 [GitHub Action](https://github.com/features/actions) that enables conditional execution of workflow steps and jobs, based on the files modified by pull request, on a feature
 branch, or by the recently pushed commits.
@@ -73,6 +73,7 @@ For more scenarios see [examples](#examples) section.
 ## What's New
 
 - New major release `v3` after update to Node 20 [Breaking change]
+- Add `stat` parameter that enables output of the file changes statistics per filter.
 - Add `ref` input parameter
 - Add `list-files: csv` format
 - Configure matrix job to run for each folder with changes using `changes` output
@@ -154,14 +155,14 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Default: ${{ github.token }}
     token: ''
 
-    # Optional parameter to override the default behavior of file matching algorithm. 
+    # Optional parameter to override the default behavior of file matching algorithm.
     # By default files that match at least one pattern defined by the filters will be included.
     # This parameter allows to override the "at least one pattern" behavior to make it so that
-    # all of the patterns have to match or otherwise the file is excluded. 
-    # An example scenario where this is useful if you would like to match all 
-    # .ts files in a sub-directory but not .md files. 
-    # The filters below will match markdown files despite the exclusion syntax UNLESS 
-    # you specify 'every' as the predicate-quantifier parameter. When you do that, 
+    # all of the patterns have to match or otherwise the file is excluded.
+    # An example scenario where this is useful if you would like to match all
+    # .ts files in a sub-directory but not .md files.
+    # The filters below will match markdown files despite the exclusion syntax UNLESS
+    # you specify 'every' as the predicate-quantifier parameter. When you do that,
     # it will only match the .ts files in the subdirectory as expected.
     #
     # backend:
@@ -179,6 +180,7 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
 - For each filter, it sets an output variable with the name `${FILTER_NAME}_count` to the count of matching files.
 - If enabled, for each filter it sets an output variable with the name `${FILTER_NAME}_files`. It will contain a list of all files matching the filter.
 - `changes` - JSON array with names of all filters matching any of the changed files.
+- If `stat` input is set to an output format, the output variable `stat` contains JSON or CSV value with the change statistics for each filter.
 
 ## Examples
 
@@ -558,10 +560,37 @@ jobs:
 
 </details>
 
+<details>
+  <summary>Passing number of added lines from a filter to another action</summary>
+
+```yaml
+- uses: dorny/paths-filter@v2
+  id: filter
+  with:
+    # Enable listing of diff stat matching each filter.
+    # Paths to files will be available in `stat` output variable.
+    # Stat will be formatted as JSON object
+    stat: json
+
+    # In this example all changed files are passed to the following action to do
+    # some custom processing.
+    filters: |
+      changed:
+        - '**'
+- name: Lint Markdown
+  uses: johndoe/some-action@v1
+  # Run action only if the change is large enough.
+  if: ${{fromJson(steps.filter.outputs.stat).changed.additionCount > 1000}}
+  with:
+    files: ${{ steps.filter.outputs.changed_files }}
+```
+
+</details>
+
 ## See also
 
 - [test-reporter](https://github.com/dorny/test-reporter) - Displays test results from popular testing frameworks directly in GitHub
 
 ## License
 
-The scripts and documentation in this project are released under the [MIT License](https://github.com/dorny/paths-filter/blob/master/LICENSE)
+The scripts and documentation in this project are released under the [MIT License](https://github.com/lykahb/paths-filter/blob/master/LICENSE)
