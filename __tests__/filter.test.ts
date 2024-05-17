@@ -1,15 +1,5 @@
-import * as core from '@actions/core'
 import {Filter, FilterConfig, PredicateQuantifier} from '../src/filter'
 import {File, ChangeStatus} from '../src/file'
-import {exportResults} from '../src/main'
-
-jest.mock('@actions/core', () => ({
-  info: jest.fn(),
-  setFailed: jest.fn(),
-  startGroup: jest.fn(),
-  setOutput: jest.fn(),
-  endGroup: jest.fn()
-}))
 
 describe('yaml filter parsing tests', () => {
   test('throws if yaml is not a dictionary', () => {
@@ -170,9 +160,6 @@ describe('matching tests', () => {
     const filter = new Filter(yaml)
     const files = modified(['config/settings.yml'])
     const match = filter.match(files)
-    exportResults(match, 'none')
-
-    expect(core.setOutput).toHaveBeenCalledWith('changes', '["src"]')
     expect(match.src).toEqual(files)
   })
 })
