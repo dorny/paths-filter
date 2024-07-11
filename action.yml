@@ -23,6 +23,16 @@ inputs:
   filters:
     description: 'Path to the configuration file or YAML string with filters definition'
     required: true
+  predicate-quantifier:
+    description: |
+      Optional parameter to override the default behavior of file matching algorithm. 
+      By default files that match at least one pattern defined by the filters will be included.
+      This parameter allows to override the "at least one pattern" behavior to make it so that
+      all of the patterns have to match or otherwise the file is excluded:
+        'some'  - Default behavior if any of the provided patterns match it is considered a match
+        'every' - All provided patters have to match to be considered a match
+    required: false
+    default: some
   list-files:
     description: |
       Enables listing of files matching the filter:
