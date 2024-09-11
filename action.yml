@@ -49,7 +49,7 @@ outputs:
     description: JSON array with names of all filters matching any of changed files
 runs:
   using: 'node20'
-  main: 'dist/index.js'
+  main: 'dist/index.mjs'
 branding:
   color: blue
   icon: filter
