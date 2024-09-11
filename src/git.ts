@@ -1,5 +1,6 @@
-import exec from './exec'
 import * as core from '@actions/core'
+
+import exec from './exec'
 import {File, ChangeStatus} from './file'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
@@ -215,7 +216,7 @@ async function getLocalRef(shortName: string): Promise<string | undefined> {
   const output = (await exec('git', ['show-ref', shortName], {ignoreReturnCode: true})).stdout
   const refs = output
     .split(/\r?\n/g)
-    .map(l => l.match(/refs\/(?:(?:heads)|(?:tags)|(?:remotes\/origin))\/(.*)$/))
+    .map(l => /refs\/(?:(?:heads)|(?:tags)|(?:remotes\/origin))\/(.*)$/.exec(l))
     .filter(match => match !== null && match[1] === shortName)
     .map(match => match?.[0] ?? '') // match can't be null here but compiler doesn't understand that
 
@@ -260,7 +261,7 @@ function fixStdOutNullTermination(): void {
   core.info('')
 }
 
-const statusMap: {[char: string]: ChangeStatus} = {
+const statusMap: Record<string, ChangeStatus> = {
   A: ChangeStatus.Added,
   C: ChangeStatus.Copied,
   D: ChangeStatus.Deleted,
