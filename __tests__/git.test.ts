@@ -1,10 +1,10 @@
 import {describe, expect, test} from 'vitest'
 
-import * as git from '../src/git'
 import {ChangeStatus} from '../src/file'
+import * as git from '../src/git'
 
 describe('parsing output of the git diff command', () => {
-  test('parseGitDiffOutput returns files with correct change status', async () => {
+  test('parseGitDiffOutput returns files with correct change status', () => {
     const files = git.parseGitDiffOutput(
       'A\u0000LICENSE\u0000' + 'M\u0000src/index.ts\u0000' + 'D\u0000src/main.ts\u0000'
     )

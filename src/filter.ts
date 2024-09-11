@@ -1,11 +1,10 @@
 import * as jsyaml from 'js-yaml'
 import micromatch from 'micromatch'
+
 import {File} from './file'
 
 // Type definition of object we expect to load from YAML
-interface FilterYaml {
-  [name: string]: FilterItemYaml
-}
+type FilterYaml = Record<string, FilterItemYaml>
 type FilterItemYaml =
   | string // Filename pattern, e.g. "path/to/*.js"
   | FilterItemYaml[] // Supports referencing another rule via YAML anchor
@@ -15,12 +14,10 @@ const MatchOptions: micromatch.Options = {
   dot: true
 }
 
-export interface FilterResults {
-  [key: string]: File[]
-}
+export type FilterResults = Partial<Record<string, File[]>>
 
 export class Filter {
-  rules: {[key: string]: string[]} = {}
+  rules: Record<string, string[]> = {}
 
   // Creates instance of Filter and load rules from YAML if it's provided
   constructor(yaml?: string) {
@@ -47,9 +44,9 @@ export class Filter {
 
   match(files: File[]): FilterResults {
     const result: FilterResults = {}
-    const filesMap = files.reduce((result, x) => {
-      result.set(x.filename, x)
-      return result
+    const filesMap = files.reduce((fileResult, x) => {
+      fileResult.set(x.filename, x)
+      return fileResult
     }, new Map<string, File>())
 
     for (const [key, patterns] of Object.entries(this.rules)) {

@@ -1,13 +1,14 @@
-import * as fs from 'fs'
+import * as fs from 'node:fs'
+
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {PullRequest, PushEvent} from '@octokit/webhooks-types'
 
-import {Filter, FilterResults} from './filter'
 import {File, ChangeStatus} from './file'
+import {Filter, FilterResults} from './filter'
 import * as git from './git'
-import {backslashEscape, shellEscape} from './list-format/shell-escape'
 import {csvEscape} from './list-format/csv-escape'
+import {backslashEscape, shellEscape} from './list-format/shell-escape'
 
 type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape'
 
@@ -95,7 +96,10 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
 }
 
 async function getChangedFilesFromGit(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
-  const defaultBranch = github.context.payload.repository?.default_branch
+  const defaultBranch =
+    typeof github.context.payload.repository?.default_branch === 'string'
+      ? github.context.payload.repository.default_branch
+      : ''
 
   const beforeSha = github.context.eventName === 'push' ? (github.context.payload as PushEvent).before : null
 
@@ -174,6 +178,7 @@ async function getChangedFilesFromApi(token: string, prNumber: PullRequest): Pro
         page
       })
 
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (response.status !== 200) {
         throw new Error(`Fetching list of changed files from GitHub API failed with error code ${response.status}`)
       }
@@ -195,8 +200,9 @@ async function getChangedFilesFromApi(token: string, prNumber: PullRequest): Pro
             status: ChangeStatus.Added
           })
           files.push({
-            // 'previous_filename' for some unknown reason isn't in the type definition or documentation
-            filename: (<any>row).previous_filename as string,
+            // Existing behaviour, possibly a bug
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            filename: row.previous_filename!,
             status: ChangeStatus.Deleted
           })
         } else {
@@ -220,6 +226,8 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
   core.info('Results:')
   const changes = []
   for (const [key, files] of Object.entries(results)) {
+    if (!files) continue
+
     const value = files.length > 0
     core.startGroup(`Filter ${key} = ${value}`)
     if (files.length > 0) {
@@ -241,7 +249,7 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
     core.endGroup()
   }
 
-  if (results['changes'] === undefined) {
+  if (results.changes === undefined) {
     const changesJson = JSON.stringify(changes)
     core.info(`Changes output set to ${changesJson}`)
     core.setOutput('changes', changesJson)
@@ -270,4 +278,4 @@ function isExportFormat(value: string): value is ExportFormat {
   return ['none', 'csv', 'shell', 'json', 'escape'].includes(value)
 }
 
-run()
+;((): Promise<void> => run())()

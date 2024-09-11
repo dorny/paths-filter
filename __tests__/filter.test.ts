@@ -1,7 +1,7 @@
 import {describe, expect, test} from 'vitest'
 
-import {Filter} from '../src/filter'
 import {File, ChangeStatus} from '../src/file'
+import {Filter} from '../src/filter'
 
 describe('yaml filter parsing tests', () => {
   test('throws if yaml is not a dictionary', () => {
@@ -26,7 +26,7 @@ describe('matching tests', () => {
     const yaml = `
     src: "src/**/*.js"
     `
-    let filter = new Filter(yaml)
+    const filter = new Filter(yaml)
     const files = modified(['src/app/module/file.js'])
     const match = filter.match(files)
     expect(match.src).toEqual(files)

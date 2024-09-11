@@ -1,8 +1,6 @@
 {
   "extends": "@tsconfig/node20/tsconfig.json",
   "compilerOptions": {
-    "outDir": "./lib",                        /* Redirect output structure to the directory. */
-    "rootDir": "./src"                        /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
-  },
-  "exclude": ["node_modules", "**/*.test.ts"]
+    "noEmit": true
+  }
 }
