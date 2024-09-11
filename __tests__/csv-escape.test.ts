@@ -1,3 +1,5 @@
+import {describe, expect, test} from 'vitest'
+
 import {csvEscape} from '../src/list-format/csv-escape'
 
 describe('csvEscape() backslash escapes every character except subset of definitely safe characters', () => {
