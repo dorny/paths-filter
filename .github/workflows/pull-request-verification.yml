@@ -6,14 +6,18 @@ on:
       - master
       - '**'
 
+env:
+  VOLTA_FEATURE_PNPM: 1
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - uses: volta-cli/action@v4
     - run: |
-        npm install
-        npm run all
+        pnpm install
+        pnpm run all
 
   test-inline:
     runs-on: ubuntu-latest
