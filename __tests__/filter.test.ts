@@ -1,3 +1,5 @@
+import {describe, expect, test} from 'vitest'
+
 import {Filter} from '../src/filter'
 import {File, ChangeStatus} from '../src/file'
 

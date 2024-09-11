@@ -11,7 +11,7 @@
     "format-check": "prettier --check **/*.ts",
     "lint": "eslint src/**/*.ts",
     "pack": "ncc build -m",
-    "test": "jest",
+    "test": "vitest",
     "all": "pnpm run build && pnpm run format && pnpm run lint && pnpm run pack && pnpm test"
   },
   "repository": {
@@ -35,7 +35,6 @@
   "devDependencies": {
     "@octokit/webhooks-types": "^7.3.1",
     "@tsconfig/node20": "^20.1.2",
-    "@types/jest": "^29.5.11",
     "@types/js-yaml": "^4.0.9",
     "@types/micromatch": "^4.0.2",
     "@types/node": "^20.0.0",
@@ -44,12 +43,9 @@
     "@vercel/ncc": "^0.38.1",
     "eslint": "^8.56.0",
     "eslint-plugin-github": "^4.10.1",
-    "eslint-plugin-jest": "^27.6.3",
-    "jest": "^29.7.0",
-    "jest-circus": "^29.7.0",
     "prettier": "^3.2.4",
-    "ts-jest": "^29.1.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.0.5"
   },
   "volta": {
     "node": "20.17.0",

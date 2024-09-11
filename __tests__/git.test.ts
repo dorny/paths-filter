@@ -1,3 +1,5 @@
+import {describe, expect, test} from 'vitest'
+
 import * as git from '../src/git'
 import {ChangeStatus} from '../src/file'
 

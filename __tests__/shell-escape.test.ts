@@ -1,3 +1,5 @@
+import {describe, expect, test} from 'vitest'
+
 import {backslashEscape, shellEscape} from '../src/list-format/shell-escape'
 
 describe('escape() backslash escapes every character except subset of definitely safe characters', () => {
