@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 
-import exec from './exec'
-import {File, ChangeStatus} from './file'
+import exec from './exec.ts'
+import {File, ChangeStatus} from './file.ts'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
 export const HEAD = 'HEAD'

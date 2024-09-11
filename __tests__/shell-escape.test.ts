@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest'
 
-import {backslashEscape, shellEscape} from '../src/list-format/shell-escape'
+import {backslashEscape, shellEscape} from '../src/list-format/shell-escape.ts'
 
 describe('escape() backslash escapes every character except subset of definitely safe characters', () => {
   test('simple filename should not be modified', () => {

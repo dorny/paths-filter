@@ -1,7 +1,7 @@
 import * as jsyaml from 'js-yaml'
 import micromatch from 'micromatch'
 
-import {File} from './file'
+import {File} from './file.ts'
 
 // Type definition of object we expect to load from YAML
 type FilterYaml = Record<string, FilterItemYaml>

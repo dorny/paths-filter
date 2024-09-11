@@ -44,7 +44,7 @@ export default tsEslint.config(
     }
   },
   {
-    ignores: ['coverage', 'dist', 'lib']
+    ignores: ['**/coverage', '**/dist', '**/esbuild.config.mjs']
   },
   {
     plugins: {

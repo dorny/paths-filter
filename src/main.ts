@@ -4,11 +4,11 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {PullRequest, PushEvent} from '@octokit/webhooks-types'
 
-import {File, ChangeStatus} from './file'
-import {Filter, FilterResults} from './filter'
-import * as git from './git'
-import {csvEscape} from './list-format/csv-escape'
-import {backslashEscape, shellEscape} from './list-format/shell-escape'
+import {File, ChangeStatus} from './file.ts'
+import {Filter, FilterResults} from './filter.ts'
+import * as git from './git.ts'
+import {csvEscape} from './list-format/csv-escape.ts'
+import {backslashEscape, shellEscape} from './list-format/shell-escape.ts'
 
 type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape'
 
