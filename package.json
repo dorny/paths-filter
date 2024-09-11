@@ -12,7 +12,7 @@
     "lint": "eslint src/**/*.ts",
     "pack": "ncc build -m",
     "test": "jest",
-    "all": "npm run build && npm run format && npm run lint && npm run pack && npm test"
+    "all": "pnpm run build && pnpm run format && pnpm run lint && pnpm run pack && pnpm test"
   },
   "repository": {
     "type": "git",
@@ -50,5 +50,9 @@
     "prettier": "^3.2.4",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3"
+  },
+  "volta": {
+    "node": "20.17.0",
+    "pnpm": "8.15.8"
   }
 }
