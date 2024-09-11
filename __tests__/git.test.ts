@@ -1,7 +1,7 @@
 import {describe, expect, test} from 'vitest'
 
-import {ChangeStatus} from '../src/file'
-import * as git from '../src/git'
+import {ChangeStatus} from '../src/file.ts'
+import * as git from '../src/git.ts'
 
 describe('parsing output of the git diff command', () => {
   test('parseGitDiffOutput returns files with correct change status', () => {

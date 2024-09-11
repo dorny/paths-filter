@@ -1,7 +1,7 @@
 import {describe, expect, test} from 'vitest'
 
-import {File, ChangeStatus} from '../src/file'
-import {Filter} from '../src/filter'
+import {File, ChangeStatus} from '../src/file.ts'
+import {Filter} from '../src/filter.ts'
 
 describe('yaml filter parsing tests', () => {
   test('throws if yaml is not a dictionary', () => {
