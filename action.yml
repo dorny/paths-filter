@@ -1,13 +1,13 @@
-name: 'Paths Changes Filter'
-description: 'Execute your workflow steps only if relevant files are modified.'
-author: 'Michal Dorner <dorner.michal@gmail.com>'
+name: "Paths Changes Filter"
+description: "Execute your workflow steps only if relevant files are modified."
+author: "Michal Dorner <dorner.michal@gmail.com>"
 inputs:
   token:
-    description: 'GitHub Access Token'
+    description: "GitHub Access Token"
     required: false
     default: ${{ github.token }}
   working-directory:
-    description: 'Relative path under $GITHUB_WORKSPACE where the repository was checked out.'
+    description: "Relative path under $GITHUB_WORKSPACE where the repository was checked out."
     required: false
   ref:
     description: |
@@ -20,8 +20,11 @@ inputs:
       If it references same branch it was pushed to, changes are detected against the most recent commit before the push.
       This option is ignored if action is triggered by pull_request event.
     required: false
+  files:
+    description: "Manual list of files to filter"
+    required: false
   filters:
-    description: 'Path to the configuration file or YAML string with filters definition'
+    description: "Path to the configuration file or YAML string with filters definition"
     required: true
   list-files:
     description: |
@@ -43,13 +46,13 @@ inputs:
       until the merge-base is found or there are no more commits in the history.
       This option takes effect only when changes are detected using git against different base branch.
     required: false
-    default: '100'
+    default: "100"
 outputs:
   changes:
     description: JSON array with names of all filters matching any of changed files
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
+  using: "node20"
+  main: "dist/index.js"
 branding:
   color: blue
   icon: filter
