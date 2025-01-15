@@ -51,6 +51,7 @@ async function run(): Promise<void> {
     const filterConfig: FilterConfig = { predicateQuantifier }
 
     const filter = new Filter(filtersYaml, filterConfig)
+    core.info(`Detected ${filesInput} files`)
     const files = await getChangedFiles(filesInput, token, base, ref, initialFetchDepth)
     core.info(`Detected ${files.length} changed files`)
     const results = filter.match(files)
