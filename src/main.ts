@@ -84,6 +84,7 @@ async function getChangedFiles(
   initialFetchDepth: number
 ): Promise<File[]> {
   if (files) {
+    core.info('Using list of files provided as input')
     const doc = jsyaml.load(files) as string[]
     return doc.map(filename => ({ filename, status: ChangeStatus.Modified }))
   }
