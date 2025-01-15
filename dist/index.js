@@ -553,9 +553,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const fs = __importStar(__nccwpck_require__(7147));
 const core = __importStar(__nccwpck_require__(2186));
+const fs = __importStar(__nccwpck_require__(7147));
 const github = __importStar(__nccwpck_require__(5438));
+const jsyaml = __importStar(__nccwpck_require__(1917));
 const filter_1 = __nccwpck_require__(3707);
 const file_1 = __nccwpck_require__(4014);
 const git = __importStar(__nccwpck_require__(3374));
@@ -570,6 +571,7 @@ async function run() {
         const token = core.getInput('token', { required: false });
         const ref = core.getInput('ref', { required: false });
         const base = core.getInput('base', { required: false });
+        const filesInput = core.getInput('files', { required: false });
         const filtersInput = core.getInput('filters', { required: true });
         const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
         const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
@@ -586,7 +588,8 @@ async function run() {
         }
         const filterConfig = { predicateQuantifier };
         const filter = new filter_1.Filter(filtersYaml, filterConfig);
-        const files = await getChangedFiles(token, base, ref, initialFetchDepth);
+        core.info(`Detected ${filesInput} files`);
+        const files = await getChangedFiles(filesInput, token, base, ref, initialFetchDepth);
         core.info(`Detected ${files.length} changed files`);
         const results = filter.match(files);
         exportResults(results, listFiles);
@@ -607,8 +610,13 @@ function getConfigFileContent(configPath) {
     }
     return fs.readFileSync(configPath, { encoding: 'utf8' });
 }
-async function getChangedFiles(token, base, ref, initialFetchDepth) {
+async function getChangedFiles(files, token, base, ref, initialFetchDepth) {
     var _a, _b;
+    if (files) {
+        core.info('Using list of files provided as input');
+        const doc = jsyaml.load(files);
+        return doc.map(filename => ({ filename, status: file_1.ChangeStatus.Modified }));
+    }
     // if base is 'HEAD' only local uncommitted changes will be detected
     // This is the simplest case as we don't need to fetch more commits or evaluate current/before refs
     if (base === git.HEAD) {
