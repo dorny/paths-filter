@@ -2,8 +2,8 @@ import * as core from '@actions/core'
 import * as fs from 'fs'
 import * as github from '@actions/github'
 import * as jsyaml from 'js-yaml'
-import {GetResponseDataTypeFromEndpointMethod} from '@octokit/types'
-import {PushEvent, PullRequestEvent} from '@octokit/webhooks-types'
+import { GetResponseDataTypeFromEndpointMethod } from '@octokit/types'
+import { PushEvent, PullRequestEvent } from '@octokit/webhooks-types'
 
 import {
   isPredicateQuantifier,
@@ -13,29 +13,29 @@ import {
   PredicateQuantifier,
   SUPPORTED_PREDICATE_QUANTIFIERS
 } from './filter'
-import {File, ChangeStatus} from './file'
+import { File, ChangeStatus } from './file'
 import * as git from './git'
-import {backslashEscape, shellEscape} from './list-format/shell-escape'
-import {csvEscape} from './list-format/csv-escape'
+import { backslashEscape, shellEscape } from './list-format/shell-escape'
+import { csvEscape } from './list-format/csv-escape'
 
 type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape'
 
 async function run(): Promise<void> {
   try {
-    const workingDirectory = core.getInput('working-directory', {required: false})
+    const workingDirectory = core.getInput('working-directory', { required: false })
     if (workingDirectory) {
       process.chdir(workingDirectory)
     }
 
-    const token = core.getInput('token', {required: false})
-    const ref = core.getInput('ref', {required: false})
-    const base = core.getInput('base', {required: false})
-    const filesInput = core.getInput('files', {required: false})
-    const filtersInput = core.getInput('filters', {required: true})
+    const token = core.getInput('token', { required: false })
+    const ref = core.getInput('ref', { required: false })
+    const base = core.getInput('base', { required: false })
+    const filesInput = core.getInput('files', { required: false })
+    const filtersInput = core.getInput('filters', { required: true })
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
-    const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
-    const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
-    const predicateQuantifier = core.getInput('predicate-quantifier', {required: false}) || PredicateQuantifier.SOME
+    const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none'
+    const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10
+    const predicateQuantifier = core.getInput('predicate-quantifier', { required: false }) || PredicateQuantifier.SOME
 
     if (!isExportFormat(listFiles)) {
       core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`)
@@ -48,10 +48,9 @@ async function run(): Promise<void> {
         `'${predicateQuantifier}'. Valid values: ${SUPPORTED_PREDICATE_QUANTIFIERS.join(', ')}`
       throw new Error(predicateQuantifierInvalidErrorMsg)
     }
-    const filterConfig: FilterConfig = {predicateQuantifier}
+    const filterConfig: FilterConfig = { predicateQuantifier }
 
     const filter = new Filter(filtersYaml, filterConfig)
-    core.info(`Detected ${filesInput} files`)
     const files = await getChangedFiles(filesInput, token, base, ref, initialFetchDepth)
     core.info(`Detected ${files.length} changed files`)
     const results = filter.match(files)
@@ -74,7 +73,7 @@ function getConfigFileContent(configPath: string): string {
     throw new Error(`'${configPath}' is not a file.`)
   }
 
-  return fs.readFileSync(configPath, {encoding: 'utf8'})
+  return fs.readFileSync(configPath, { encoding: 'utf8' })
 }
 
 async function getChangedFiles(
@@ -87,7 +86,7 @@ async function getChangedFiles(
   if (files) {
     core.info('Using list of files provided as input')
     const doc = jsyaml.load(files) as string[]
-    return doc.map(filename => ({filename, status: ChangeStatus.Modified}))
+    return doc.map(filename => ({ filename, status: ChangeStatus.Modified }))
   }
 
   // if base is 'HEAD' only local uncommitted changes will be detected
