@@ -44,6 +44,13 @@ inputs:
       This option takes effect only when changes are detected using git against different base branch.
     required: false
     default: '100'
+  predicate-quantifier:
+    description: |
+      Overrides the default behavior of the file matching algorithm:
+        'every' - Matches files only if all file path patterns matched
+        'some'  - Matches files when one or more file path patterns match
+    required: false
+    default: some
 outputs:
   changes:
     description: JSON array with names of all filters matching any of changed files
