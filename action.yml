@@ -44,6 +44,24 @@ inputs:
       This option takes effect only when changes are detected using git against different base branch.
     required: false
     default: '100'
+  predicate-quantifier:
+    description: |
+      Optional parameter to override the default behavior of file matching algorithm. 
+      By default files that match at least one pattern defined by the filters will be included.
+      This parameter allows to override the "at least one pattern" behavior to make it so that
+      all of the patterns have to match or otherwise the file is excluded. 
+      An example scenario where this is useful if you would like to match all 
+      .ts files in a sub-directory but not .md files. 
+      The filters below will match markdown files despite the exclusion syntax UNLESS 
+      you specify 'every' as the predicate-quantifier parameter. When you do that, 
+      it will only match the .ts files in the subdirectory as expected.
+      
+      backend:
+       - 'pkg/a/b/c/**'
+       - '!**/*.jpeg'
+       - '!**/*.md'
+    required: false
+    default: 'some'
 outputs:
   changes:
     description: JSON array with names of all filters matching any of changed files
