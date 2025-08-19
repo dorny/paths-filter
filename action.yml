@@ -45,6 +45,10 @@ inputs:
     required: false
     default: '100'
 outputs:
+  all_changed:
+    description: Boolean value indicating if all of the filters contained at least one changed file. If no filters matched, this value is 'true'.
+  any_changed:
+    description: Boolean value indicating if any of the filters contained at least one changed file
   changes:
     description: JSON array with names of all filters matching any of changed files
 runs:

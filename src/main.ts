@@ -230,18 +230,22 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
 
 function exportResults(results: FilterResults, format: ExportFormat): void {
   core.info('Results:')
-  const changes = []
+  const changes: string[] = []
+  let anyChanged = false
+  let hasUnchangedFilter = false
   for (const [key, files] of Object.entries(results)) {
     const value = files.length > 0
     core.startGroup(`Filter ${key} = ${value}`)
     if (files.length > 0) {
       changes.push(key)
+      anyChanged = true
       core.info('Matching files:')
       for (const file of files) {
         core.info(`${file.filename} [${file.status}]`)
       }
     } else {
       core.info('Matching files: none')
+      hasUnchangedFilter = true
     }
 
     core.setOutput(key, value)
@@ -252,6 +256,10 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
     }
     core.endGroup()
   }
+
+  const allChanged = anyChanged ? !hasUnchangedFilter : true
+  core.setOutput('all_changed', allChanged)
+  core.setOutput('any_changed', anyChanged)
 
   if (results['changes'] === undefined) {
     const changesJson = JSON.stringify(changes)

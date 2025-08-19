@@ -154,14 +154,14 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Default: ${{ github.token }}
     token: ''
 
-    # Optional parameter to override the default behavior of file matching algorithm. 
+    # Optional parameter to override the default behavior of file matching algorithm.
     # By default files that match at least one pattern defined by the filters will be included.
     # This parameter allows to override the "at least one pattern" behavior to make it so that
-    # all of the patterns have to match or otherwise the file is excluded. 
-    # An example scenario where this is useful if you would like to match all 
-    # .ts files in a sub-directory but not .md files. 
-    # The filters below will match markdown files despite the exclusion syntax UNLESS 
-    # you specify 'every' as the predicate-quantifier parameter. When you do that, 
+    # all of the patterns have to match or otherwise the file is excluded.
+    # An example scenario where this is useful if you would like to match all
+    # .ts files in a sub-directory but not .md files.
+    # The filters below will match markdown files despite the exclusion syntax UNLESS
+    # you specify 'every' as the predicate-quantifier parameter. When you do that,
     # it will only match the .ts files in the subdirectory as expected.
     #
     # backend:
@@ -178,6 +178,8 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
   - `'false'` - if **none** of changed files matches any of filter rules
 - For each filter, it sets an output variable with the name `${FILTER_NAME}_count` to the count of matching files.
 - If enabled, for each filter it sets an output variable with the name `${FILTER_NAME}_files`. It will contain a list of all files matching the filter.
+- `all_changed` - `'true'` if every filter contains at least one changed file or if no filters match any files (vacuous truth), otherwise `'false'`.
+- `any_changed` - `'true'` if **any** filter contains at least one changed file, otherwise `'false'`.
 - `changes` - JSON array with names of all filters matching any of the changed files.
 
 ## Examples
