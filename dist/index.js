@@ -564,6 +564,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = exports.exportResults = void 0;
 const fs = __importStar(__nccwpck_require__(7147));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
@@ -606,6 +607,7 @@ async function run() {
         core.setFailed(getErrorMessage(error));
     }
 }
+exports.run = run;
 function isPathInput(text) {
     return !(text.includes('\n') || text.includes(':'));
 }
@@ -793,6 +795,7 @@ function exportResults(results, format) {
         core.info('Cannot set changes output variable - name already used by filter output');
     }
 }
+exports.exportResults = exportResults;
 function serializeExport(files, format) {
     const fileNames = files.map(file => file.filename);
     switch (format) {
@@ -816,7 +819,9 @@ function getErrorMessage(error) {
         return error.message;
     return String(error);
 }
-run();
+if (require.main === require.cache[eval('__filename')]) {
+    run();
+}
 
 
 /***/ }),

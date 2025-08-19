@@ -228,7 +228,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
   }
 }
 
-function exportResults(results: FilterResults, format: ExportFormat): void {
+export function exportResults(results: FilterResults, format: ExportFormat): void {
   core.info('Results:')
   const changes: string[] = []
   let anyChanged = false
@@ -295,4 +295,8 @@ function getErrorMessage(error: unknown): string {
   return String(error)
 }
 
-run()
+if (require.main === module) {
+  run()
+}
+
+export {run}
