@@ -98,6 +98,31 @@ describe('matching tests', () => {
     expect(match.dot).toEqual(files)
   })
 
+  test('does not match when only negated pattern matches', () => {
+    const yaml = `
+    backend:
+      - src/backend/**
+      - '!src/frontend/**'
+    `
+    const filter = new Filter(yaml)
+    const files = modified(['vitest.setup.ts'])
+    const match = filter.match(files)
+    expect(match.backend).toEqual([])
+  })
+
+  test('negated pattern excludes matching files', () => {
+    const yaml = `
+    backend:
+      - '**/*'
+      - '!src/frontend/**'
+    `
+    const filter = new Filter(yaml)
+    const backendFile = modified(['src/backend/main.ts'])
+    const frontendFile = modified(['src/frontend/main.ts'])
+    expect(filter.match(backendFile).backend).toEqual(backendFile)
+    expect(filter.match(frontendFile).backend).toEqual([])
+  })
+
   test('matches all except tsx and less files (negate a group with or-ed parts)', () => {
     const yaml = `
     backend:

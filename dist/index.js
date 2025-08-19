@@ -130,33 +130,44 @@ class Filter {
         const aPredicate = (rule) => {
             return (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.filename);
         };
-        if (((_a = this.filterConfig) === null || _a === void 0 ? void 0 : _a.predicateQuantifier) === 'every') {
-            return patterns.every(aPredicate);
-        }
-        else {
-            return patterns.some(aPredicate);
-        }
+        const positives = patterns.filter(p => !p.negate);
+        const negatives = patterns.filter(p => p.negate);
+        const positiveMatch = positives.length === 0
+            ? true
+            : ((_a = this.filterConfig) === null || _a === void 0 ? void 0 : _a.predicateQuantifier) === PredicateQuantifier.EVERY
+                ? positives.every(aPredicate)
+                : positives.some(aPredicate);
+        const negativeMatch = negatives.some(aPredicate);
+        return positiveMatch && !negativeMatch;
     }
     parseFilterItemYaml(item) {
         if (Array.isArray(item)) {
             return flat(item.map(i => this.parseFilterItemYaml(i)));
         }
         if (typeof item === 'string') {
-            return [{ status: undefined, isMatch: (0, picomatch_1.default)(item, MatchOptions) }];
+            const negated = item.startsWith('!');
+            const pattern = negated ? item.slice(1) : item;
+            return [{ status: undefined, isMatch: (0, picomatch_1.default)(pattern, MatchOptions), negate: negated }];
         }
         if (typeof item === 'object') {
-            return Object.entries(item).map(([key, pattern]) => {
+            return Object.entries(item).flatMap(([key, pattern]) => {
                 if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
                     this.throwInvalidFormatError(`Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`);
                 }
-                return {
-                    status: key
-                        .split('|')
-                        .map(x => x.trim())
-                        .filter(x => x.length > 0)
-                        .map(x => x.toLowerCase()),
-                    isMatch: (0, picomatch_1.default)(pattern, MatchOptions)
-                };
+                const patterns = Array.isArray(pattern) ? pattern : [pattern];
+                return patterns.map(p => {
+                    const negated = p.startsWith('!');
+                    const pat = negated ? p.slice(1) : p;
+                    return {
+                        status: key
+                            .split('|')
+                            .map(x => x.trim())
+                            .filter(x => x.length > 0)
+                            .map(x => x.toLowerCase()),
+                        isMatch: (0, picomatch_1.default)(pat, MatchOptions),
+                        negate: negated
+                    };
+                });
             });
         }
         this.throwInvalidFormatError(`Unexpected element type '${typeof item}'`);

@@ -21,6 +21,7 @@ const MatchOptions = {
 interface FilterRuleItem {
   status?: ChangeStatus[] // Required change status of the matched files
   isMatch: (str: string) => boolean // Matches the filename
+  negate?: boolean // When true, this rule excludes matching files
 }
 
 /**
@@ -107,11 +108,20 @@ export class Filter {
     const aPredicate = (rule: Readonly<FilterRuleItem>): boolean => {
       return (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.filename)
     }
-    if (this.filterConfig?.predicateQuantifier === 'every') {
-      return patterns.every(aPredicate)
-    } else {
-      return patterns.some(aPredicate)
-    }
+
+    const positives = patterns.filter(p => !p.negate)
+    const negatives = patterns.filter(p => p.negate)
+
+    const positiveMatch =
+      positives.length === 0
+        ? true
+        : this.filterConfig?.predicateQuantifier === PredicateQuantifier.EVERY
+        ? positives.every(aPredicate)
+        : positives.some(aPredicate)
+
+    const negativeMatch = negatives.some(aPredicate)
+
+    return positiveMatch && !negativeMatch
   }
 
   private parseFilterItemYaml(item: FilterItemYaml): FilterRuleItem[] {
@@ -120,24 +130,33 @@ export class Filter {
     }
 
     if (typeof item === 'string') {
-      return [{status: undefined, isMatch: picomatch(item, MatchOptions)}]
+      const negated = item.startsWith('!')
+      const pattern = negated ? item.slice(1) : item
+      return [{status: undefined, isMatch: picomatch(pattern, MatchOptions), negate: negated}]
     }
 
     if (typeof item === 'object') {
-      return Object.entries(item).map(([key, pattern]) => {
+      return Object.entries(item).flatMap(([key, pattern]) => {
         if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
           this.throwInvalidFormatError(
             `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`
           )
         }
-        return {
-          status: key
-            .split('|')
-            .map(x => x.trim())
-            .filter(x => x.length > 0)
-            .map(x => x.toLowerCase()) as ChangeStatus[],
-          isMatch: picomatch(pattern, MatchOptions)
-        }
+
+        const patterns = Array.isArray(pattern) ? pattern : [pattern]
+        return patterns.map(p => {
+          const negated = p.startsWith('!')
+          const pat = negated ? p.slice(1) : p
+          return {
+            status: key
+              .split('|')
+              .map(x => x.trim())
+              .filter(x => x.length > 0)
+              .map(x => x.toLowerCase()) as ChangeStatus[],
+            isMatch: picomatch(pat, MatchOptions),
+            negate: negated
+          }
+        })
       })
     }
 
