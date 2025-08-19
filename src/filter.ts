@@ -74,7 +74,10 @@ export class Filter {
   rules: {[key: string]: FilterRuleItem[]} = {}
 
   // Creates instance of Filter and load rules from YAML if it's provided
-  constructor(yaml?: string, readonly filterConfig?: FilterConfig) {
+  constructor(
+    yaml?: string,
+    readonly filterConfig?: FilterConfig
+  ) {
     if (yaml) {
       this.load(yaml)
     }
@@ -116,8 +119,8 @@ export class Filter {
       positives.length === 0
         ? true
         : this.filterConfig?.predicateQuantifier === PredicateQuantifier.EVERY
-        ? positives.every(aPredicate)
-        : positives.some(aPredicate)
+          ? positives.every(aPredicate)
+          : positives.some(aPredicate)
 
     const negativeMatch = negatives.some(aPredicate)
 
