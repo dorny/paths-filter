@@ -296,7 +296,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 if (require.main === module) {
-  run()
+  void run()
 }
 
 export {run}
