@@ -165,3 +165,33 @@ jobs:
         || steps.filter.outputs.modified_files != 'LICENSE'
         || steps.filter.outputs.deleted_files != 'README.md'
       run: exit 1
+
+  test-list-files-json:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - run: |
+        echo "ONE" > one.txt
+        echo "TWO" > two.txt
+        git add one.txt two.txt
+    - uses: ./
+      id: filter
+      with:
+        base: HEAD
+        list-files: json
+        filters: |
+          files:
+            - added|modified: '*.txt'
+    - name: filter-test
+      if: steps.filter.outputs.files != 'true'
+      run: exit 1
+    - name: count-test
+      if: steps.filter.outputs.files_count != 2
+      run: exit 1
+    - name: json-test
+      env:
+        FILES: ${{ steps.filter.outputs.files_files }}
+      run: |
+        echo "$FILES" | jq -e 'sort == ["one.txt","two.txt"]'
