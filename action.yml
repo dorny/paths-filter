@@ -44,6 +44,14 @@ inputs:
       This option takes effect only when changes are detected using git against different base branch.
     required: false
     default: '100'
+  predicate-quantifier:
+    description: |
+      Optional parameter to override the default behavior of file matching algorithm.
+      By default, files that match at least one pattern defined by the filters will be included.
+      This parameter allows overriding the "at least one" behavior so that all patterns must match.
+      Supported values are 'some' and 'every'.
+    required: false
+    default: 'some'
 outputs:
   all_changed:
     description: Boolean value indicating if all of the filters contained at least one changed file. If no filters matched, this value is 'true'.
