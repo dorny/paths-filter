@@ -324,7 +324,8 @@ jobs:
     runs-on: ubuntu-latest
     # Required permissions
     permissions:
-      pull-requests: read
+      contents: read      # required by actions/checkout
+      pull-requests: read # required by dorny/paths-filter
     steps:
     - uses: actions/checkout@v4
     - uses: dorny/paths-filter@v3
