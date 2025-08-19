@@ -142,7 +142,7 @@ export class Filter {
       return Object.entries(item).flatMap(([key, pattern]) => {
         if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
           this.throwInvalidFormatError(
-            `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`
+            `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${String(pattern)}:${typeof pattern} found`
           )
         }
 

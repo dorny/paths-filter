@@ -103,24 +103,27 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
       throw new Error(`'token' input parameter is required if action is triggered by 'pull_request_target' event`)
     }
     core.info('Github token is not available - changes will be detected using git diff')
-    const baseSha = github.context.payload.pull_request?.base.sha
-    const defaultBranch = github.context.payload.repository?.default_branch
+    const baseSha = (github.context.payload as PullRequestEvent).pull_request?.base.sha
+    const defaultBranch: string | undefined = (github.context.payload.repository as {default_branch?: string})
+      ?.default_branch
     const currentRef = await git.getCurrentRef()
-    return await git.getChanges(base || baseSha || defaultBranch, currentRef)
+    const safeBase = typeof baseSha === 'string' ? baseSha : typeof defaultBranch === 'string' ? defaultBranch : ''
+    return await git.getChanges(base || safeBase, currentRef)
   } else {
     return getChangedFilesFromGit(base, ref, initialFetchDepth)
   }
 }
 
 async function getChangedFilesFromGit(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
-  const defaultBranch = github.context.payload.repository?.default_branch
+  const repository = github.context.payload.repository as {default_branch?: string} | undefined
+  const defaultBranch: string | undefined = repository?.default_branch
 
   const beforeSha = github.context.eventName === 'push' ? (github.context.payload as PushEvent).before : null
 
   const currentRef = await git.getCurrentRef()
 
   head = git.getShortName(head || github.context.ref || currentRef)
-  base = git.getShortName(base || defaultBranch)
+  base = git.getShortName(base || (typeof defaultBranch === 'string' ? defaultBranch : ''))
 
   if (!head) {
     throw new Error(
@@ -156,6 +159,9 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
         core.info(
           `First push of a branch detected - changes will be detected against the default branch ${defaultBranch}`
         )
+        if (typeof defaultBranch !== 'string') {
+          throw new Error('Default branch is not defined or is not a string')
+        }
         return await git.getChangesSinceMergeBase(defaultBranch, head, initialFetchDepth)
       } else {
         core.info('Initial push detected - all files will be listed as added')
@@ -208,7 +214,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
           })
           files.push({
             // 'previous_filename' for some unknown reason isn't in the type definition or documentation
-            filename: (<any>row).previous_filename as string,
+            filename: 'previous_filename' in row ? (row.previous_filename as string) : '',
             status: ChangeStatus.Deleted
           })
         } else {
