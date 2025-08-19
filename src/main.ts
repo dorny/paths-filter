@@ -268,7 +268,8 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
   core.setOutput('any_changed', anyChanged)
 
   if (results['changes'] === undefined) {
-    const changesJson = JSON.stringify(changes)
+    const filteredShared = changes.filter(change => change !== 'shared')
+    const changesJson = JSON.stringify(filteredShared)
     core.info(`Changes output set to ${changesJson}`)
     core.setOutput('changes', changesJson)
   } else {
