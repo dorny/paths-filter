@@ -1,0 +1,11 @@
+# Sample filters configuration for paths-filter action
+# Demonstrates basic usage of filters and change status qualifiers
+shared: &shared
+  - common/**
+  - config/**
+backend:
+  - *shared
+  - src/backend/**
+docs:
+  - added: docs/**
+  - modified: README.md

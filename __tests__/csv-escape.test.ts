@@ -1,6 +1,9 @@
 import {csvEscape} from '../src/list-format/csv-escape'
 
 describe('csvEscape() backslash escapes every character except subset of definitely safe characters', () => {
+  test('empty string is returned unchanged', () => {
+    expect(csvEscape('')).toBe('')
+  })
   test('simple filename should not be modified', () => {
     expect(csvEscape('file.txt')).toBe('file.txt')
   })

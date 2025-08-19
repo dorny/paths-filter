@@ -1,6 +1,9 @@
 import {backslashEscape, shellEscape} from '../src/list-format/shell-escape'
 
 describe('escape() backslash escapes every character except subset of definitely safe characters', () => {
+  test('empty string is returned unchanged', () => {
+    expect(backslashEscape('')).toBe('')
+  })
   test('simple filename should not be modified', () => {
     expect(backslashEscape('file.txt')).toBe('file.txt')
   })

@@ -58,6 +58,8 @@ don't allow this because they don't work on a level of individual jobs or steps.
   run: ...
 ```
 
+For a more complete example, see [sample-filters.yml](./sample-filters.yml).
+
 For more scenarios see [examples](#examples) section.
 
 ## Notes

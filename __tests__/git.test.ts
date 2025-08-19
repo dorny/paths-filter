@@ -14,6 +14,17 @@ describe('parsing output of the git diff command', () => {
     expect(files[2].filename).toBe('src/main.ts')
     expect(files[2].status).toBe(ChangeStatus.Deleted)
   })
+
+  test('parseGitDiffOutput handles copied, renamed and unmerged statuses', async () => {
+    const files = git.parseGitDiffOutput(
+      'C\u0000src/copied.ts\u0000' + 'R\u0000src/renamed.ts\u0000' + 'U\u0000src/conflict.ts\u0000'
+    )
+    expect(files).toEqual([
+      {filename: 'src/copied.ts', status: ChangeStatus.Copied},
+      {filename: 'src/renamed.ts', status: ChangeStatus.Renamed},
+      {filename: 'src/conflict.ts', status: ChangeStatus.Unmerged}
+    ])
+  })
 })
 
 describe('git utility function tests (those not invoking git)', () => {
