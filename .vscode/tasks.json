@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "npm: build",
+      "type": "npm",
+      "script": "build",
+      "group": "build"
+    },
+    {
+      "label": "npm: format",
+      "type": "npm",
+      "script": "format"
+    },
+    {
+      "label": "npm: lint",
+      "type": "npm",
+      "script": "lint"
+    },
+    {
+      "label": "npm: test",
+      "type": "npm",
+      "script": "test",
+      "group": "test"
+    },
+    {
+      "label": "npm: all",
+      "type": "npm",
+      "script": "all"
+    }
+  ]
+}
