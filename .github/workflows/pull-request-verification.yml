@@ -24,7 +24,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: 20
@@ -38,7 +38,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
     - uses: ./
       id: filter
       with:
@@ -59,7 +59,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
     - uses: ./
       id: filter
       with:
@@ -73,7 +73,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
     - uses: ./
       id: filter
       with:
@@ -88,7 +88,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         path: somewhere
     - uses: ./somewhere
@@ -106,7 +106,7 @@ jobs:
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
     - run: echo "NEW FILE" > local
     - run: git add local
     - uses: ./
@@ -128,7 +128,7 @@ jobs:
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
     - name: configure GIT user
       run: git config user.email "john@nowhere.local" && git config user.name "John Doe"
     - name: modify working tree
