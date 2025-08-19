@@ -1,6 +1,6 @@
 name: "Pull Request Verification"
 on:
-  pull_request:
+  pull_request_target:
     paths-ignore: [ '*.md' ]
     branches:
       - master
