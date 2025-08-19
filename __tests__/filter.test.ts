@@ -110,6 +110,24 @@ describe('matching tests', () => {
     expect(match.backend).toEqual([])
   })
 
+  test('does not match unrelated files with complex filter combinations', () => {
+    const yaml = `
+    backend:
+      - '**/*backend*'
+      - 'src/backend/**'
+      - 'src/shared/**'
+      - '**/Cargo*'
+      - '**/*rust*'
+      - 'Dockerfile'
+      - 'docker/**'
+      - '!src/frontend/**'
+    `
+    const filter = new Filter(yaml)
+    const files = modified(['vitest.setup.ts'])
+    const match = filter.match(files)
+    expect(match.backend).toEqual([])
+  })
+
   test('negated pattern excludes matching files', () => {
     const yaml = `
     backend:
