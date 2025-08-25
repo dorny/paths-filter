@@ -486,6 +486,19 @@ jobs:
 - uses: dorny/paths-filter@v3
       id: filter
       with:
+        # include the files not (!) matching the listed extensions (list separated by |, grouped by ())
+        filters: |
+          backend:
+            - 'pkg/a/b/c/**/!(*.jpeg|*.md)'  
+            - 'pkg/x/**'
+```
+
+or
+
+```yaml
+- uses: dorny/paths-filter@v3
+      id: filter
+      with:
         # This makes it so that all the patterns have to match a file for it to be
         # considered changed. Because we have the exclusions for .jpeg and .md files
         # the end result is that if those files are changed they will be ignored
