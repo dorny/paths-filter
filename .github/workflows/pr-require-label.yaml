@@ -1,0 +1,32 @@
+name: Pull Request - Require Label
+on:
+  merge_group:
+  pull_request:
+    types:
+      - labeled
+      - opened
+      - reopened
+      - synchronize
+      - unlabeled
+
+jobs:
+  require-pr-label:
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: mheap/github-action-required-labels@v5
+        with:
+          mode: minimum
+          count: 1
+          labels: |
+            bug
+            chore
+            configuration
+            dependencies
+            enhancement
+            maintenance
+          add_comment: true
