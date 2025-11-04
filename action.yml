@@ -36,6 +36,13 @@ inputs:
                   Backslash escapes every potentially unsafe character.
     required: false
     default: none
+  predicate-quantifier:
+    description: |
+      Configures the logical quantifier to be used in the filter predicate:
+        'some' - Matches if at least one changed file matches any filter rule (default).
+        'every' - Matches only if all changed files match the filter rules.
+    required: false
+    default: some
   initial-fetch-depth:
     description: |
       How many commits are initially fetched from base branch.

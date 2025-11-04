@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -20,7 +20,7 @@ jobs:
         npm run all
 
   test-inline:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
     permissions:
       pull-requests: read
     steps:
@@ -41,7 +41,7 @@ jobs:
       run: exit 1
 
   test-external:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
     permissions:
       pull-requests: read
     steps:
@@ -55,7 +55,7 @@ jobs:
       run: exit 1
 
   test-without-token:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
     steps:
     - uses: actions/checkout@v4
     - uses: ./
@@ -68,7 +68,7 @@ jobs:
       run: exit 1
 
   test-wd-without-token:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
     steps:
     - uses: actions/checkout@v4
       with:
@@ -84,7 +84,7 @@ jobs:
       run: exit 1
 
   test-local-changes:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
     steps:
     - uses: actions/checkout@v4
     - run: echo "NEW FILE" > local
@@ -104,7 +104,7 @@ jobs:
       run: exit 1
 
   test-change-type:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
     steps:
     - uses: actions/checkout@v4
     - name: configure GIT user
