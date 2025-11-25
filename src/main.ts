@@ -194,7 +194,7 @@ async function getChangedFilesFromApi(token: string, prNumber: PullRequest): Pro
         // There's no obvious use-case for detection of renames
         // Therefore we treat it as if rename detection in git diff was turned off.
         // Rename is replaced by delete of original filename and add of new filename
-        if (row.status === ChangeStatus.Renamed) {
+        if ((row.status as ChangeStatus) === ChangeStatus.Renamed) {
           files.push({
             filename: row.filename,
             status: ChangeStatus.Added
