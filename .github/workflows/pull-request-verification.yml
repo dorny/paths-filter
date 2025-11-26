@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0 # Need history for changelog generation
     - uses: volta-cli/action@v4
@@ -34,7 +34,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: ./
       id: filter
       with:
@@ -55,7 +55,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: ./
       id: filter
       with:
@@ -67,7 +67,7 @@ jobs:
   test-without-token:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: ./
       id: filter
       with:
@@ -80,7 +80,7 @@ jobs:
   test-wd-without-token:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         path: somewhere
     - uses: ./somewhere
@@ -96,7 +96,7 @@ jobs:
   test-local-changes:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - run: echo "NEW FILE" > local
     - run: git add local
     - uses: ./
