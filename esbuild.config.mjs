@@ -15,7 +15,7 @@ import { analyzeMetafile, build } from "esbuild";
       bundle: true,
       format: "esm",
       platform: "node",
-      target: ["node20"],
+      target: ["node24"],
       treeShaking: true,
       // Ensure require is properly defined: https://github.com/evanw/esbuild/issues/1921
       banner: {

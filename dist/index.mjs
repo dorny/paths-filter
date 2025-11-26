@@ -23940,11 +23940,11 @@ var require_utils5 = __commonJS({
     }, []);
     exports.flatten = (...args) => {
       const result = [];
-      const flat2 = (arr) => {
+      const flat = (arr) => {
         for (let i = 0; i < arr.length; i++) {
           const ele = arr[i];
           if (Array.isArray(ele)) {
-            flat2(ele);
+            flat(ele);
             continue;
           }
           if (ele !== void 0) {
@@ -23953,7 +23953,7 @@ var require_utils5 = __commonJS({
         }
         return result;
       };
-      flat2(args);
+      flat(args);
       return result;
     };
   }
@@ -29261,7 +29261,7 @@ var Filter = class {
   }
   getPatterns(item) {
     if (Array.isArray(item)) {
-      return flat(item.map((i) => this.getPatterns(i)));
+      return item.map((i) => this.getPatterns(i)).flat();
     }
     if (typeof item === "string") {
       return [item];
@@ -29272,9 +29272,6 @@ var Filter = class {
     throw new Error(`Invalid filter YAML format: ${message}.`);
   }
 };
-function flat(arr) {
-  return arr.reduce((acc, val) => acc.concat(val), []);
-}
 
 // src/git.ts
 var core2 = __toESM(require_core(), 1);
