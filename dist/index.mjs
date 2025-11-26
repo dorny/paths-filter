@@ -68,7 +68,7 @@ var require_utils = __commonJS({
 var require_command = __commonJS({
   "node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/command.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -77,13 +77,13 @@ var require_command = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -154,7 +154,7 @@ var require_command = __commonJS({
 var require_file_command = __commonJS({
   "node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/file-command.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -163,13 +163,13 @@ var require_file_command = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -13735,7 +13735,7 @@ var require_fetch = __commonJS({
             fetchParams.controller.terminate(e);
           }
         };
-        requestBody = async function* () {
+        requestBody = (async function* () {
           try {
             for await (const bytes of request.body.stream) {
               yield* processBodyChunk(bytes);
@@ -13744,7 +13744,7 @@ var require_fetch = __commonJS({
           } catch (err) {
             processBodyError(err);
           }
-        }();
+        })();
       }
       try {
         const { body, status, statusText, headersList, socket } = await dispatch({ body: requestBody });
@@ -17295,7 +17295,7 @@ var require_undici = __commonJS({
 var require_lib = __commonJS({
   "node_modules/.pnpm/@actions+http-client@2.2.3/node_modules/@actions/http-client/lib/index.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -17304,13 +17304,13 @@ var require_lib = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -18410,7 +18410,7 @@ var require_summary = __commonJS({
 var require_path_utils = __commonJS({
   "node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/path-utils.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -18419,13 +18419,13 @@ var require_path_utils = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -18459,18 +18459,18 @@ var require_path_utils = __commonJS({
 var require_io_util = __commonJS({
   "node_modules/.pnpm/@actions+io@1.1.3/node_modules/@actions/io/lib/io-util.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       Object.defineProperty(o, k2, { enumerable: true, get: function() {
         return m[k];
       } });
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -18632,18 +18632,18 @@ var require_io_util = __commonJS({
 var require_io = __commonJS({
   "node_modules/.pnpm/@actions+io@1.1.3/node_modules/@actions/io/lib/io.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       Object.defineProperty(o, k2, { enumerable: true, get: function() {
         return m[k];
       } });
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -18880,18 +18880,18 @@ var require_io = __commonJS({
 var require_toolrunner = __commonJS({
   "node_modules/.pnpm/@actions+exec@1.1.1/node_modules/@actions/exec/lib/toolrunner.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       Object.defineProperty(o, k2, { enumerable: true, get: function() {
         return m[k];
       } });
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -19364,18 +19364,18 @@ var require_toolrunner = __commonJS({
 var require_exec = __commonJS({
   "node_modules/.pnpm/@actions+exec@1.1.1/node_modules/@actions/exec/lib/exec.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       Object.defineProperty(o, k2, { enumerable: true, get: function() {
         return m[k];
       } });
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -19471,7 +19471,7 @@ var require_exec = __commonJS({
 var require_platform = __commonJS({
   "node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/platform.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -19480,13 +19480,13 @@ var require_platform = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -19590,7 +19590,7 @@ var require_platform = __commonJS({
 var require_core = __commonJS({
   "node_modules/.pnpm/@actions+core@1.11.1/node_modules/@actions/core/lib/core.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -19599,13 +19599,13 @@ var require_core = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -19878,7 +19878,7 @@ var require_context = __commonJS({
 var require_utils3 = __commonJS({
   "node_modules/.pnpm/@actions+github@6.0.1/node_modules/@actions/github/lib/internal/utils.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -19887,13 +19887,13 @@ var require_utils3 = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -23777,7 +23777,7 @@ var require_dist_node10 = __commonJS({
 var require_utils4 = __commonJS({
   "node_modules/.pnpm/@actions+github@6.0.1/node_modules/@actions/github/lib/utils.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -23786,13 +23786,13 @@ var require_utils4 = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -23837,7 +23837,7 @@ var require_utils4 = __commonJS({
 var require_github = __commonJS({
   "node_modules/.pnpm/@actions+github@6.0.1/node_modules/@actions/github/lib/github.js"(exports) {
     "use strict";
-    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       var desc = Object.getOwnPropertyDescriptor(m, k);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -23846,13 +23846,13 @@ var require_github = __commonJS({
         } };
       }
       Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
+    }) : (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
-    });
-    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
       Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
+    }) : function(o, v) {
       o["default"] = v;
     });
     var __importStar = exports && exports.__importStar || function(mod) {
@@ -26635,7 +26635,7 @@ var core3 = __toESM(require_core(), 1);
 var github = __toESM(require_github(), 1);
 import * as fs from "node:fs";
 
-// node_modules/.pnpm/js-yaml@4.1.0/node_modules/js-yaml/dist/js-yaml.mjs
+// node_modules/.pnpm/js-yaml@4.1.1/node_modules/js-yaml/dist/js-yaml.mjs
 function isNothing(subject) {
   return typeof subject === "undefined" || subject === null;
 }
@@ -27499,6 +27499,18 @@ function charFromCodepoint(c) {
     (c - 65536 & 1023) + 56320
   );
 }
+function setProperty(object, key, value) {
+  if (key === "__proto__") {
+    Object.defineProperty(object, key, {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value
+    });
+  } else {
+    object[key] = value;
+  }
+}
 var simpleEscapeCheck = new Array(256);
 var simpleEscapeMap = new Array(256);
 for (i = 0; i < 256; i++) {
@@ -27618,7 +27630,7 @@ function mergeMappings(state, destination, source, overridableKeys) {
   for (index = 0, quantity = sourceKeys.length; index < quantity; index += 1) {
     key = sourceKeys[index];
     if (!_hasOwnProperty$1.call(destination, key)) {
-      destination[key] = source[key];
+      setProperty(destination, key, source[key]);
       overridableKeys[key] = true;
     }
   }
@@ -27658,16 +27670,7 @@ function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valu
       state.position = startPos || state.position;
       throwError(state, "duplicated mapping key");
     }
-    if (keyNode === "__proto__") {
-      Object.defineProperty(_result, keyNode, {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        value: valueNode
-      });
-    } else {
-      _result[keyNode] = valueNode;
-    }
+    setProperty(_result, keyNode, valueNode);
     delete overridableKeys[keyNode];
   }
   return _result;
@@ -28831,7 +28834,7 @@ function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, te
   return quotingType === QUOTING_TYPE_DOUBLE ? STYLE_DOUBLE : STYLE_SINGLE;
 }
 function writeScalar(state, string, level, iskey, inblock) {
-  state.dump = function() {
+  state.dump = (function() {
     if (string.length === 0) {
       return state.quotingType === QUOTING_TYPE_DOUBLE ? '""' : "''";
     }
@@ -28869,7 +28872,7 @@ function writeScalar(state, string, level, iskey, inblock) {
       default:
         throw new exception("impossible error: invalid scalar style");
     }
-  }();
+  })();
 }
 function blockHeader(string, indentPerLevel) {
   var indentIndicator = needIndentIndicator(string) ? String(indentPerLevel) : "";
@@ -28883,12 +28886,12 @@ function dropEndingNewline(string) {
 }
 function foldString(string, width) {
   var lineRe = /(\n+)([^\n]*)/g;
-  var result = function() {
+  var result = (function() {
     var nextLF = string.indexOf("\n");
     nextLF = nextLF !== -1 ? nextLF : string.length;
     lineRe.lastIndex = nextLF;
     return foldLine(string.slice(0, nextLF), width);
-  }();
+  })();
   var prevMoreIndented = string[0] === "\n" || string[0] === " ";
   var moreIndented;
   var match;
@@ -29786,5 +29789,5 @@ fill-range/index.js:
    *)
 
 js-yaml/dist/js-yaml.mjs:
-  (*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT *)
+  (*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT *)
 */
