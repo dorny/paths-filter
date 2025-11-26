@@ -1,5 +1,16 @@
 # Changelog
 
+## v5.0.0
+- [Upgrade action to use Node 24 LTS](https://github.com/AurorNZ/paths-filter/pull/34)
+
+## 4.1.0
+- [Migrate to PNPM and Volta](https://github.com/AurorNZ/paths-filter/pull/13)
+- [Migrate jest to vitest](https://github.com/AurorNZ/paths-filter/pull/14)
+- [Eslint upgrade](https://github.com/AurorNZ/paths-filter/pull/15)
+- [Generate build with esm](https://github.com/AurorNZ/paths-filter/pull/16)
+- [Upgrade pnpm to 10](https://github.com/AurorNZ/paths-filter/pull/28)
+- Update dependencies to latest, except Node (Upgrade to 24 completed separately)
+
 ## v4.0.0
 - [Possibly breaking: Updated dependencies and upgrade to node 20](https://github.com/AurorNZ/paths-filter/pull/9)
 
