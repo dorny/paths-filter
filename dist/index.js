@@ -123,6 +123,11 @@ class Filter {
         for (const [key, patterns] of Object.entries(this.rules)) {
             result[key] = files.filter(file => this.isMatch(file, patterns));
         }
+        if (!this.rules.hasOwnProperty('other')) {
+            const matchingFilenamesList = Object.values(result).flatMap(filteredFiles => filteredFiles.map(file => file.filename));
+            const matchingFilenamesSet = new Set(matchingFilenamesList);
+            result.other = files.filter(file => !matchingFilenamesSet.has(file.filename));
+        }
         return result;
     }
     isMatch(file, patterns) {
@@ -204,55 +209,39 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.HEAD = exports.NULL_SHA = void 0;
+exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffNumstatOutput = exports.getGitDiffStatusNumstat = exports.parseGitDiffNameStatusOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.HEAD = exports.NULL_SHA = void 0;
 const exec_1 = __nccwpck_require__(1514);
 const core = __importStar(__nccwpck_require__(2186));
 const file_1 = __nccwpck_require__(4014);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
 exports.HEAD = 'HEAD';
 async function getChangesInLastCommit() {
-    core.startGroup(`Change detection in last commit`);
-    let output = '';
-    try {
-        output = (await (0, exec_1.getExecOutput)('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout;
-    }
-    finally {
-        fixStdOutNullTermination();
-        core.endGroup();
-    }
-    return parseGitDiffOutput(output);
+    return core.group(`Change detection in last commit`, async () => {
+        try {
+            // Calling git log on the last commit works when only the last commit may be checked out. Calling git diff HEAD^..HEAD needs two commits.
+            const statusOutput = (await (0, exec_1.getExecOutput)('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout;
+            const numstatOutput = (await (0, exec_1.getExecOutput)('git', ['log', '--format=', '--no-renames', '--numstat', '-z', '-n', '1'])).stdout;
+            const statusFiles = parseGitDiffNameStatusOutput(statusOutput);
+            const numstatFiles = parseGitDiffNumstatOutput(numstatOutput);
+            return mergeStatusNumstat(statusFiles, numstatFiles);
+        }
+        finally {
+            fixStdOutNullTermination();
+        }
+    });
 }
 exports.getChangesInLastCommit = getChangesInLastCommit;
 async function getChanges(base, head) {
     const baseRef = await ensureRefAvailable(base);
     const headRef = await ensureRefAvailable(head);
     // Get differences between ref and HEAD
-    core.startGroup(`Change detection ${base}..${head}`);
-    let output = '';
-    try {
-        // Two dots '..' change detection - directly compares two versions
-        output = (await (0, exec_1.getExecOutput)('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`]))
-            .stdout;
-    }
-    finally {
-        fixStdOutNullTermination();
-        core.endGroup();
-    }
-    return parseGitDiffOutput(output);
+    // Two dots '..' change detection - directly compares two versions
+    return core.group(`Change detection ${base}..${head}`, () => getGitDiffStatusNumstat(`${baseRef}..${headRef}`));
 }
 exports.getChanges = getChanges;
 async function getChangesOnHead() {
     // Get current changes - both staged and unstaged
-    core.startGroup(`Change detection on HEAD`);
-    let output = '';
-    try {
-        output = (await (0, exec_1.getExecOutput)('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout;
-    }
-    finally {
-        fixStdOutNullTermination();
-        core.endGroup();
-    }
-    return parseGitDiffOutput(output);
+    return core.group(`Change detection on HEAD`, () => getGitDiffStatusNumstat(`HEAD`));
 }
 exports.getChangesOnHead = getChangesOnHead;
 async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
@@ -317,19 +306,30 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
         diffArg = `${baseRef}..${headRef}`;
     }
     // Get changes introduced on ref compared to base
-    core.startGroup(`Change detection ${diffArg}`);
+    return getGitDiffStatusNumstat(diffArg);
+}
+exports.getChangesSinceMergeBase = getChangesSinceMergeBase;
+async function gitDiffNameStatus(diffArg) {
     let output = '';
     try {
         output = (await (0, exec_1.getExecOutput)('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout;
     }
     finally {
         fixStdOutNullTermination();
-        core.endGroup();
     }
-    return parseGitDiffOutput(output);
+    return output;
 }
-exports.getChangesSinceMergeBase = getChangesSinceMergeBase;
-function parseGitDiffOutput(output) {
+async function gitDiffNumstat(diffArg) {
+    let output = '';
+    try {
+        output = (await (0, exec_1.getExecOutput)('git', ['diff', '--no-renames', '--numstat', '-z', diffArg])).stdout;
+    }
+    finally {
+        fixStdOutNullTermination();
+    }
+    return output;
+}
+function parseGitDiffNameStatusOutput(output) {
     const tokens = output.split('\u0000').filter(s => s.length > 0);
     const files = [];
     for (let i = 0; i + 1 < tokens.length; i += 2) {
@@ -340,24 +340,44 @@ function parseGitDiffOutput(output) {
     }
     return files;
 }
-exports.parseGitDiffOutput = parseGitDiffOutput;
+exports.parseGitDiffNameStatusOutput = parseGitDiffNameStatusOutput;
+function mergeStatusNumstat(statusEntries, numstatEntries) {
+    const statusMap = {};
+    statusEntries.forEach(f => (statusMap[f.filename] = f));
+    return numstatEntries.map(f => {
+        const status = statusMap[f.filename];
+        if (!status) {
+            throw new Error(`Cannot find the status entry for file: ${f.filename}`);
+        }
+        return { ...f, status: status.status };
+    });
+}
+async function getGitDiffStatusNumstat(diffArg) {
+    const statusFiles = await gitDiffNameStatus(diffArg).then(parseGitDiffNameStatusOutput);
+    const numstatFiles = await gitDiffNumstat(diffArg).then(parseGitDiffNumstatOutput);
+    return mergeStatusNumstat(statusFiles, numstatFiles);
+}
+exports.getGitDiffStatusNumstat = getGitDiffStatusNumstat;
+function parseGitDiffNumstatOutput(output) {
+    const rows = output.split('\u0000').filter(s => s.length > 0);
+    return rows.map(row => {
+        const tokens = row.split('\t');
+        // For the binary files set the numbers to zero. This matches the response of Github API.
+        const additions = tokens[0] == '-' ? 0 : Number.parseInt(tokens[0]);
+        const deletions = tokens[1] == '-' ? 0 : Number.parseInt(tokens[1]);
+        return {
+            filename: tokens[2],
+            additions,
+            deletions
+        };
+    });
+}
+exports.parseGitDiffNumstatOutput = parseGitDiffNumstatOutput;
 async function listAllFilesAsAdded() {
-    core.startGroup('Listing all files tracked by git');
-    let output = '';
-    try {
-        output = (await (0, exec_1.getExecOutput)('git', ['ls-files', '-z'])).stdout;
-    }
-    finally {
-        fixStdOutNullTermination();
-        core.endGroup();
-    }
-    return output
-        .split('\u0000')
-        .filter(s => s.length > 0)
-        .map(path => ({
-        status: file_1.ChangeStatus.Added,
-        filename: path
-    }));
+    return core.group(`Listing all files tracked by git`, async () => {
+        const emptyTreeHash = (await (0, exec_1.getExecOutput)('git', ['hash-object', '-t', 'tree', '/dev/null'])).stdout;
+        return getGitDiffStatusNumstat(emptyTreeHash);
+    });
 }
 exports.listAllFilesAsAdded = listAllFilesAsAdded;
 async function getCurrentRef() {
@@ -572,11 +592,16 @@ async function run() {
         const base = core.getInput('base', { required: false });
         const filtersInput = core.getInput('filters', { required: true });
         const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
-        const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
+        const listFilesFormat = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
+        const statFormat = core.getInput('stat', { required: false }).toLowerCase() || 'none';
         const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10;
         const predicateQuantifier = core.getInput('predicate-quantifier', { required: false }) || filter_1.PredicateQuantifier.SOME;
-        if (!isExportFormat(listFiles)) {
-            core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`);
+        if (!isFilesExportFormat(listFilesFormat)) {
+            core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFilesFormat}'`);
+            return;
+        }
+        if (!isStatExportFormat(statFormat)) {
+            core.setFailed(`Input parameter 'stat' is set to invalid value '${statFormat}'`);
             return;
         }
         if (!(0, filter_1.isPredicateQuantifier)(predicateQuantifier)) {
@@ -589,7 +614,7 @@ async function run() {
         const files = await getChangedFiles(token, base, ref, initialFetchDepth);
         core.info(`Detected ${files.length} changed files`);
         const results = filter.match(files);
-        exportResults(results, listFiles);
+        exportResults(results, listFilesFormat, statFormat);
     }
     catch (error) {
         core.setFailed(getErrorMessage(error));
@@ -718,12 +743,16 @@ async function getChangedFilesFromApi(token, pullRequest) {
                 if (row.status === file_1.ChangeStatus.Renamed) {
                     files.push({
                         filename: row.filename,
-                        status: file_1.ChangeStatus.Added
+                        status: file_1.ChangeStatus.Added,
+                        additions: row.additions,
+                        deletions: row.deletions
                     });
                     files.push({
                         // 'previous_filename' for some unknown reason isn't in the type definition or documentation
                         filename: row.previous_filename,
-                        status: file_1.ChangeStatus.Deleted
+                        status: file_1.ChangeStatus.Deleted,
+                        additions: row.additions,
+                        deletions: row.deletions
                     });
                 }
                 else {
@@ -731,7 +760,9 @@ async function getChangedFilesFromApi(token, pullRequest) {
                     const status = row.status === 'removed' ? file_1.ChangeStatus.Deleted : row.status;
                     files.push({
                         filename: row.filename,
-                        status
+                        status,
+                        additions: row.additions,
+                        deletions: row.deletions
                     });
                 }
             }
@@ -742,12 +773,13 @@ async function getChangedFilesFromApi(token, pullRequest) {
         core.endGroup();
     }
 }
-function exportResults(results, format) {
+function exportResults(results, filesFormat, statFormat) {
     core.info('Results:');
     const changes = [];
+    const changeStats = {};
     for (const [key, files] of Object.entries(results)) {
-        const value = files.length > 0;
-        core.startGroup(`Filter ${key} = ${value}`);
+        const hasMatchingFiles = files.length > 0;
+        core.startGroup(`Filter ${key} = ${hasMatchingFiles}`);
         if (files.length > 0) {
             changes.push(key);
             core.info('Matching files:');
@@ -758,12 +790,22 @@ function exportResults(results, format) {
         else {
             core.info('Matching files: none');
         }
-        core.setOutput(key, value);
+        core.setOutput(key, hasMatchingFiles);
         core.setOutput(`${key}_count`, files.length);
-        if (format !== 'none') {
-            const filesValue = serializeExport(files, format);
+        if (filesFormat !== 'none') {
+            const filesValue = serializeExportChangedFiles(files, filesFormat);
             core.setOutput(`${key}_files`, filesValue);
         }
+        const additionCount = files.reduce((sum, f) => sum + f.additions, 0);
+        const deletionCount = files.reduce((sum, f) => sum + f.deletions, 0);
+        core.setOutput(`${key}_addition_count`, additionCount);
+        core.setOutput(`${key}_deletion_count`, deletionCount);
+        core.setOutput(`${key}_change_count`, additionCount + deletionCount);
+        changeStats[key] = {
+            additionCount,
+            deletionCount,
+            fileCount: files.length
+        };
         core.endGroup();
     }
     if (results['changes'] === undefined) {
@@ -774,8 +816,12 @@ function exportResults(results, format) {
     else {
         core.info('Cannot set changes output variable - name already used by filter output');
     }
+    if (statFormat !== 'none') {
+        const statValue = serializeExportStat(changeStats, statFormat);
+        core.setOutput(`stat`, statValue);
+    }
 }
-function serializeExport(files, format) {
+function serializeExportChangedFiles(files, format) {
     const fileNames = files.map(file => file.filename);
     switch (format) {
         case 'csv':
@@ -790,13 +836,29 @@ function serializeExport(files, format) {
             return '';
     }
 }
-function isExportFormat(value) {
+function serializeExportStat(stat, format) {
+    switch (format) {
+        case 'csv':
+            return Object.keys(stat)
+                .sort()
+                .map(k => [(0, csv_escape_1.csvEscape)(k), stat[k].additionCount, stat[k].deletionCount, stat[k].fileCount].join(','))
+                .join('\n');
+        case 'json':
+            return JSON.stringify(stat);
+        default:
+            return '';
+    }
+}
+function isFilesExportFormat(value) {
     return ['none', 'csv', 'shell', 'json', 'escape'].includes(value);
 }
 function getErrorMessage(error) {
     if (error instanceof Error)
         return error.message;
     return String(error);
+}
+function isStatExportFormat(value) {
+    return ['none', 'csv', 'json'].includes(value);
 }
 run();
 
@@ -26290,6 +26352,9 @@ function httpRedirectFetch (fetchParams, response) {
   if (!sameOrigin(requestCurrentURL(request), locationURL)) {
     // https://fetch.spec.whatwg.org/#cors-non-wildcard-request-header-name
     request.headersList.delete('authorization')
+
+    // https://fetch.spec.whatwg.org/#authentication-entries
+    request.headersList.delete('proxy-authorization', true)
 
     // "Cookie" and "Host" are forbidden request-headers, which undici doesn't implement.
     request.headersList.delete('cookie')
