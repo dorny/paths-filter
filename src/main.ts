@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {GetResponseDataTypeFromEndpointMethod} from '@octokit/types'
-import {PushEvent, PullRequestEvent} from '@octokit/webhooks-types'
+import {PushEvent, PullRequestEvent, MergeGroupEvent} from '@octokit/webhooks-types'
 
 import {
   isPredicateQuantifier,
@@ -84,32 +84,50 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
     return await git.getChangesOnHead()
   }
 
-  const prEvents = ['pull_request', 'pull_request_review', 'pull_request_review_comment', 'pull_request_target']
-  if (prEvents.includes(github.context.eventName)) {
-    if (ref) {
-      core.warning(`'ref' input parameter is ignored when 'base' is set to HEAD`)
+  switch (github.context.eventName) {
+    // To keep backward compatibility, commits in GitHub pull request event
+    // take precedence over manual inputs.
+    case 'pull_request':
+    case 'pull_request_review':
+    case 'pull_request_review_comment':
+    case 'pull_request_target': {
+      if (ref) {
+        core.warning(`'ref' input parameter is ignored when 'base' is set to HEAD`)
+      }
+      if (base) {
+        core.warning(`'base' input parameter is ignored when action is triggered by pull request event`)
+      }
+      const pr = github.context.payload.pull_request as PullRequestEvent
+      if (token) {
+        return await getChangedFilesFromApi(token, pr)
+      }
+      if (github.context.eventName === 'pull_request_target') {
+        // pull_request_target is executed in context of base branch and GITHUB_SHA points to last commit in base branch
+        // Therefore it's not possible to look at changes in last commit
+        // At the same time we don't want to fetch any code from forked repository
+        throw new Error(`'token' input parameter is required if action is triggered by 'pull_request_target' event`)
+      }
+      core.info('Github token is not available - changes will be detected using git diff')
+      const baseSha = github.context.payload.pull_request?.base.sha
+      const defaultBranch = github.context.payload.repository?.default_branch
+      const currentRef = await git.getCurrentRef()
+      return await git.getChanges(base || baseSha || defaultBranch, currentRef)
     }
-    if (base) {
-      core.warning(`'base' input parameter is ignored when action is triggered by pull request event`)
+    // To keep backward compatibility, manual inputs take precedence over
+    // commits in GitHub merge queue event.
+    case 'merge_group': {
+      const mergeGroup = github.context.payload as MergeGroupEvent
+      if (!base) {
+        base = mergeGroup.merge_group.base_sha
+      }
+      if (!ref) {
+        ref = mergeGroup.merge_group.head_sha
+      }
+      break
     }
-    const pr = github.context.payload.pull_request as PullRequestEvent
-    if (token) {
-      return await getChangedFilesFromApi(token, pr)
-    }
-    if (github.context.eventName === 'pull_request_target') {
-      // pull_request_target is executed in context of base branch and GITHUB_SHA points to last commit in base branch
-      // Therefor it's not possible to look at changes in last commit
-      // At the same time we don't want to fetch any code from forked repository
-      throw new Error(`'token' input parameter is required if action is triggered by 'pull_request_target' event`)
-    }
-    core.info('Github token is not available - changes will be detected using git diff')
-    const baseSha = github.context.payload.pull_request?.base.sha
-    const defaultBranch = github.context.payload.repository?.default_branch
-    const currentRef = await git.getCurrentRef()
-    return await git.getChanges(base || baseSha || defaultBranch, currentRef)
-  } else {
-    return getChangedFilesFromGit(base, ref, initialFetchDepth)
   }
+
+  return getChangedFilesFromGit(base, ref, initialFetchDepth)
 }
 
 async function getChangedFilesFromGit(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
