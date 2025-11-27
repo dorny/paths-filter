@@ -745,11 +745,14 @@ async function getChangedFilesFromApi(token, pullRequest) {
 function exportResults(results, format) {
     core.info('Results:');
     const changes = [];
+    let anyChanged = false;
+    let allChanged = true;
     for (const [key, files] of Object.entries(results)) {
         const value = files.length > 0;
         core.startGroup(`Filter ${key} = ${value}`);
         if (files.length > 0) {
             changes.push(key);
+            anyChanged = true;
             core.info('Matching files:');
             for (const file of files) {
                 core.info(`${file.filename} [${file.status}]`);
@@ -757,6 +760,7 @@ function exportResults(results, format) {
         }
         else {
             core.info('Matching files: none');
+            allChanged = false;
         }
         core.setOutput(key, value);
         core.setOutput(`${key}_count`, files.length);
@@ -764,6 +768,8 @@ function exportResults(results, format) {
             const filesValue = serializeExport(files, format);
             core.setOutput(`${key}_files`, filesValue);
         }
+        core.setOutput('all_changed', allChanged);
+        core.setOutput('any_changed', anyChanged);
         core.endGroup();
     }
     if (results['changes'] === undefined) {
