@@ -51,7 +51,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
   with:
     filters: |
       src:
-        - 'src/**'
+        - 'src/**/*'
 
   # run only if some file in 'src' folder was changed
 - if: steps.changes.outputs.src == 'true'
@@ -198,9 +198,9 @@ jobs:
       with:
         filters: |
           backend:
-            - 'backend/**'
+            - 'backend/**/*'
           frontend:
-            - 'frontend/**'
+            - 'frontend/**/*'
 
     # run only if 'backend' files were changed
     - name: backend tests
@@ -242,9 +242,9 @@ jobs:
       with:
         filters: |
           backend:
-            - 'backend/**'
+            - 'backend/**/*'
           frontend:
-            - 'frontend/**'
+            - 'frontend/**/*'
 
   # JOB to build and test backend code
   backend:
@@ -444,11 +444,11 @@ jobs:
         # src filter will match any path under common, config and src folders
         filters: |
           shared: &shared
-            - common/**
-            - config/**
+            - common/**/*
+            - config/**/*
           src:
             - *shared
-            - src/**
+            - src/**/*
 ```
 
 </details>
@@ -467,8 +467,8 @@ jobs:
         # Multiple change types can be specified using `|` as the delimiter.
         filters: |
           shared: &shared
-            - common/**
-            - config/**
+            - common/**/*
+            - config/**/*
           addedOrModified:
             - added|modified: '**'
           allChanges:
