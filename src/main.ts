@@ -228,7 +228,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
   }
 }
 
-function exportResults(results: FilterResults, format: ExportFormat): void {
+export function exportResults(results: FilterResults, format: ExportFormat): void {
   core.info('Results:')
   const changes = []
   for (const [key, files] of Object.entries(results)) {
@@ -254,7 +254,8 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
   }
 
   if (results['changes'] === undefined) {
-    const changesJson = JSON.stringify(changes)
+    const filteredShared = changes.filter(change => change !== 'shared')
+    const changesJson = JSON.stringify(filteredShared)
     core.info(`Changes output set to ${changesJson}`)
     core.setOutput('changes', changesJson)
   } else {
