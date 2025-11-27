@@ -306,6 +306,60 @@ jobs:
 
 </details>
 
+<details>
+<summary>Execute a job in a dependency chain even if a dependency is skipped</summary>
+
+```yaml
+jobs:
+  # JOB to run change detection
+  changes:
+    runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
+    # Set job outputs to values from filter step
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+    # For pull requests it's not necessary to checkout the code
+    - uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          backend:
+            - 'backend/**'
+          frontend:
+            - 'frontend/**'
+
+  # JOB to build and test backend code
+  # Should execute before the frontend builds (if needed)
+  backend:
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - ...
+
+  # JOB to build and test frontend code
+  # Should execute only after backend rebuilds (if needed)
+  frontend:
+    needs: [changes, backend]
+    if: |
+      ${{
+      !cancelled() &&
+      needs.changes.outputs.frontend == 'true' &&
+      (needs.backend.result == 'success' || needs.backend.result == 'skipped')
+      }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - ...
+```
+
+</details>
+
 ### Change detection workflows
 
 <details>
