@@ -36,6 +36,13 @@ inputs:
                   Backslash escapes every potentially unsafe character.
     required: false
     default: none
+  write-to-files:
+    description: |
+      Enables writing the lists of matching files to a corresponding file in addition to the output '<filter-name>_files'.
+      If set, the action will create the specified file with the list of matching files.
+      The file will be written in the format specified by the `list-files` option and named
+      after the filter. The path to the file will be output as a variable named `<filter-name>_files_path`.
+    required: false
   initial-fetch-depth:
     description: |
       How many commits are initially fetched from base branch.
