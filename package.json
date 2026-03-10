@@ -28,7 +28,7 @@
   "author": "YourNameOrOrganization",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^3.0.0",
+    "@actions/core": "^1.10.0",
     "@actions/exec": "^1.1.1",
     "@actions/github": "6.0.0",
     "picomatch": "^2.3.1"
