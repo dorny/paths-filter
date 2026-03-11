@@ -1,7 +1,15 @@
-export interface File {
+export interface FileStatus {
   filename: string
   status: ChangeStatus
 }
+
+export interface FileNumstat {
+  filename: string
+  additions: number
+  deletions: number
+}
+
+export type File = FileStatus & FileNumstat
 
 export enum ChangeStatus {
   Added = 'added',
