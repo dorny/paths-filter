@@ -79,7 +79,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
   // This is the simplest case as we don't need to fetch more commits or evaluate current/before refs
   if (base === git.HEAD) {
     if (ref) {
-      core.warning(`'ref' input parameter is ignored when 'base' is set to HEAD`)
+      core.notice(`'ref' input parameter is ignored when 'base' is set to HEAD`)
     }
     return await git.getChangesOnHead()
   }
@@ -87,10 +87,10 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
   const prEvents = ['pull_request', 'pull_request_review', 'pull_request_review_comment', 'pull_request_target']
   if (prEvents.includes(github.context.eventName)) {
     if (ref) {
-      core.warning(`'ref' input parameter is ignored when 'base' is set to HEAD`)
+      core.notice(`'ref' input parameter is ignored when 'base' is set to HEAD`)
     }
     if (base) {
-      core.warning(`'base' input parameter is ignored when action is triggered by pull request event`)
+      core.notice(`'base' input parameter is ignored when action is triggered by pull request event`)
     }
     const pr = github.context.payload.pull_request as PullRequestEvent
     if (token) {
