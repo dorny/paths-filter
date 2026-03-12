@@ -1,5 +1,8 @@
 # Changelog
 
+## v4.0.0
+- [Update action runtime to node24](https://github.com/dorny/paths-filter/pull/294)
+
 ## v3.0.3
 - [Add missing predicate-quantifier](https://github.com/dorny/paths-filter/pull/279)
 
