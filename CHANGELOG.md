@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.0.3
+- [Add missing predicate-quantifier](https://github.com/dorny/paths-filter/pull/279)
+
 ## v3.0.2
 - [Add config parameter for predicate quantifier](https://github.com/dorny/paths-filter/pull/224)
 
