@@ -552,15 +552,20 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const fs = __importStar(__nccwpck_require__(7147));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+const path_1 = __importDefault(__nccwpck_require__(1017));
 const filter_1 = __nccwpck_require__(3707);
 const file_1 = __nccwpck_require__(4014);
 const git = __importStar(__nccwpck_require__(3374));
 const shell_escape_1 = __nccwpck_require__(4613);
 const csv_escape_1 = __nccwpck_require__(7402);
+const fs_1 = __nccwpck_require__(7147);
 async function run() {
     try {
         const workingDirectory = core.getInput('working-directory', { required: false });
@@ -573,6 +578,7 @@ async function run() {
         const filtersInput = core.getInput('filters', { required: true });
         const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput;
         const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none';
+        const writeToFiles = core.getInput('write-to-files', { required: false }).toLowerCase() === 'true';
         const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10;
         const predicateQuantifier = core.getInput('predicate-quantifier', { required: false }) || filter_1.PredicateQuantifier.SOME;
         if (!isExportFormat(listFiles)) {
@@ -589,7 +595,7 @@ async function run() {
         const files = await getChangedFiles(token, base, ref, initialFetchDepth);
         core.info(`Detected ${files.length} changed files`);
         const results = filter.match(files);
-        exportResults(results, listFiles);
+        exportResults(results, listFiles, writeToFiles);
     }
     catch (error) {
         core.setFailed(getErrorMessage(error));
@@ -742,13 +748,14 @@ async function getChangedFilesFromApi(token, pullRequest) {
         core.endGroup();
     }
 }
-function exportResults(results, format) {
+function exportResults(results, format, writeToFiles) {
+    const tempDir = (0, fs_1.mkdtempSync)(path_1.default.join(process.cwd(), 'paths-filter-'));
     core.info('Results:');
     const changes = [];
     for (const [key, files] of Object.entries(results)) {
-        const value = files.length > 0;
-        core.startGroup(`Filter ${key} = ${value}`);
-        if (files.length > 0) {
+        const match = files.length > 0;
+        core.startGroup(`Filter ${key} = ${match}`);
+        if (match) {
             changes.push(key);
             core.info('Matching files:');
             for (const file of files) {
@@ -758,11 +765,18 @@ function exportResults(results, format) {
         else {
             core.info('Matching files: none');
         }
-        core.setOutput(key, value);
+        core.setOutput(key, match);
         core.setOutput(`${key}_count`, files.length);
         if (format !== 'none') {
             const filesValue = serializeExport(files, format);
             core.setOutput(`${key}_files`, filesValue);
+            if (writeToFiles) {
+                const ext = format === 'json' ? 'json' : 'txt';
+                const filePath = path_1.default.join(tempDir, `${key}-files.${ext}`);
+                fs.writeFileSync(filePath, filesValue);
+                core.info(`Matching files list for filter '${key}' written to '${filePath}'`);
+                core.setOutput(`${key}_files_path`, filePath);
+            }
         }
         core.endGroup();
     }

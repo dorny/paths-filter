@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import path from 'path'
 import {GetResponseDataTypeFromEndpointMethod} from '@octokit/types'
 import {PushEvent, PullRequestEvent} from '@octokit/webhooks-types'
 
@@ -16,6 +17,7 @@ import {File, ChangeStatus} from './file'
 import * as git from './git'
 import {backslashEscape, shellEscape} from './list-format/shell-escape'
 import {csvEscape} from './list-format/csv-escape'
+import {mkdtempSync} from 'fs'
 
 type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape'
 
@@ -32,6 +34,7 @@ async function run(): Promise<void> {
     const filtersInput = core.getInput('filters', {required: true})
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
     const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
+    const writeToFiles = core.getInput('write-to-files', {required: false}).toLowerCase() === 'true'
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
     const predicateQuantifier = core.getInput('predicate-quantifier', {required: false}) || PredicateQuantifier.SOME
 
@@ -52,7 +55,7 @@ async function run(): Promise<void> {
     const files = await getChangedFiles(token, base, ref, initialFetchDepth)
     core.info(`Detected ${files.length} changed files`)
     const results = filter.match(files)
-    exportResults(results, listFiles)
+    exportResults(results, listFiles, writeToFiles)
   } catch (error) {
     core.setFailed(getErrorMessage(error))
   }
@@ -228,13 +231,15 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
   }
 }
 
-function exportResults(results: FilterResults, format: ExportFormat): void {
+function exportResults(results: FilterResults, format: ExportFormat, writeToFiles: boolean): void {
+  const tempDir = mkdtempSync(path.join(process.cwd(), 'paths-filter-'))
+
   core.info('Results:')
   const changes = []
   for (const [key, files] of Object.entries(results)) {
-    const value = files.length > 0
-    core.startGroup(`Filter ${key} = ${value}`)
-    if (files.length > 0) {
+    const match = files.length > 0
+    core.startGroup(`Filter ${key} = ${match}`)
+    if (match) {
       changes.push(key)
       core.info('Matching files:')
       for (const file of files) {
@@ -244,12 +249,21 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
       core.info('Matching files: none')
     }
 
-    core.setOutput(key, value)
+    core.setOutput(key, match)
     core.setOutput(`${key}_count`, files.length)
     if (format !== 'none') {
       const filesValue = serializeExport(files, format)
       core.setOutput(`${key}_files`, filesValue)
+
+      if (writeToFiles) {
+        const ext = format === 'json' ? 'json' : 'txt'
+        const filePath = path.join(tempDir, `${key}-files.${ext}`)
+        fs.writeFileSync(filePath, filesValue)
+        core.info(`Matching files list for filter '${key}' written to '${filePath}'`)
+        core.setOutput(`${key}_files_path`, filePath)
+      }
     }
+
     core.endGroup()
   }
 

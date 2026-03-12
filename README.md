@@ -142,6 +142,13 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Default: none
     list-files: ''
 
+    # Enables writing the lists of matching files to a corresponding file.
+    # If set, the action will create the specified file with the list of matching files.
+    # The file will be written in the format specified by the `list-files` option and named
+    # after the filter. The path to the file will be relative to the working directory and
+    # exported as an output variable named `<filter-name>_files_path`.
+    write-to-files: ''
+
     # Relative path under $GITHUB_WORKSPACE where the repository was checked out.
     working-directory: ''
 
@@ -154,14 +161,14 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Default: ${{ github.token }}
     token: ''
 
-    # Optional parameter to override the default behavior of file matching algorithm. 
+    # Optional parameter to override the default behavior of file matching algorithm.
     # By default files that match at least one pattern defined by the filters will be included.
     # This parameter allows to override the "at least one pattern" behavior to make it so that
-    # all of the patterns have to match or otherwise the file is excluded. 
-    # An example scenario where this is useful if you would like to match all 
-    # .ts files in a sub-directory but not .md files. 
-    # The filters below will match markdown files despite the exclusion syntax UNLESS 
-    # you specify 'every' as the predicate-quantifier parameter. When you do that, 
+    # all of the patterns have to match or otherwise the file is excluded.
+    # An example scenario where this is useful if you would like to match all
+    # .ts files in a sub-directory but not .md files.
+    # The filters below will match markdown files despite the exclusion syntax UNLESS
+    # you specify 'every' as the predicate-quantifier parameter. When you do that,
     # it will only match the .ts files in the subdirectory as expected.
     #
     # backend:
@@ -501,6 +508,37 @@ jobs:
             - 'pkg/a/b/c/**'
             - '!**/*.jpeg'
             - '!**/*.md'
+```
+
+</details>
+
+<details>
+  <summary>Handle large change sets (2000+ files)</summary>
+
+```yaml
+- uses: dorny/paths-filter@v3
+  id: changed
+  with:
+    # Enable writing the files matching each filter to the disk in addition to the output '<filter_name>_files'.
+    # The path for each filter's file is output in the format '<filter_name>_files_path'.
+    write-to-files: true
+    list-files: json
+    filters: |
+      content:
+        - 'content/**'
+
+
+- name: List changed directories relative to the base directory
+  shell: bash
+  env:
+    BASE_DIR: ${{ inputs.base-directory }}
+    CHANGED_CONTENT_FILES_PATH: ${{ steps.changed.outputs.content_files_path }}
+  run: |
+    CHANGED_CONTENT_DIRECTORIES=$(cat "${CHANGED_CONTENT_FILES_PATH}" | xargs -n1 realpath -m --relative-to=${BASE_DIR} | cut -f1 -d / | sort -u)
+    for d in $CHANGED_CONTENT_DIRECTORIES
+    do
+      echo "Content directory change detected: ${d}"
+    done
 ```
 
 </details>
