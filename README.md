@@ -46,7 +46,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
 ## Example
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
   id: changes
   with:
     filters: |
@@ -72,7 +72,7 @@ For more scenarios see [examples](#examples) section.
 
 ## What's New
 
-- New major release `v3` after update to Node 20 [Breaking change]
+- New major release `v4` after update to Node 24 [Breaking change]
 - Add `ref` input parameter
 - Add `list-files: csv` format
 - Configure matrix job to run for each folder with changes using `changes` output
@@ -84,7 +84,7 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
 ## Usage
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
   with:
     # Defines filters applied to detected changed files.
     # Each filter has a name and a list of rules.
@@ -192,8 +192,8 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v3
+    - uses: actions/checkout@v6
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         filters: |
@@ -237,7 +237,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
     # For pull requests it's not necessary to checkout the code
-    - uses: dorny/paths-filter@v3
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         filters: |
@@ -252,7 +252,7 @@ jobs:
     if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - ...
 
   # JOB to build and test frontend code
@@ -261,7 +261,7 @@ jobs:
     if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - ...
 ```
 
@@ -283,7 +283,7 @@ jobs:
       packages: ${{ steps.filter.outputs.changes }}
     steps:
     # For pull requests it's not necessary to checkout the code
-    - uses: dorny/paths-filter@v3
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         filters: |
@@ -300,7 +300,7 @@ jobs:
         package: ${{ fromJSON(needs.changes.outputs.packages) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - ...
 ```
 
@@ -324,8 +324,8 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v3
+    - uses: actions/checkout@v6
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         filters: ... # Configure your filters
@@ -345,12 +345,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         # This may save additional git fetch roundtrip if
         # merge-base is found within latest 20 commits
         fetch-depth: 20
-    - uses: dorny/paths-filter@v3
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         base: develop # Change detection against merge-base with this branch
@@ -373,8 +373,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v3
+    - uses: actions/checkout@v6
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         # Use context to get the branch where commits were pushed.
@@ -401,14 +401,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
       # Some action that modifies files tracked by git (e.g. code linter)
     - uses: johndoe/some-action@v1
 
       # Filter to detect which files were modified
       # Changes could be, for example, automatically committed
-    - uses: dorny/paths-filter@v3
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         base: HEAD
@@ -423,7 +423,7 @@ jobs:
   <summary>Define filter rules in own file</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
       id: filter
       with:
         # Path to file where filters are defined
@@ -436,7 +436,7 @@ jobs:
   <summary>Use YAML anchors to reuse path expression(s) inside another rule</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
       id: filter
       with:
         # &shared is YAML anchor,
@@ -457,7 +457,7 @@ jobs:
   <summary>Consider if file was added, modified or deleted</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
       id: filter
       with:
         # Changed file can be 'added', 'modified', or 'deleted'.
@@ -483,7 +483,7 @@ jobs:
   <summary>Detect changes in folder only for some file extensions</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
       id: filter
       with:
         # This makes it so that all the patterns have to match a file for it to be
@@ -511,7 +511,7 @@ jobs:
   <summary>Passing list of modified files as command line args in Linux shell</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
   id: filter
   with:
     # Enable listing of files matching each filter.
@@ -537,7 +537,7 @@ jobs:
   <summary>Passing list of modified files as JSON array to another action</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
   id: filter
   with:
     # Enable listing of files matching each filter.
