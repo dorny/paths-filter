@@ -97,7 +97,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
       if (base) {
         core.warning(`'base' input parameter is ignored when action is triggered by pull request event`)
       }
-      const pr = github.context.payload.pull_request as PullRequestEvent
+      const pr = github.context.payload as PullRequestEvent
       if (token) {
         return await getChangedFilesFromApi(token, pr)
       }
