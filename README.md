@@ -27,6 +27,11 @@ don't allow this because they don't work on a level of individual jobs or steps.
   - The `base` input parameter must not be the same as the branch that triggered the workflow
   - Changes are detected against the merge-base with the configured base branch or the default branch
   - Uses git commands to detect changes - repository must be already [checked out](https://github.com/actions/checkout)
+- **[Merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue):**
+  - Workflow triggered by **[merge_group](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#merge_group)**
+  - The `base` and `ref` input parameters default to commit hashes from the event
+    unless explicitly specified.
+  - Uses git commands to detect changes - repository must be already [checked out](https://github.com/actions/checkout)
 - **Master, Release, or other long-lived branches:**
   - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)** event
   when `base` input parameter is the same as the branch that triggered the workflow:
@@ -46,7 +51,7 @@ don't allow this because they don't work on a level of individual jobs or steps.
 ## Example
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
   id: changes
   with:
     filters: |
@@ -72,7 +77,7 @@ For more scenarios see [examples](#examples) section.
 
 ## What's New
 
-- New major release `v3` after update to Node 20 [Breaking change]
+- New major release `v4` after update to Node 24 [Breaking change]
 - Add `ref` input parameter
 - Add `list-files: csv` format
 - Configure matrix job to run for each folder with changes using `changes` output
@@ -84,7 +89,7 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
 ## Usage
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
   with:
     # Defines filters applied to detected changed files.
     # Each filter has a name and a list of rules.
@@ -104,6 +109,8 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Branch, tag, or commit SHA against which the changes will be detected.
     # If it references the same branch it was pushed to,
     # changes are detected against the most recent commit before the push.
+    # If it is empty and action is triggered by merge_group event,
+    # the base commit in the event will be used.
     # Otherwise, it uses git merge-base to find the best common ancestor between
     # current branch (HEAD) and base.
     # When merge-base is found, it's used for change detection - only changes
@@ -117,6 +124,8 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Git reference (e.g. branch name) from which the changes will be detected.
     # Useful when workflow can be triggered only on the default branch (e.g. repository_dispatch event)
     # but you want to get changes on a different branch.
+    # If this is empty and action is triggered by merge_group event,
+    # the head commit in the event will be used.
     # This option is ignored if action is triggered by pull_request event.
     # default: ${{ github.ref }}
     ref:
@@ -154,14 +163,14 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Default: ${{ github.token }}
     token: ''
 
-    # Optional parameter to override the default behavior of file matching algorithm. 
+    # Optional parameter to override the default behavior of file matching algorithm.
     # By default files that match at least one pattern defined by the filters will be included.
     # This parameter allows to override the "at least one pattern" behavior to make it so that
-    # all of the patterns have to match or otherwise the file is excluded. 
-    # An example scenario where this is useful if you would like to match all 
-    # .ts files in a sub-directory but not .md files. 
-    # The filters below will match markdown files despite the exclusion syntax UNLESS 
-    # you specify 'every' as the predicate-quantifier parameter. When you do that, 
+    # all of the patterns have to match or otherwise the file is excluded.
+    # An example scenario where this is useful if you would like to match all
+    # .ts files in a sub-directory but not .md files.
+    # The filters below will match markdown files despite the exclusion syntax UNLESS
+    # you specify 'every' as the predicate-quantifier parameter. When you do that,
     # it will only match the .ts files in the subdirectory as expected.
     #
     # backend:
@@ -192,8 +201,8 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v3
+    - uses: actions/checkout@v6
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         filters: |
@@ -237,7 +246,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
     # For pull requests it's not necessary to checkout the code
-    - uses: dorny/paths-filter@v3
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         filters: |
@@ -252,7 +261,7 @@ jobs:
     if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - ...
 
   # JOB to build and test frontend code
@@ -261,7 +270,7 @@ jobs:
     if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - ...
 ```
 
@@ -283,7 +292,7 @@ jobs:
       packages: ${{ steps.filter.outputs.changes }}
     steps:
     # For pull requests it's not necessary to checkout the code
-    - uses: dorny/paths-filter@v3
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         filters: |
@@ -300,7 +309,7 @@ jobs:
         package: ${{ fromJSON(needs.changes.outputs.packages) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - ...
 ```
 
@@ -317,6 +326,12 @@ on:
     branches: # PRs to the following branches will trigger the workflow
       - master
       - develop
+  # Optionally you can use the action in the merge queue
+  # if your repository enables the feature.
+  merge_group:
+    branches:
+      - master
+      - develop
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -324,8 +339,8 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v3
+    - uses: actions/checkout@v6
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         filters: ... # Configure your filters
@@ -345,12 +360,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         # This may save additional git fetch roundtrip if
         # merge-base is found within latest 20 commits
         fetch-depth: 20
-    - uses: dorny/paths-filter@v3
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         base: develop # Change detection against merge-base with this branch
@@ -373,8 +388,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v3
+    - uses: actions/checkout@v6
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         # Use context to get the branch where commits were pushed.
@@ -401,14 +416,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
       # Some action that modifies files tracked by git (e.g. code linter)
     - uses: johndoe/some-action@v1
 
       # Filter to detect which files were modified
       # Changes could be, for example, automatically committed
-    - uses: dorny/paths-filter@v3
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         base: HEAD
@@ -423,7 +438,7 @@ jobs:
   <summary>Define filter rules in own file</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
       id: filter
       with:
         # Path to file where filters are defined
@@ -436,7 +451,7 @@ jobs:
   <summary>Use YAML anchors to reuse path expression(s) inside another rule</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
       id: filter
       with:
         # &shared is YAML anchor,
@@ -457,7 +472,7 @@ jobs:
   <summary>Consider if file was added, modified or deleted</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
       id: filter
       with:
         # Changed file can be 'added', 'modified', or 'deleted'.
@@ -483,7 +498,7 @@ jobs:
   <summary>Detect changes in folder only for some file extensions</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
       id: filter
       with:
         # This makes it so that all the patterns have to match a file for it to be
@@ -511,7 +526,7 @@ jobs:
   <summary>Passing list of modified files as command line args in Linux shell</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
   id: filter
   with:
     # Enable listing of files matching each filter.
@@ -537,7 +552,7 @@ jobs:
   <summary>Passing list of modified files as JSON array to another action</summary>
 
 ```yaml
-- uses: dorny/paths-filter@v3
+- uses: dorny/paths-filter@v4
   id: filter
   with:
     # Enable listing of files matching each filter.
