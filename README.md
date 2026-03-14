@@ -27,6 +27,11 @@ don't allow this because they don't work on a level of individual jobs or steps.
   - The `base` input parameter must not be the same as the branch that triggered the workflow
   - Changes are detected against the merge-base with the configured base branch or the default branch
   - Uses git commands to detect changes - repository must be already [checked out](https://github.com/actions/checkout)
+- **[Merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue):**
+  - Workflow triggered by **[merge_group](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#merge_group)**
+  - The `base` and `ref` input parameters default to commit hashes from the event
+    unless explicitly specified.
+  - Uses git commands to detect changes - repository must be already [checked out](https://github.com/actions/checkout)
 - **Master, Release, or other long-lived branches:**
   - Workflow triggered by **[push](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#push)** event
   when `base` input parameter is the same as the branch that triggered the workflow:
@@ -104,6 +109,8 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Branch, tag, or commit SHA against which the changes will be detected.
     # If it references the same branch it was pushed to,
     # changes are detected against the most recent commit before the push.
+    # If it is empty and action is triggered by merge_group event,
+    # the base commit in the event will be used.
     # Otherwise, it uses git merge-base to find the best common ancestor between
     # current branch (HEAD) and base.
     # When merge-base is found, it's used for change detection - only changes
@@ -117,6 +124,8 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Git reference (e.g. branch name) from which the changes will be detected.
     # Useful when workflow can be triggered only on the default branch (e.g. repository_dispatch event)
     # but you want to get changes on a different branch.
+    # If this is empty and action is triggered by merge_group event,
+    # the head commit in the event will be used.
     # This option is ignored if action is triggered by pull_request event.
     # default: ${{ github.ref }}
     ref:
@@ -154,14 +163,14 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # Default: ${{ github.token }}
     token: ''
 
-    # Optional parameter to override the default behavior of file matching algorithm. 
+    # Optional parameter to override the default behavior of file matching algorithm.
     # By default files that match at least one pattern defined by the filters will be included.
     # This parameter allows to override the "at least one pattern" behavior to make it so that
-    # all of the patterns have to match or otherwise the file is excluded. 
-    # An example scenario where this is useful if you would like to match all 
-    # .ts files in a sub-directory but not .md files. 
-    # The filters below will match markdown files despite the exclusion syntax UNLESS 
-    # you specify 'every' as the predicate-quantifier parameter. When you do that, 
+    # all of the patterns have to match or otherwise the file is excluded.
+    # An example scenario where this is useful if you would like to match all
+    # .ts files in a sub-directory but not .md files.
+    # The filters below will match markdown files despite the exclusion syntax UNLESS
+    # you specify 'every' as the predicate-quantifier parameter. When you do that,
     # it will only match the .ts files in the subdirectory as expected.
     #
     # backend:
@@ -315,6 +324,12 @@ jobs:
 on:
   pull_request:
     branches: # PRs to the following branches will trigger the workflow
+      - master
+      - develop
+  # Optionally you can use the action in the merge queue
+  # if your repository enables the feature.
+  merge_group:
+    branches:
       - master
       - develop
 jobs:
