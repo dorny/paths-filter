@@ -18,6 +18,13 @@ jobs:
     - run: |
         npm install
         npm run all
+    - name: Check dist is up to date
+      run: |
+        if [ -n "$(git diff --name-only dist/)" ]; then
+          echo "::error::dist/index.js is out of date. Run 'npm run all' and commit the result."
+          git diff --stat dist/
+          exit 1
+        fi
 
   test-inline:
     runs-on: ubuntu-latest
