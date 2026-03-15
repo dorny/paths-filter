@@ -42,29 +42,18 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Filter = exports.SUPPORTED_PREDICATE_QUANTIFIERS = exports.PredicateQuantifier = void 0;
-exports.isPredicateQuantifier = isPredicateQuantifier;
+exports.Filter = exports.isPredicateQuantifier = exports.SUPPORTED_PREDICATE_QUANTIFIERS = exports.PredicateQuantifier = void 0;
 const jsyaml = __importStar(__nccwpck_require__(1917));
 const picomatch_1 = __importDefault(__nccwpck_require__(8569));
 // Minimatch options used in all matchers
@@ -106,6 +95,7 @@ exports.SUPPORTED_PREDICATE_QUANTIFIERS = Object.values(PredicateQuantifier);
 function isPredicateQuantifier(x) {
     return exports.SUPPORTED_PREDICATE_QUANTIFIERS.includes(x);
 }
+exports.isPredicateQuantifier = isPredicateQuantifier;
 class Filter {
     // Creates instance of Filter and load rules from YAML if it's provided
     constructor(yaml, filterConfig) {
@@ -206,34 +196,15 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.HEAD = exports.NULL_SHA = void 0;
-exports.getChangesInLastCommit = getChangesInLastCommit;
-exports.getChanges = getChanges;
-exports.getChangesOnHead = getChangesOnHead;
-exports.getChangesSinceMergeBase = getChangesSinceMergeBase;
-exports.parseGitDiffOutput = parseGitDiffOutput;
-exports.listAllFilesAsAdded = listAllFilesAsAdded;
-exports.getCurrentRef = getCurrentRef;
-exports.getShortName = getShortName;
-exports.isGitSha = isGitSha;
+exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.HEAD = exports.NULL_SHA = void 0;
 const exec_1 = __nccwpck_require__(1514);
 const core = __importStar(__nccwpck_require__(2186));
 const file_1 = __nccwpck_require__(4014);
@@ -251,6 +222,7 @@ async function getChangesInLastCommit() {
     }
     return parseGitDiffOutput(output);
 }
+exports.getChangesInLastCommit = getChangesInLastCommit;
 async function getChanges(base, head) {
     const baseRef = await ensureRefAvailable(base);
     const headRef = await ensureRefAvailable(head);
@@ -268,6 +240,7 @@ async function getChanges(base, head) {
     }
     return parseGitDiffOutput(output);
 }
+exports.getChanges = getChanges;
 async function getChangesOnHead() {
     // Get current changes - both staged and unstaged
     core.startGroup(`Change detection on HEAD`);
@@ -281,6 +254,7 @@ async function getChangesOnHead() {
     }
     return parseGitDiffOutput(output);
 }
+exports.getChangesOnHead = getChangesOnHead;
 async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
     let baseRef;
     let headRef;
@@ -354,6 +328,7 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
     }
     return parseGitDiffOutput(output);
 }
+exports.getChangesSinceMergeBase = getChangesSinceMergeBase;
 function parseGitDiffOutput(output) {
     const tokens = output.split('\u0000').filter(s => s.length > 0);
     const files = [];
@@ -365,6 +340,7 @@ function parseGitDiffOutput(output) {
     }
     return files;
 }
+exports.parseGitDiffOutput = parseGitDiffOutput;
 async function listAllFilesAsAdded() {
     core.startGroup('Listing all files tracked by git');
     let output = '';
@@ -383,11 +359,12 @@ async function listAllFilesAsAdded() {
         filename: path
     }));
 }
+exports.listAllFilesAsAdded = listAllFilesAsAdded;
 async function getCurrentRef() {
     core.startGroup(`Get current git ref`);
     try {
-        const branch = (await (0, exec_1.getExecOutput)('git', ['branch', '--show-current'])).stdout.trim();
-        if (branch) {
+        const branch = (await (0, exec_1.getExecOutput)('git', ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout.trim();
+        if (branch && branch !== 'HEAD') {
             return branch;
         }
         const describe = await (0, exec_1.getExecOutput)('git', ['describe', '--tags', '--exact-match'], { ignoreReturnCode: true });
@@ -400,6 +377,7 @@ async function getCurrentRef() {
         core.endGroup();
     }
 }
+exports.getCurrentRef = getCurrentRef;
 function getShortName(ref) {
     if (!ref)
         return '';
@@ -411,9 +389,11 @@ function getShortName(ref) {
         return ref.slice(tags.length);
     return ref;
 }
+exports.getShortName = getShortName;
 function isGitSha(ref) {
     return /^[a-z0-9]{40}$/.test(ref);
 }
+exports.isGitSha = isGitSha;
 async function hasCommit(ref) {
     return (await (0, exec_1.getExecOutput)('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).exitCode === 0;
 }
@@ -486,7 +466,7 @@ const statusMap = {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.csvEscape = csvEscape;
+exports.csvEscape = void 0;
 // Returns filename escaped for CSV
 // Wraps file name into "..." only when it contains some potentially unsafe character
 function csvEscape(value) {
@@ -502,6 +482,7 @@ function csvEscape(value) {
     // another double quote
     return `"${value.replace(/"/g, '""')}"`;
 }
+exports.csvEscape = csvEscape;
 
 
 /***/ }),
@@ -512,12 +493,12 @@ function csvEscape(value) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.backslashEscape = backslashEscape;
-exports.shellEscape = shellEscape;
+exports.shellEscape = exports.backslashEscape = void 0;
 // Backslash escape every character except small subset of definitely safe characters
 function backslashEscape(value) {
     return value.replace(/([^a-zA-Z0-9,._+:@%/-])/gm, '\\$1');
 }
+exports.backslashEscape = backslashEscape;
 // Returns filename escaped for usage as shell argument.
 // Applies "human readable" approach with as few escaping applied as possible
 function shellEscape(value) {
@@ -538,6 +519,7 @@ function shellEscape(value) {
     // Contains some unsafe characters but no single quote
     return `'${value}'`;
 }
+exports.shellEscape = shellEscape;
 
 
 /***/ }),
@@ -563,23 +545,13 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const fs = __importStar(__nccwpck_require__(7147));
 const core = __importStar(__nccwpck_require__(2186));
