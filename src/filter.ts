@@ -1,6 +1,6 @@
 import * as jsyaml from 'js-yaml'
 import picomatch from 'picomatch'
-import {File, ChangeStatus} from './file'
+import {File, ChangeStatus} from './file.js'
 
 // Type definition of object we expect to load from YAML
 interface FilterYaml {
@@ -73,7 +73,10 @@ export class Filter {
   rules: {[key: string]: FilterRuleItem[]} = {}
 
   // Creates instance of Filter and load rules from YAML if it's provided
-  constructor(yaml?: string, readonly filterConfig?: FilterConfig) {
+  constructor(
+    yaml?: string,
+    readonly filterConfig?: FilterConfig
+  ) {
     if (yaml) {
       this.load(yaml)
     }

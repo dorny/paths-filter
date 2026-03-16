@@ -1,5 +1,5 @@
-import {Filter, FilterConfig, PredicateQuantifier} from '../src/filter'
-import {File, ChangeStatus} from '../src/file'
+import {Filter, FilterConfig, PredicateQuantifier} from '../src/filter.js'
+import {File, ChangeStatus} from '../src/file.js'
 
 describe('yaml filter parsing tests', () => {
   test('throws if yaml is not a dictionary', () => {

@@ -11,11 +11,11 @@ import {
   FilterResults,
   PredicateQuantifier,
   SUPPORTED_PREDICATE_QUANTIFIERS
-} from './filter'
-import {File, ChangeStatus} from './file'
-import * as git from './git'
-import {backslashEscape, shellEscape} from './list-format/shell-escape'
-import {csvEscape} from './list-format/csv-escape'
+} from './filter.js'
+import {File, ChangeStatus} from './file.js'
+import * as git from './git.js'
+import {backslashEscape, shellEscape} from './list-format/shell-escape.js'
+import {csvEscape} from './list-format/csv-escape.js'
 
 type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape'
 

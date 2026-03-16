@@ -1,5 +1,5 @@
-import * as git from '../src/git'
-import {ChangeStatus} from '../src/file'
+import * as git from '../src/git.js'
+import {ChangeStatus} from '../src/file.js'
 
 describe('parsing output of the git diff command', () => {
   test('parseGitDiffOutput returns files with correct change status', async () => {
