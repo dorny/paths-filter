@@ -1,6 +1,6 @@
 import {getExecOutput} from '@actions/exec'
 import * as core from '@actions/core'
-import {File, ChangeStatus} from './file'
+import {File, ChangeStatus} from './file.js'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
 export const HEAD = 'HEAD'
