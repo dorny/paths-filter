@@ -31,14 +31,14 @@
     "@actions/core": "^2.0.3",
     "@actions/exec": "^2.0.0",
     "@actions/github": "^8.0.1",
-    "picomatch": "^2.3.1"
+    "picomatch": "^4.0.3"
   },
   "devDependencies": {
     "@octokit/webhooks-types": "^7.3.1",
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.3.5",
-    "@types/picomatch": "^2.3.3",
+    "@types/picomatch": "^4.0.2",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
     "@vercel/ncc": "^0.38.4",
