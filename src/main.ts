@@ -193,7 +193,7 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 }
 
 // Uses github REST api to get list of files changed in PR
-async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEvent): Promise<File[]> {
+async function getChangedFilesFromApi(token: string, pullRequest: PullRequest): Promise<File[]> {
   core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from GitHub API`)
   try {
     const client = github.getOctokit(token)
