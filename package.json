@@ -31,7 +31,7 @@
   "dependencies": {
     "@actions/core": "^3.0.0",
     "@actions/exec": "^3.0.0",
-    "@actions/github": "^8.0.1",
+    "@actions/github": "^9.0.0",
     "picomatch": "^4.0.3"
   },
   "devDependencies": {
