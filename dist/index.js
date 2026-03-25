@@ -640,7 +640,7 @@ async function getChangedFiles(token, base, ref, initialFetchDepth) {
                 // At the same time we don't want to fetch any code from forked repository
                 throw new Error(`'token' input parameter is required if action is triggered by 'pull_request_target' event`);
             }
-            core.info('Github token is not available - changes will be detected using git diff');
+            core.info('GitHub token is not available - changes will be detected using git diff');
             const baseSha = (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.base.sha;
             const defaultBranch = (_b = github.context.payload.repository) === null || _b === void 0 ? void 0 : _b.default_branch;
             const currentRef = await git.getCurrentRef();
@@ -710,7 +710,7 @@ async function getChangedFilesFromGit(base, head, initialFetchDepth) {
 }
 // Uses github REST api to get list of files changed in PR
 async function getChangedFilesFromApi(token, pullRequest) {
-    core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from Github API`);
+    core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from GitHub API`);
     try {
         const client = github.getOctokit(token);
         const per_page = 100;
