@@ -166,8 +166,8 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
 export async function getCurrentRef(): Promise<string> {
   core.startGroup(`Get current git ref`)
   try {
-    const branch = (await getExecOutput('git', ['branch', '--show-current'])).stdout.trim()
-    if (branch) {
+    const branch = (await getExecOutput('git', ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout.trim()
+    if (branch && branch !== 'HEAD') {
       return branch
     }
 

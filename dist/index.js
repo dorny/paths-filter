@@ -363,8 +363,8 @@ exports.listAllFilesAsAdded = listAllFilesAsAdded;
 async function getCurrentRef() {
     core.startGroup(`Get current git ref`);
     try {
-        const branch = (await (0, exec_1.getExecOutput)('git', ['branch', '--show-current'])).stdout.trim();
-        if (branch) {
+        const branch = (await (0, exec_1.getExecOutput)('git', ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout.trim();
+        if (branch && branch !== 'HEAD') {
             return branch;
         }
         const describe = await (0, exec_1.getExecOutput)('git', ['describe', '--tags', '--exact-match'], { ignoreReturnCode: true });
