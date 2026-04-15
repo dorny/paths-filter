@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v6
     - uses: actions/setup-node@v6
@@ -22,6 +24,7 @@ jobs:
   test-inline:
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: read
     steps:
     - uses: actions/checkout@v6
@@ -43,6 +46,7 @@ jobs:
   test-external:
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: read
     steps:
     - uses: actions/checkout@v6
@@ -56,6 +60,8 @@ jobs:
 
   test-without-token:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v6
     - uses: ./
@@ -69,6 +75,8 @@ jobs:
 
   test-wd-without-token:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v6
       with:
@@ -85,6 +93,8 @@ jobs:
 
   test-local-changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v6
     - run: echo "NEW FILE" > local
@@ -105,6 +115,8 @@ jobs:
 
   test-change-type:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v6
     - name: configure GIT user
