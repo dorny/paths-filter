@@ -17,6 +17,24 @@ describe('yaml filter parsing tests', () => {
     const t = () => new Filter(yaml)
     expect(t).toThrow(/^Invalid filter.*/)
   })
+
+  test('throws when a rule contains only negation patterns', () => {
+    const yaml = `
+    excludes:
+      - '!**/*.md'
+      - '!**/*.txt'
+    `
+    expect(() => new Filter(yaml)).toThrow(/at least one positive pattern/)
+  })
+
+  test('throws when a status-tagged rule contains only negation patterns', () => {
+    const yaml = `
+    docs:
+      - modified:
+          - '!**/*.md'
+    `
+    expect(() => new Filter(yaml)).toThrow(/at least one positive pattern/)
+  })
 })
 
 describe('matching tests', () => {
@@ -146,6 +164,92 @@ describe('matching tests', () => {
     expect(otherPkgTypescriptMatch.backend).toEqual([])
     expect(docsMatch.backend).toEqual([])
     expect(otherPkgJpegMatch.backend).toEqual([])
+  })
+
+  test('negation patterns under default quantifier exclude files instead of matching everything (issue #260)', () => {
+    const yaml = `
+    mobile:
+      - 'mobile/**'
+      - '!mobile/**/*.md'
+      - '!mobile/.config/**'
+      - '.github/workflows/test_mobile.yml'
+    `
+    const filter = new Filter(yaml)
+
+    // Files outside the included path must NOT match purely because they are
+    // not mobile markdown files. This was the original bug: a standalone
+    // '!mobile/**/*.md' picomatch returned true for any non-markdown path,
+    // and the default 'some' quantifier flipped the rule into a near-universal match.
+    const unrelated = modified(['web/src/foo.tsx', 'docs/README.md', 'server/main.go'])
+    expect(filter.match(unrelated).mobile).toEqual([])
+
+    // Mobile sources should still match.
+    const mobileSrc = modified(['mobile/src/app.ts', 'mobile/lib/index.ts'])
+    expect(filter.match(mobileSrc).mobile).toEqual(mobileSrc)
+
+    // Negated paths inside the include set must be excluded.
+    const mobileExcluded = modified(['mobile/README.md', 'mobile/.config/eslint.json'])
+    expect(filter.match(mobileExcluded).mobile).toEqual([])
+
+    // The standalone workflow path must still match.
+    const workflow = modified(['.github/workflows/test_mobile.yml'])
+    expect(filter.match(workflow).mobile).toEqual(workflow)
+  })
+
+  test('negation across YAML anchors is honored under default quantifier', () => {
+    const yaml = `
+    shared: &shared
+      - 'common/**'
+      - '!**/*.md'
+      - '!**/*.txt'
+    src:
+      - 'src/**'
+      - *shared
+    `
+    const filter = new Filter(yaml)
+
+    // Anchor-inherited positives still match.
+    expect(filter.match(modified(['common/util.ts'])).src).toEqual(modified(['common/util.ts']))
+    // The rule's own positive still matches.
+    expect(filter.match(modified(['src/app.ts'])).src).toEqual(modified(['src/app.ts']))
+    // Anchor-inherited negations exclude files even when a sibling positive matches.
+    expect(filter.match(modified(['src/README.md'])).src).toEqual([])
+    expect(filter.match(modified(['common/notes.txt'])).src).toEqual([])
+    // Files outside every positive pattern do not match.
+    expect(filter.match(modified(['other/file.ts'])).src).toEqual([])
+  })
+
+  test('status-tagged array honors negation patterns (issue #260, status form)', () => {
+    const yaml = `
+    src:
+      - modified:
+          - 'src/**'
+          - '!src/**/*.md'
+    `
+    const filter = new Filter(yaml)
+    const tsFile = modified(['src/app.ts'])
+    const mdFile = modified(['src/README.md'])
+    const unrelated = modified(['docs/intro.md'])
+    expect(filter.match(tsFile).src).toEqual(tsFile)
+    expect(filter.match(mdFile).src).toEqual([])
+    expect(filter.match(unrelated).src).toEqual([])
+  })
+
+  test('mixing string patterns and status-tagged patterns still matches both forms', () => {
+    const yaml = `
+    backend:
+      - 'src/**'
+      - '!src/**/*.md'
+      - added: 'migrations/**'
+    `
+    const filter = new Filter(yaml)
+
+    expect(filter.match(modified(['src/server.ts'])).backend).toEqual(modified(['src/server.ts']))
+    expect(filter.match(modified(['src/README.md'])).backend).toEqual([])
+    const addedMigration: File[] = [{status: ChangeStatus.Added, filename: 'migrations/0001.sql'}]
+    expect(filter.match(addedMigration).backend).toEqual(addedMigration)
+    const modifiedMigration = modified(['migrations/0001.sql'])
+    expect(filter.match(modifiedMigration).backend).toEqual([])
   })
 
   test('matches path based on rules included using YAML anchor', () => {
