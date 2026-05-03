@@ -117,7 +117,7 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # introduced by the current branch are considered.
     # All files are considered as added if there is no common ancestor with
     # base branch or no previous commit.
-    # This option is ignored if action is triggered by pull_request event.
+    # This option is ignored if action is triggered by pull_request event, unless 'allow-override-on-pr' is set to true.
     # Default: repository default branch (e.g. master)
     base: ''
 
@@ -126,7 +126,7 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # but you want to get changes on a different branch.
     # If this is empty and action is triggered by merge_group event,
     # the head commit in the event will be used.
-    # This option is ignored if action is triggered by pull_request event.
+    # This option is ignored if action is triggered by pull_request event, unless 'allow-override-on-pr' is set to true.
     # default: ${{ github.ref }}
     ref:
 
@@ -178,6 +178,14 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     #  - '!**/*.jpeg'
     #  - '!**/*.md'
     predicate-quantifier: 'some'
+
+    # When true, the user-provided `base` and/or `ref` inputs are honored even if
+    # the action is triggered by a pull_request, pull_request_review,
+    # pull_request_review_comment, or pull_request_target event. In that case the
+    # action skips the GitHub API path and uses git diff against the provided
+    # base/ref. Has no effect if `base` and `ref` are both empty.
+    # Default: false
+    allow-override-on-pr: 'false'
 ```
 
 ## Outputs

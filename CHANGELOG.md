@@ -1,5 +1,8 @@
 # Changelog
 
+## v4.1.0
+- [Allow base/ref override on pull_request events](https://github.com/dorny/paths-filter/pull/NNN)
+
 ## v4.0.0
 - [Update action runtime to node24](https://github.com/dorny/paths-filter/pull/294)
 

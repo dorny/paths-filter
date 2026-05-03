@@ -34,6 +34,7 @@ async function run(): Promise<void> {
     const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
     const predicateQuantifier = core.getInput('predicate-quantifier', {required: false}) || PredicateQuantifier.SOME
+    const allowOverrideOnPr = core.getBooleanInput('allow-override-on-pr', {required: false})
 
     if (!isExportFormat(listFiles)) {
       core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`)
@@ -49,7 +50,7 @@ async function run(): Promise<void> {
     const filterConfig: FilterConfig = {predicateQuantifier}
 
     const filter = new Filter(filtersYaml, filterConfig)
-    const files = await getChangedFiles(token, base, ref, initialFetchDepth)
+    const files = await getChangedFiles(token, base, ref, initialFetchDepth, allowOverrideOnPr)
     core.info(`Detected ${files.length} changed files`)
     const results = filter.match(files)
     exportResults(results, listFiles)
@@ -74,7 +75,13 @@ function getConfigFileContent(configPath: string): string {
   return fs.readFileSync(configPath, {encoding: 'utf8'})
 }
 
-async function getChangedFiles(token: string, base: string, ref: string, initialFetchDepth: number): Promise<File[]> {
+async function getChangedFiles(
+  token: string,
+  base: string,
+  ref: string,
+  initialFetchDepth: number,
+  allowOverrideOnPr: boolean
+): Promise<File[]> {
   // if base is 'HEAD' only local uncommitted changes will be detected
   // This is the simplest case as we don't need to fetch more commits or evaluate current/before refs
   if (base === git.HEAD) {
@@ -91,6 +98,10 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
     case 'pull_request_review':
     case 'pull_request_review_comment':
     case 'pull_request_target': {
+      if (allowOverrideOnPr && (base || ref)) {
+        core.info(`'allow-override-on-pr' is enabled and base/ref were provided — skipping PR API and using git diff`)
+        return getChangedFilesFromGit(base, ref, initialFetchDepth)
+      }
       if (ref) {
         core.warning(`'ref' input parameter is ignored when action is triggered by pull request event`)
       }

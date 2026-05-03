@@ -49,6 +49,14 @@ inputs:
       allows to override the "at least one pattern" behavior to make it so that all of the patterns have to match or otherwise the file is excluded.
     required: false
     default: 'some'
+  allow-override-on-pr:
+    description: |
+      When true, the user-provided `base` and/or `ref` inputs are honored even if the action
+      is triggered by a pull_request, pull_request_review, pull_request_review_comment, or
+      pull_request_target event. In that case the action skips the GitHub API path and uses
+      git diff against the provided base/ref. Has no effect if `base` and `ref` are both empty.
+    required: false
+    default: 'false'
 outputs:
   changes:
     description: JSON array with names of all filters matching any of changed files
