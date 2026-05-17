@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v6
       with:
         fetch-depth: 0 # Need history for changelog generation
-    - uses: volta-cli/action@v4
+    - uses: volta-cli/action@v5
     - run: |
         pnpm i
         pnpm run all
