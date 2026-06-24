@@ -204,7 +204,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.HEAD = exports.NULL_SHA = void 0;
+exports.resolveRefToSha = exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.HEAD = exports.NULL_SHA = void 0;
 const exec_1 = __nccwpck_require__(1514);
 const core = __importStar(__nccwpck_require__(2186));
 const file_1 = __nccwpck_require__(4014);
@@ -394,6 +394,11 @@ function isGitSha(ref) {
     return /^[a-z0-9]{40}$/.test(ref);
 }
 exports.isGitSha = isGitSha;
+async function resolveRefToSha(ref) {
+    const output = (await (0, exec_1.getExecOutput)('git', ['rev-parse', ref])).stdout.trim();
+    return output;
+}
+exports.resolveRefToSha = resolveRefToSha;
 async function hasCommit(ref) {
     return (await (0, exec_1.getExecOutput)('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).exitCode === 0;
 }
@@ -675,7 +680,9 @@ async function getChangedFilesFromGit(base, head, initialFetchDepth) {
         throw new Error("This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload");
     }
     const isBaseSha = git.isGitSha(base);
-    const isBaseSameAsHead = base === head;
+    const baseSha = await git.resolveRefToSha(base);
+    const headSha = await git.resolveRefToSha(head);
+    const isBaseSameAsHead = base === head || baseSha === headSha;
     // If base is commit SHA we will do comparison against the referenced commit
     // Or if base references same branch it was pushed to, we will do comparison against the previously pushed commit
     if (isBaseSha || isBaseSameAsHead) {
