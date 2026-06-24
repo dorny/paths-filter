@@ -198,6 +198,11 @@ export function isGitSha(ref: string): boolean {
   return /^[a-z0-9]{40}$/.test(ref)
 }
 
+export async function resolveRefToSha(ref: string): Promise<string> {
+  const output = (await getExecOutput('git', ['rev-parse', ref])).stdout.trim()
+  return output
+}
+
 async function hasCommit(ref: string): Promise<boolean> {
   return (await getExecOutput('git', ['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).exitCode === 0
 }
