@@ -187,10 +187,14 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
 
 ## Outputs
 
-- For each filter, it sets output variable named by the filter to the text:
-  - `'true'` - if **any** of changed files matches any of filter rules
-  - `'false'` - if **none** of changed files matches any of filter rules
-- For each filter, it sets an output variable with the name `${FILTER_NAME}_count` to the count of matching files.
+- Each filter sets an output variable, named after the filter, whose text value depends on the `predicate-quantifier` setting:
+  - With `predicate-quantifier: 'some'` (default):
+    - `'true'` - if **any** changed file matches **at least one** of the filter's rules
+    - `'false'` - if **no** changed file matches **at least one** of the filter's rules
+  - With `predicate-quantifier: 'every'`:
+    - `'true'` - if **any** changed file matches **all** of the filter's rules
+    - `'false'` - if **no** changed file matches **all** of the filter's rules
+- Each filter sets an output variable with the name `${FILTER_NAME}_count` to the count of matching files.
 - If enabled, for each filter it sets an output variable with the name `${FILTER_NAME}_files`. It will contain a list of all files matching the filter.
 - `changes` - JSON array with names of all filters matching any of the changed files.
 
