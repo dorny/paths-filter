@@ -74,6 +74,63 @@ jobs:
       if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
       run: exit 1
 
+  test-container-without-token:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # bullseye: git 2.30 + Debian CVE-2022-24765 backport, old "unsafe repository" wording,
+        #           pre-2.32 -> ignores GIT_CONFIG_GLOBAL -> exercises the HOME-only path
+        # bookworm: git 2.39, "dubious ownership" wording, honors GIT_CONFIG_GLOBAL
+        container: ['node:24-bullseye', 'node:24-bookworm']
+        locale: ['']
+        include:
+          # zh_CN: git translates the dubious-ownership message via gettext - proves
+          # detection works on non-English stderr regardless of the container's locale.
+          # A CJK locale is the most adversarial probe (multibyte, non-Latin) whose
+          # catalog actually translates this message (ja does not exist, ko lacks it)
+          - container: 'node:24-bookworm'
+            locale: 'zh_CN.UTF-8'
+    container: ${{ matrix.container }}
+    steps:
+    - uses: actions/checkout@v6
+    - name: Generate locale
+      if: matrix.locale != ''
+      run: |
+        apt-get update
+        apt-get install -y locales
+        echo '${{ matrix.locale }} UTF-8' >> /etc/locale.gen
+        locale-gen
+    - name: Verify dubious ownership is reproduced
+      run: |
+        if git status; then
+          echo "::error::git succeeded - environment no longer reproduces dubious ownership"
+          exit 1
+        fi
+    - name: Verify git message is localized
+      if: matrix.locale != ''
+      env:
+        LC_ALL: ${{ matrix.locale }}
+      run: |
+        if stderr=$(git status 2>&1 >/dev/null); then
+          echo "::error::git succeeded - environment no longer reproduces dubious ownership"
+          exit 1
+        fi
+        echo "$stderr"
+        if echo "$stderr" | grep -qE 'dubious ownership|unsafe repository'; then
+          echo "::error::git message is not translated - the locale variant would not test anything"
+          exit 1
+        fi
+    - uses: ./
+      id: filter
+      env:
+        LC_ALL: ${{ matrix.locale }}
+      with:
+        token: ''
+        filters: '.github/filters.yml'
+    - name: filter-test
+      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+      run: exit 1
+
   test-wd-without-token:
     runs-on: ubuntu-latest
     steps:

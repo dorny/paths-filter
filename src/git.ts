@@ -1,15 +1,50 @@
-import {getExecOutput} from '@actions/exec'
+import {getExecOutput, ExecOutput} from '@actions/exec'
 import * as core from '@actions/core'
 import {File, ChangeStatus} from './file'
+import {ensureSafeDirectory, getGitEnv, isDubiousOwnershipError} from './safe-directory'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
 export const HEAD = 'HEAD'
+
+export async function gitExec(args: string[], options?: {ignoreReturnCode?: boolean}): Promise<ExecOutput> {
+  // ignoreReturnCode is always set so exitCode and stderr stay inspectable - failures are re-thrown below
+  const execute = async (): Promise<ExecOutput> =>
+    getExecOutput('git', args, {...options, ignoreReturnCode: true, env: getGitEnv()})
+
+  let result = await execute()
+  if (isDubiousOwnershipError(result.exitCode, result.stderr)) {
+    if (await ensureSafeDirectory(result.stderr)) {
+      result = await execute()
+    }
+    if (isDubiousOwnershipError(result.exitCode, result.stderr)) {
+      const firstLine = result.stderr
+        .split(/\r?\n/)
+        .find(line => line.trim().length > 0)
+        ?.trim()
+      throw new Error(
+        `${firstLine ?? 'Git failed due to dubious repository ownership'}\n` +
+          'The automatic safe.directory workaround was not sufficient. ' +
+          'Either run the container with the same user as the runner:\n' +
+          '  container:\n' +
+          '    options: --user 1001\n' +
+          'or mark the repository as safe in a step before this action:\n' +
+          '  - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"'
+      )
+    }
+  }
+
+  if (result.exitCode !== 0 && !options?.ignoreReturnCode) {
+    throw new Error(`The process 'git ${args.join(' ')}' failed with exit code ${result.exitCode}`)
+  }
+
+  return result
+}
 
 export async function getChangesInLastCommit(): Promise<File[]> {
   core.startGroup(`Change detection in last commit`)
   let output = ''
   try {
-    output = (await getExecOutput('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout
+    output = (await gitExec(['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -27,8 +62,7 @@ export async function getChanges(base: string, head: string): Promise<File[]> {
   let output = ''
   try {
     // Two dots '..' change detection - directly compares two versions
-    output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`]))
-      .stdout
+    output = (await gitExec(['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -42,7 +76,7 @@ export async function getChangesOnHead(): Promise<File[]> {
   core.startGroup(`Change detection on HEAD`)
   let output = ''
   try {
-    output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout
+    output = (await gitExec(['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -58,7 +92,7 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
     if (baseRef === undefined || headRef === undefined) {
       return false
     }
-    return (await getExecOutput('git', ['merge-base', baseRef, headRef], {ignoreReturnCode: true})).exitCode === 0
+    return (await gitExec(['merge-base', baseRef, headRef], {ignoreReturnCode: true})).exitCode === 0
   }
 
   let noMergeBase = false
@@ -67,12 +101,12 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
     baseRef = await getLocalRef(base)
     headRef = await getLocalRef(head)
     if (!(await hasMergeBase())) {
-      await getExecOutput('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head])
+      await gitExec(['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head])
       if (baseRef === undefined || headRef === undefined) {
         baseRef = baseRef ?? (await getLocalRef(base))
         headRef = headRef ?? (await getLocalRef(head))
         if (baseRef === undefined || headRef === undefined) {
-          await getExecOutput('git', ['fetch', '--tags', '--depth=1', 'origin', base, head], {
+          await gitExec(['fetch', '--tags', '--depth=1', 'origin', base, head], {
             ignoreReturnCode: true // returns exit code 1 if tags on remote were updated - we can safely ignore it
           })
           baseRef = baseRef ?? (await getLocalRef(base))
@@ -94,12 +128,12 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
       let lastCommitCount = await getCommitCount()
       while (!(await hasMergeBase())) {
         depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER)
-        await getExecOutput('git', ['fetch', `--deepen=${depth}`, 'origin', base, head])
+        await gitExec(['fetch', `--deepen=${depth}`, 'origin', base, head])
         const commitCount = await getCommitCount()
         if (commitCount === lastCommitCount) {
           core.info('No more commits were fetched')
           core.info('Last attempt will be to fetch full history')
-          await getExecOutput('git', ['fetch'])
+          await gitExec(['fetch'])
           if (!(await hasMergeBase())) {
             noMergeBase = true
           }
@@ -123,7 +157,7 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
   core.startGroup(`Change detection ${diffArg}`)
   let output = ''
   try {
-    output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout
+    output = (await gitExec(['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -148,7 +182,7 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
   core.startGroup('Listing all files tracked by git')
   let output = ''
   try {
-    output = (await getExecOutput('git', ['ls-files', '-z'])).stdout
+    output = (await gitExec(['ls-files', '-z'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -166,17 +200,17 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
 export async function getCurrentRef(): Promise<string> {
   core.startGroup(`Get current git ref`)
   try {
-    const branch = (await getExecOutput('git', ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout.trim()
+    const branch = (await gitExec(['rev-parse', '--abbrev-ref', 'HEAD'])).stdout.trim()
     if (branch && branch !== 'HEAD') {
       return branch
     }
 
-    const describe = await getExecOutput('git', ['describe', '--tags', '--exact-match'], {ignoreReturnCode: true})
+    const describe = await gitExec(['describe', '--tags', '--exact-match'], {ignoreReturnCode: true})
     if (describe.exitCode === 0) {
       return describe.stdout.trim()
     }
 
-    return (await getExecOutput('git', ['rev-parse', HEAD])).stdout.trim()
+    return (await gitExec(['rev-parse', HEAD])).stdout.trim()
   } finally {
     core.endGroup()
   }
@@ -199,11 +233,11 @@ export function isGitSha(ref: string): boolean {
 }
 
 async function hasCommit(ref: string): Promise<boolean> {
-  return (await getExecOutput('git', ['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).exitCode === 0
+  return (await gitExec(['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).exitCode === 0
 }
 
 async function getCommitCount(): Promise<number> {
-  const output = (await getExecOutput('git', ['rev-list', '--count', '--all'])).stdout
+  const output = (await gitExec(['rev-list', '--count', '--all'])).stdout
   const count = parseInt(output)
   return isNaN(count) ? 0 : count
 }
@@ -213,7 +247,7 @@ async function getLocalRef(shortName: string): Promise<string | undefined> {
     return (await hasCommit(shortName)) ? shortName : undefined
   }
 
-  const output = (await getExecOutput('git', ['show-ref', shortName], {ignoreReturnCode: true})).stdout
+  const output = (await gitExec(['show-ref', shortName], {ignoreReturnCode: true})).stdout
   const refs = output
     .split(/\r?\n/g)
     .map(l => l.match(/refs\/(?:(?:heads)|(?:tags)|(?:remotes\/origin))\/(.*)$/))
@@ -237,10 +271,10 @@ async function ensureRefAvailable(name: string): Promise<string> {
   try {
     let ref = await getLocalRef(name)
     if (ref === undefined) {
-      await getExecOutput('git', ['fetch', '--depth=1', '--no-tags', 'origin', name])
+      await gitExec(['fetch', '--depth=1', '--no-tags', 'origin', name])
       ref = await getLocalRef(name)
       if (ref === undefined) {
-        await getExecOutput('git', ['fetch', '--depth=1', '--tags', 'origin', name])
+        await gitExec(['fetch', '--depth=1', '--tags', 'origin', name])
         ref = await getLocalRef(name)
         if (ref === undefined) {
           throw new Error(`Could not determine what is ${name} - fetch works but it's not a branch, tag or commit SHA`)

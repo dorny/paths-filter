@@ -14,6 +14,7 @@ import {
 } from './filter'
 import {File, ChangeStatus} from './file'
 import * as git from './git'
+import {cleanup as cleanupSafeDirectory} from './safe-directory'
 import {backslashEscape, shellEscape} from './list-format/shell-escape'
 import {csvEscape} from './list-format/csv-escape'
 
@@ -55,6 +56,8 @@ async function run(): Promise<void> {
     exportResults(results, listFiles)
   } catch (error) {
     core.setFailed(getErrorMessage(error))
+  } finally {
+    await cleanupSafeDirectory()
   }
 }
 
