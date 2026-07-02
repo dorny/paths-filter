@@ -204,17 +204,46 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.HEAD = exports.NULL_SHA = void 0;
+exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.gitExec = exports.HEAD = exports.NULL_SHA = void 0;
 const exec_1 = __nccwpck_require__(1514);
 const core = __importStar(__nccwpck_require__(2186));
 const file_1 = __nccwpck_require__(4014);
+const safe_directory_1 = __nccwpck_require__(2126);
 exports.NULL_SHA = '0000000000000000000000000000000000000000';
 exports.HEAD = 'HEAD';
+async function gitExec(args, options) {
+    var _a;
+    // ignoreReturnCode is always set so exitCode and stderr stay inspectable - failures are re-thrown below
+    const execute = async () => (0, exec_1.getExecOutput)('git', args, { ...options, ignoreReturnCode: true, env: (0, safe_directory_1.getGitEnv)() });
+    let result = await execute();
+    if ((0, safe_directory_1.isDubiousOwnershipError)(result.exitCode, result.stderr)) {
+        if (await (0, safe_directory_1.ensureSafeDirectory)(result.stderr)) {
+            result = await execute();
+        }
+        if ((0, safe_directory_1.isDubiousOwnershipError)(result.exitCode, result.stderr)) {
+            const firstLine = (_a = result.stderr
+                .split(/\r?\n/)
+                .find(line => line.trim().length > 0)) === null || _a === void 0 ? void 0 : _a.trim();
+            throw new Error(`${firstLine !== null && firstLine !== void 0 ? firstLine : 'Git failed due to dubious repository ownership'}\n` +
+                'The automatic safe.directory workaround was not sufficient. ' +
+                'Either run the container with the same user as the runner:\n' +
+                '  container:\n' +
+                '    options: --user 1001\n' +
+                'or mark the repository as safe in a step before this action:\n' +
+                '  - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"');
+        }
+    }
+    if (result.exitCode !== 0 && !(options === null || options === void 0 ? void 0 : options.ignoreReturnCode)) {
+        throw new Error(`The process 'git ${args.join(' ')}' failed with exit code ${result.exitCode}`);
+    }
+    return result;
+}
+exports.gitExec = gitExec;
 async function getChangesInLastCommit() {
     core.startGroup(`Change detection in last commit`);
     let output = '';
     try {
-        output = (await (0, exec_1.getExecOutput)('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout;
+        output = (await gitExec(['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -231,8 +260,7 @@ async function getChanges(base, head) {
     let output = '';
     try {
         // Two dots '..' change detection - directly compares two versions
-        output = (await (0, exec_1.getExecOutput)('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`]))
-            .stdout;
+        output = (await gitExec(['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -246,7 +274,7 @@ async function getChangesOnHead() {
     core.startGroup(`Change detection on HEAD`);
     let output = '';
     try {
-        output = (await (0, exec_1.getExecOutput)('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout;
+        output = (await gitExec(['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -262,7 +290,7 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
         if (baseRef === undefined || headRef === undefined) {
             return false;
         }
-        return (await (0, exec_1.getExecOutput)('git', ['merge-base', baseRef, headRef], { ignoreReturnCode: true })).exitCode === 0;
+        return (await gitExec(['merge-base', baseRef, headRef], { ignoreReturnCode: true })).exitCode === 0;
     }
     let noMergeBase = false;
     core.startGroup(`Searching for merge-base ${base}...${head}`);
@@ -270,12 +298,12 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
         baseRef = await getLocalRef(base);
         headRef = await getLocalRef(head);
         if (!(await hasMergeBase())) {
-            await (0, exec_1.getExecOutput)('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head]);
+            await gitExec(['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head]);
             if (baseRef === undefined || headRef === undefined) {
                 baseRef = baseRef !== null && baseRef !== void 0 ? baseRef : (await getLocalRef(base));
                 headRef = headRef !== null && headRef !== void 0 ? headRef : (await getLocalRef(head));
                 if (baseRef === undefined || headRef === undefined) {
-                    await (0, exec_1.getExecOutput)('git', ['fetch', '--tags', '--depth=1', 'origin', base, head], {
+                    await gitExec(['fetch', '--tags', '--depth=1', 'origin', base, head], {
                         ignoreReturnCode: true // returns exit code 1 if tags on remote were updated - we can safely ignore it
                     });
                     baseRef = baseRef !== null && baseRef !== void 0 ? baseRef : (await getLocalRef(base));
@@ -292,12 +320,12 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
             let lastCommitCount = await getCommitCount();
             while (!(await hasMergeBase())) {
                 depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER);
-                await (0, exec_1.getExecOutput)('git', ['fetch', `--deepen=${depth}`, 'origin', base, head]);
+                await gitExec(['fetch', `--deepen=${depth}`, 'origin', base, head]);
                 const commitCount = await getCommitCount();
                 if (commitCount === lastCommitCount) {
                     core.info('No more commits were fetched');
                     core.info('Last attempt will be to fetch full history');
-                    await (0, exec_1.getExecOutput)('git', ['fetch']);
+                    await gitExec(['fetch']);
                     if (!(await hasMergeBase())) {
                         noMergeBase = true;
                     }
@@ -320,7 +348,7 @@ async function getChangesSinceMergeBase(base, head, initialFetchDepth) {
     core.startGroup(`Change detection ${diffArg}`);
     let output = '';
     try {
-        output = (await (0, exec_1.getExecOutput)('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout;
+        output = (await gitExec(['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -345,7 +373,7 @@ async function listAllFilesAsAdded() {
     core.startGroup('Listing all files tracked by git');
     let output = '';
     try {
-        output = (await (0, exec_1.getExecOutput)('git', ['ls-files', '-z'])).stdout;
+        output = (await gitExec(['ls-files', '-z'])).stdout;
     }
     finally {
         fixStdOutNullTermination();
@@ -363,15 +391,15 @@ exports.listAllFilesAsAdded = listAllFilesAsAdded;
 async function getCurrentRef() {
     core.startGroup(`Get current git ref`);
     try {
-        const branch = (await (0, exec_1.getExecOutput)('git', ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout.trim();
+        const branch = (await gitExec(['rev-parse', '--abbrev-ref', 'HEAD'])).stdout.trim();
         if (branch && branch !== 'HEAD') {
             return branch;
         }
-        const describe = await (0, exec_1.getExecOutput)('git', ['describe', '--tags', '--exact-match'], { ignoreReturnCode: true });
+        const describe = await gitExec(['describe', '--tags', '--exact-match'], { ignoreReturnCode: true });
         if (describe.exitCode === 0) {
             return describe.stdout.trim();
         }
-        return (await (0, exec_1.getExecOutput)('git', ['rev-parse', exports.HEAD])).stdout.trim();
+        return (await gitExec(['rev-parse', exports.HEAD])).stdout.trim();
     }
     finally {
         core.endGroup();
@@ -395,10 +423,10 @@ function isGitSha(ref) {
 }
 exports.isGitSha = isGitSha;
 async function hasCommit(ref) {
-    return (await (0, exec_1.getExecOutput)('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).exitCode === 0;
+    return (await gitExec(['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).exitCode === 0;
 }
 async function getCommitCount() {
-    const output = (await (0, exec_1.getExecOutput)('git', ['rev-list', '--count', '--all'])).stdout;
+    const output = (await gitExec(['rev-list', '--count', '--all'])).stdout;
     const count = parseInt(output);
     return isNaN(count) ? 0 : count;
 }
@@ -406,7 +434,7 @@ async function getLocalRef(shortName) {
     if (isGitSha(shortName)) {
         return (await hasCommit(shortName)) ? shortName : undefined;
     }
-    const output = (await (0, exec_1.getExecOutput)('git', ['show-ref', shortName], { ignoreReturnCode: true })).stdout;
+    const output = (await gitExec(['show-ref', shortName], { ignoreReturnCode: true })).stdout;
     const refs = output
         .split(/\r?\n/g)
         .map(l => l.match(/refs\/(?:(?:heads)|(?:tags)|(?:remotes\/origin))\/(.*)$/))
@@ -426,10 +454,10 @@ async function ensureRefAvailable(name) {
     try {
         let ref = await getLocalRef(name);
         if (ref === undefined) {
-            await (0, exec_1.getExecOutput)('git', ['fetch', '--depth=1', '--no-tags', 'origin', name]);
+            await gitExec(['fetch', '--depth=1', '--no-tags', 'origin', name]);
             ref = await getLocalRef(name);
             if (ref === undefined) {
-                await (0, exec_1.getExecOutput)('git', ['fetch', '--depth=1', '--tags', 'origin', name]);
+                await gitExec(['fetch', '--depth=1', '--tags', 'origin', name]);
                 ref = await getLocalRef(name);
                 if (ref === undefined) {
                     throw new Error(`Could not determine what is ${name} - fetch works but it's not a branch, tag or commit SHA`);
@@ -559,6 +587,7 @@ const github = __importStar(__nccwpck_require__(5438));
 const filter_1 = __nccwpck_require__(3707);
 const file_1 = __nccwpck_require__(4014);
 const git = __importStar(__nccwpck_require__(3374));
+const safe_directory_1 = __nccwpck_require__(2126);
 const shell_escape_1 = __nccwpck_require__(4613);
 const csv_escape_1 = __nccwpck_require__(7402);
 async function run() {
@@ -593,6 +622,9 @@ async function run() {
     }
     catch (error) {
         core.setFailed(getErrorMessage(error));
+    }
+    finally {
+        await (0, safe_directory_1.cleanup)();
     }
 }
 function isPathInput(text) {
@@ -815,6 +847,158 @@ function getErrorMessage(error) {
     return String(error);
 }
 run();
+
+
+/***/ }),
+
+/***/ 2126:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.resolveTempBaseDir = exports.buildGitEnv = exports.createTempGitHome = exports.cleanup = exports.ensureSafeDirectory = exports.getGitEnv = exports.parseRepositoryPath = exports.isDubiousOwnershipError = void 0;
+const fs = __importStar(__nccwpck_require__(7147));
+const os = __importStar(__nccwpck_require__(2037));
+const path = __importStar(__nccwpck_require__(1017));
+const core = __importStar(__nccwpck_require__(2186));
+const exec_1 = __nccwpck_require__(1514);
+// Git >= 2.35.2 and distro backports of CVE-2022-24765 fail with exit code 128 when
+// the repository is owned by a different user - typical for container jobs where the
+// workspace is bind-mounted from the host. Older backports use the "unsafe repository" wording.
+const DUBIOUS_OWNERSHIP_PATTERN = /detected dubious ownership|unsafe repository/;
+const REPOSITORY_PATH_PATTERN = /(?:repository at|unsafe repository \()\s*'([^']+)'/;
+let tempHomeDir;
+let gitEnv;
+const safeDirectories = new Set();
+function isDubiousOwnershipError(exitCode, stderr) {
+    return exitCode === 128 && DUBIOUS_OWNERSHIP_PATTERN.test(stderr);
+}
+exports.isDubiousOwnershipError = isDubiousOwnershipError;
+function parseRepositoryPath(stderr) {
+    var _a;
+    return (_a = stderr.match(REPOSITORY_PATH_PATTERN)) === null || _a === void 0 ? void 0 : _a[1];
+}
+exports.parseRepositoryPath = parseRepositoryPath;
+// Returns undefined until the workaround is activated - git commands of currently
+// working users keep inheriting process.env unchanged.
+function getGitEnv() {
+    return gitEnv;
+}
+exports.getGitEnv = getGitEnv;
+// Marks directories reported by git as safe, using a temporary HOME so no configuration
+// outside this action is modified - same technique as actions/checkout.
+// Returns false if there was no new directory to add.
+async function ensureSafeDirectory(stderr) {
+    if (tempHomeDir === undefined) {
+        tempHomeDir = await createTempGitHome(resolveTempBaseDir(process.env), process.env);
+        gitEnv = buildGitEnv(tempHomeDir, process.env);
+        core.info('Git reported dubious ownership of the repository - this is typical for container jobs ' +
+            'where the workspace is owned by a different user. A temporary HOME with a copy of the global ' +
+            'git config and a safe.directory exception will be used for git commands executed by this action.');
+    }
+    let added = false;
+    for (const dir of [parseRepositoryPath(stderr), process.env.GITHUB_WORKSPACE, process.cwd()]) {
+        if (dir && !safeDirectories.has(dir)) {
+            await (0, exec_1.exec)('git', ['config', '--global', '--add', 'safe.directory', dir], { env: gitEnv });
+            safeDirectories.add(dir);
+            added = true;
+        }
+    }
+    return added;
+}
+exports.ensureSafeDirectory = ensureSafeDirectory;
+async function cleanup() {
+    if (tempHomeDir !== undefined) {
+        try {
+            await fs.promises.rm(tempHomeDir, { recursive: true, force: true });
+        }
+        catch (error) {
+            // Cleanup failure is not fatal - RUNNER_TEMP is wiped when the job ends
+        }
+    }
+    tempHomeDir = undefined;
+    gitEnv = undefined;
+    safeDirectories.clear();
+}
+exports.cleanup = cleanup;
+// Exported for tests
+async function createTempGitHome(baseTempDir, env) {
+    const tempHome = await fs.promises.mkdtemp(path.join(baseTempDir, 'paths-filter-git-home-'));
+    const tempConfigPath = path.join(tempHome, '.gitconfig');
+    // The file must exist even when there is no config to copy - when $HOME/.gitconfig is missing,
+    // `git config --global` writes to an existing $XDG_CONFIG_HOME/git/config instead
+    await fs.promises.writeFile(tempConfigPath, '');
+    if (env.GIT_CONFIG_GLOBAL) {
+        await copyFileIfExists(env.GIT_CONFIG_GLOBAL, tempConfigPath);
+    }
+    else if (env.HOME) {
+        await copyFileIfExists(path.join(env.HOME, '.gitconfig'), tempConfigPath);
+        if (!env.XDG_CONFIG_HOME) {
+            // When XDG_CONFIG_HOME is unset, git falls back to $HOME/.config/git/config,
+            // which would become unreadable under the new HOME
+            await copyFileIfExists(path.join(env.HOME, '.config', 'git', 'config'), path.join(tempHome, '.config', 'git', 'config'));
+        }
+    }
+    return tempHome;
+}
+exports.createTempGitHome = createTempGitHome;
+// Exported for tests
+function buildGitEnv(tempHome, env) {
+    const newEnv = {};
+    for (const [key, value] of Object.entries(env)) {
+        if (value !== undefined) {
+            newEnv[key] = value;
+        }
+    }
+    // A changed HOME redirects git of any version to the temp config. GIT_CONFIG_GLOBAL is redirected
+    // only when already set - on git >= 2.32 it replaces both global config files, so setting it
+    // unconditionally would hide an existing $XDG_CONFIG_HOME/git/config from git
+    newEnv['HOME'] = tempHome;
+    if (env.GIT_CONFIG_GLOBAL) {
+        newEnv['GIT_CONFIG_GLOBAL'] = path.join(tempHome, '.gitconfig');
+    }
+    return newEnv;
+}
+exports.buildGitEnv = buildGitEnv;
+// Exported for tests
+function resolveTempBaseDir(env) {
+    return env.RUNNER_TEMP || os.tmpdir();
+}
+exports.resolveTempBaseDir = resolveTempBaseDir;
+async function copyFileIfExists(source, destination) {
+    try {
+        await fs.promises.access(source, fs.constants.R_OK);
+    }
+    catch (error) {
+        return;
+    }
+    await fs.promises.mkdir(path.dirname(destination), { recursive: true });
+    await fs.promises.copyFile(source, destination);
+}
 
 
 /***/ }),

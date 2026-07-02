@@ -74,6 +74,32 @@ jobs:
       if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
       run: exit 1
 
+  test-container-without-token:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # bullseye: git 2.30 + Debian CVE-2022-24765 backport, old "unsafe repository" wording,
+        #           pre-2.32 -> ignores GIT_CONFIG_GLOBAL -> exercises the HOME-only path
+        # bookworm: git 2.39, "dubious ownership" wording, honors GIT_CONFIG_GLOBAL
+        container: ['node:24-bullseye', 'node:24-bookworm']
+    container: ${{ matrix.container }}
+    steps:
+    - uses: actions/checkout@v6
+    - name: Verify dubious ownership is reproduced
+      run: |
+        if git status; then
+          echo "::error::git succeeded - environment no longer reproduces dubious ownership"
+          exit 1
+        fi
+    - uses: ./
+      id: filter
+      with:
+        token: ''
+        filters: '.github/filters.yml'
+    - name: filter-test
+      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+      run: exit 1
+
   test-wd-without-token:
     runs-on: ubuntu-latest
     steps:

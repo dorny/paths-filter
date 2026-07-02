@@ -74,9 +74,14 @@ For more scenarios see [examples](#examples) section.
 - It's recommended to quote your path expressions with `'` or `"`. Otherwise, you will get an error if it starts with `*`.
 - Local execution with [act](https://github.com/nektos/act) works only with alternative runner image. Default runner doesn't have `git` binary.
   - Use: `act -P ubuntu-latest=nektos/act-environments-ubuntu:18.04`
+- Git `dubious ownership` errors in [container jobs](https://docs.github.com/en/actions/using-containerized-services/running-jobs-in-a-container) are handled automatically -
+  the action retries with a temporary `HOME` containing a `safe.directory` entry, the same technique used by [actions/checkout](https://github.com/actions/checkout).
+  Only if fetching relies on credentials stored in `HOME`-relative files (e.g. `~/.git-credentials` or `~/.ssh` keys),
+  mark the repository as safe yourself in a step before this action: `git config --global --add safe.directory "$GITHUB_WORKSPACE"`
 
 ## What's New
 
+- Automatic workaround for git `dubious ownership` errors in container jobs
 - New major release `v4` after update to Node 24 [Breaking change]
 - Add `ref` input parameter
 - Add `list-files: csv` format
