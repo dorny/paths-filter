@@ -76,7 +76,7 @@ For more scenarios see [examples](#examples) section.
   - Use: `act -P ubuntu-latest=nektos/act-environments-ubuntu:18.04`
 - Git `dubious ownership` errors in [container jobs](https://docs.github.com/en/actions/using-containerized-services/running-jobs-in-a-container) are handled automatically -
   the action retries with a temporary `HOME` containing a `safe.directory` entry, the same technique used by [actions/checkout](https://github.com/actions/checkout).
-  Only if fetching relies on credentials stored in `HOME`-relative files (e.g. `~/.git-credentials` or `~/.ssh` keys),
+  Only if fetching relies on credentials stored in `HOME`-relative files (e.g. `~/.git-credentials` or `~/.netrc`),
   mark the repository as safe yourself in a step before this action: `git config --global --add safe.directory "$GITHUB_WORKSPACE"`
 
 ## What's New
