@@ -22,10 +22,12 @@ export function parseRepositoryPath(stderr: string): string | undefined {
   return stderr.match(REPOSITORY_PATH_PATTERN)?.[1]
 }
 
-// Returns undefined until the workaround is activated - git commands of currently
-// working users keep inheriting process.env unchanged.
-export function getGitEnv(): {[key: string]: string} | undefined {
-  return gitEnv
+// Until the workaround is activated this mirrors process.env; afterwards it applies the
+// temporary HOME redirect. In both cases LC_ALL=C is forced so git emits untranslated
+// messages and isDubiousOwnershipError / parseRepositoryPath match regardless of the
+// container's locale.
+export function getGitEnv(): {[key: string]: string} {
+  return {...(gitEnv ?? cloneDefinedEnv(process.env)), LC_ALL: 'C'}
 }
 
 // Marks directories reported by git as safe, using a temporary HOME so no configuration
@@ -45,7 +47,7 @@ export async function ensureSafeDirectory(stderr: string): Promise<boolean> {
   let added = false
   for (const dir of [parseRepositoryPath(stderr), process.env.GITHUB_WORKSPACE, process.cwd()]) {
     if (dir && !safeDirectories.has(dir)) {
-      await exec('git', ['config', '--global', '--add', 'safe.directory', dir], {env: gitEnv})
+      await exec('git', ['config', '--global', '--add', 'safe.directory', dir], {env: getGitEnv()})
       safeDirectories.add(dir)
       added = true
     }
@@ -96,12 +98,7 @@ export async function createTempGitHome(
 
 // Exported for tests
 export function buildGitEnv(tempHome: string, env: {[key: string]: string | undefined}): {[key: string]: string} {
-  const newEnv: {[key: string]: string} = {}
-  for (const [key, value] of Object.entries(env)) {
-    if (value !== undefined) {
-      newEnv[key] = value
-    }
-  }
+  const newEnv = cloneDefinedEnv(env)
   // A changed HOME redirects git of any version to the temp config. GIT_CONFIG_GLOBAL is redirected
   // only when already set - on git >= 2.32 it replaces both global config files, so setting it
   // unconditionally would hide an existing $XDG_CONFIG_HOME/git/config from git
@@ -115,6 +112,16 @@ export function buildGitEnv(tempHome: string, env: {[key: string]: string | unde
 // Exported for tests
 export function resolveTempBaseDir(env: {[key: string]: string | undefined}): string {
   return env.RUNNER_TEMP || os.tmpdir()
+}
+
+function cloneDefinedEnv(env: {[key: string]: string | undefined}): {[key: string]: string} {
+  const newEnv: {[key: string]: string} = {}
+  for (const [key, value] of Object.entries(env)) {
+    if (value !== undefined) {
+      newEnv[key] = value
+    }
+  }
+  return newEnv
 }
 
 async function copyFileIfExists(source: string, destination: string): Promise<void> {

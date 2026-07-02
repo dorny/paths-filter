@@ -173,7 +173,7 @@ describe('ensureSafeDirectory', () => {
   })
 
   test('activates temporary HOME and adds reported directories on first call', async () => {
-    expect(getGitEnv()).toBeUndefined()
+    expect(getGitEnv()['HOME']).not.toContain('paths-filter-git-home-')
 
     const added = await ensureSafeDirectory(DUBIOUS_STDERR)
 
@@ -224,12 +224,33 @@ describe('ensureSafeDirectory', () => {
 
   test('cleanup removes the temporary HOME and resets state', async () => {
     await ensureSafeDirectory(DUBIOUS_STDERR)
-    const tempHome = getGitEnv()?.['HOME']
-    expect(tempHome).toBeDefined()
+    const tempHome = getGitEnv()['HOME']
+    expect(tempHome).toContain('paths-filter-git-home-')
 
     await cleanup()
 
-    expect(getGitEnv()).toBeUndefined()
-    expect(fs.existsSync(tempHome as string)).toBe(false)
+    expect(getGitEnv()['HOME']).not.toContain('paths-filter-git-home-')
+    expect(fs.existsSync(tempHome)).toBe(false)
+  })
+
+  test('getGitEnv mirrors process.env and forces LC_ALL=C before activation', () => {
+    process.env['SOME_PRESERVED_VARIABLE'] = 'preserved'
+    process.env['LC_ALL'] = 'de_DE.UTF-8'
+
+    const env = getGitEnv()
+
+    expect(env['SOME_PRESERVED_VARIABLE']).toBe('preserved')
+    expect(env['HOME']).toBe(runnerTemp)
+    expect(env['LC_ALL']).toBe('C')
+  })
+
+  test('getGitEnv contains the temporary HOME and forces LC_ALL=C after activation', async () => {
+    process.env['LC_ALL'] = 'de_DE.UTF-8'
+
+    await ensureSafeDirectory(DUBIOUS_STDERR)
+
+    const env = getGitEnv()
+    expect(env['HOME']).toContain('paths-filter-git-home-')
+    expect(env['LC_ALL']).toBe('C')
   })
 })
