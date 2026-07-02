@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.0.2
+- [Work around git dubious ownership errors in container jobs](https://github.com/dorny/paths-filter/pull/317)
+- [Use rev-parse instead of branch --show-current for older git compat](https://github.com/dorny/paths-filter/pull/303)
+- [Fix warning message](https://github.com/dorny/paths-filter/pull/282)
+
+## v4.0.1
+- [Support merge queue](https://github.com/dorny/paths-filter/pull/255)
+
 ## v4.0.0
 - [Update action runtime to node24](https://github.com/dorny/paths-filter/pull/294)
 
