@@ -97,11 +97,13 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
       if (ref) {
         core.warning(`'ref' input parameter is ignored when action is triggered by pull request event`)
       }
-      if (base) {
-        core.warning(`'base' input parameter is ignored when action is triggered by pull request event`)
-      }
       const pr = github.context.payload.pull_request as PullRequest
       if (token) {
+        if (base) {
+          core.warning(
+            `'base' input parameter is ignored when action is triggered by pull request event and 'token' is provided - set token: '' to detect changes using git diff against 'base'`
+          )
+        }
         return await getChangedFilesFromApi(token, pr)
       }
       if (github.context.eventName === 'pull_request_target') {
@@ -111,6 +113,9 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
         throw new Error(`'token' input parameter is required if action is triggered by 'pull_request_target' event`)
       }
       core.info('GitHub token is not available - changes will be detected using git diff')
+      if (base) {
+        core.info(`Using base '${base}' instead of the pull request base`)
+      }
       const baseSha = github.context.payload.pull_request?.base.sha
       const defaultBranch = github.context.payload.repository?.default_branch
       const currentRef = await git.getCurrentRef()

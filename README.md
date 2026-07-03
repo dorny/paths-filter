@@ -122,7 +122,8 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # introduced by the current branch are considered.
     # All files are considered as added if there is no common ancestor with
     # base branch or no previous commit.
-    # This option is ignored if action is triggered by pull_request event.
+    # This option is ignored if action is triggered by pull_request event,
+    # unless 'token' is set to an empty string (see the 'token' input below).
     # Default: repository default branch (e.g. master)
     base: ''
 
@@ -164,7 +165,9 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     # It's only used if action is triggered by a pull request event.
     # GitHub token from workflow context is used as default value.
     # If an empty string is provided, the action falls back to detect
-    # changes using git commands.
+    # changes using git commands. In that case, on pull request events
+    # the 'base' input overrides the pull request base - e.g. set
+    # base: ${{ github.event.before }} to detect changes since the last push.
     # Default: ${{ github.token }}
     token: ''
 
