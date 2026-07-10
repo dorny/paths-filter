@@ -210,6 +210,37 @@ describe('matching specific change status', () => {
     const match = filter.match(files)
     expect(match.src).toEqual(files)
   })
+
+  test('use of OR operation', () => {
+    const yaml = `
+    backend:
+      - 'src/*.tsx|src/*.less'
+    `
+    const filter = new Filter(yaml)
+    const tsxFiles = modified(['src/ui.tsx'])
+    const lessFiles = modified(['src/ui.less'])
+    const pyFiles = modified(['src/server.py'])
+
+    const tsxMatch = filter.match(tsxFiles)
+    const lessMatch = filter.match(lessFiles)
+    const pyMatch = filter.match(pyFiles)
+
+    expect(tsxMatch.backend).toEqual(tsxFiles)
+    expect(lessMatch.backend).toEqual(lessFiles)
+    expect(pyMatch.backend).toEqual([])
+  })
+
+  test('matches non change of dir)', () => {
+    const yaml = `
+    backend:
+      - '!docs/**'
+    `
+    const filter = new Filter(yaml)
+
+    const nonDocsFiles = modified(['src/ui.tsx'])
+    const nonDocsMatch = filter.match(nonDocsFiles)
+    expect(nonDocsMatch.backend).toEqual(nonDocsFiles)
+  })
 })
 
 function modified(paths: string[]): File[] {
