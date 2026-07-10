@@ -50,6 +50,10 @@ inputs:
     required: false
     default: 'some'
 outputs:
+  all_changed:
+    description: Boolean value indicating if all of the filters contained at least one changed file
+  any_changed:
+    description: Boolean value indicating if any of the filters contained at least one changed file
   changes:
     description: JSON array with names of all filters matching any of changed files
 runs:
