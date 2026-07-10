@@ -116,6 +116,33 @@ export class Filter {
 
   private parseFilterItemYaml(item: FilterItemYaml): FilterRuleItem[] {
     if (Array.isArray(item)) {
+      // Under the default 'some' quantifier, group all (recursively flattened)
+      // bare string patterns into a single matcher with gitignore-style
+      // semantics: a file matches the rule when it matches at least one
+      // positive pattern AND does not match any negation pattern.
+      //
+      // Without this grouping, each '!pattern' is compiled into its own
+      // picomatch matcher that returns true for every file *not* matching the
+      // pattern. The default 'some' quantifier then OR's those predicates
+      // together, so a standalone '!**/*.md' makes the whole rule match
+      // nearly any path. The 'every' quantifier already produces correct
+      // subtractive semantics under per-pattern matching, so it keeps the
+      // legacy parsing path unchanged.
+      if (this.filterConfig?.predicateQuantifier !== PredicateQuantifier.EVERY) {
+        const {stringPatterns, otherItems} = this.collectArrayItems(item)
+        const grouped = this.groupedStringMatcher(stringPatterns)
+        if (grouped === undefined && otherItems.length === 0) {
+          this.throwInvalidFormatError(
+            'Filter rule must contain at least one positive pattern; got only negation patterns or an empty pattern list'
+          )
+        }
+        const result: FilterRuleItem[] = []
+        if (grouped !== undefined) {
+          result.push({status: undefined, isMatch: grouped})
+        }
+        result.push(...otherItems)
+        return result
+      }
       return flat(item.map(i => this.parseFilterItemYaml(i)))
     }
 
@@ -130,18 +157,92 @@ export class Filter {
             `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`
           )
         }
-        return {
-          status: key
-            .split('|')
-            .map(x => x.trim())
-            .filter(x => x.length > 0)
-            .map(x => x.toLowerCase()) as ChangeStatus[],
-          isMatch: picomatch(pattern, MatchOptions)
-        }
+        const status = key
+          .split('|')
+          .map(x => x.trim())
+          .filter(x => x.length > 0)
+          .map(x => x.toLowerCase()) as ChangeStatus[]
+        return {status, isMatch: this.compileStatusPattern(pattern, key)}
       })
     }
 
     this.throwInvalidFormatError(`Unexpected element type '${typeof item}'`)
+  }
+
+  // Recursively walk a YAML array (which may contain nested arrays from YAML
+  // anchors) and partition its leaves into raw string patterns vs. fully
+  // parsed FilterRuleItems for status-tagged objects.
+  private collectArrayItems(item: FilterItemYaml): {stringPatterns: string[]; otherItems: FilterRuleItem[]} {
+    if (Array.isArray(item)) {
+      const stringPatterns: string[] = []
+      const otherItems: FilterRuleItem[] = []
+      for (const i of item) {
+        const sub = this.collectArrayItems(i)
+        stringPatterns.push(...sub.stringPatterns)
+        otherItems.push(...sub.otherItems)
+      }
+      return {stringPatterns, otherItems}
+    }
+    if (typeof item === 'string') {
+      return {stringPatterns: [item], otherItems: []}
+    }
+    return {stringPatterns: [], otherItems: this.parseFilterItemYaml(item)}
+  }
+
+  // Compiles the right-hand side of a status-tagged YAML entry (e.g.
+  // `added: 'src/**'` or `added: ['src/**', '!src/**/*.md']`) into a single
+  // matcher. String-array forms are routed through groupedStringMatcher so
+  // they get the same gitignore-style negation semantics as bare-array rules
+  // - otherwise the same #260 bug shape would still bite under a status tag.
+  // A single string pattern keeps the legacy single-picomatch compilation,
+  // which preserves existing behavior for `!(extglob)` and plain literals.
+  private compileStatusPattern(pattern: string | string[], key: string): (str: string) => boolean {
+    if (typeof pattern === 'string') {
+      return picomatch(pattern, MatchOptions)
+    }
+    const matcher = this.groupedStringMatcher(pattern)
+    if (matcher === undefined) {
+      this.throwInvalidFormatError(
+        `Status-tagged filter '${key}' must contain at least one positive pattern; got only negation patterns or an empty list`
+      )
+    }
+    return matcher
+  }
+
+  // Builds a single matcher with gitignore-style semantics over a list of
+  // string patterns: a file matches when at least one positive pattern matches
+  // and no negation pattern matches.
+  //
+  // A pattern is treated as a gitignore-style negation only when it begins
+  // with '!' followed by anything other than '('. The '!(...)' form is an
+  // extglob expression that picomatch parses as a single pattern, so it must
+  // not be split into a positive/negative pair.
+  //
+  // Returns undefined when the list contains no positive patterns - in that
+  // case there is nothing to include, so the rule cannot match any file.
+  private groupedStringMatcher(patterns: string[]): ((str: string) => boolean) | undefined {
+    const positives: string[] = []
+    const negatives: string[] = []
+    for (const p of patterns) {
+      if (this.isNegationPrefix(p)) {
+        negatives.push(p.slice(1))
+      } else {
+        positives.push(p)
+      }
+    }
+    if (positives.length === 0) {
+      return undefined
+    }
+    const positiveMatcher = picomatch(positives, MatchOptions)
+    if (negatives.length === 0) {
+      return positiveMatcher
+    }
+    const negativeMatcher = picomatch(negatives, MatchOptions)
+    return (str: string) => positiveMatcher(str) && !negativeMatcher(str)
+  }
+
+  private isNegationPrefix(pattern: string): boolean {
+    return pattern.length > 1 && pattern.startsWith('!') && !pattern.startsWith('!(')
   }
 
   private throwInvalidFormatError(message: string): never {
