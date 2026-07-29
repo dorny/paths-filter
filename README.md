@@ -81,6 +81,7 @@ For more scenarios see [examples](#examples) section.
 
 ## What's New
 
+- Add `some-with-excludes` value of the `predicate-quantifier` input parameter
 - Automatic workaround for git `dubious ownership` errors in container jobs
 - New major release `v4` after update to Node 24 [Breaking change]
 - Add `ref` input parameter
@@ -172,14 +173,17 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     token: ''
 
     # Optional parameter to override the default behavior of file matching algorithm.
-    # By default files that match at least one pattern defined by the filters will be included.
-    # This parameter allows to override the "at least one pattern" behavior to make it so that
-    # all of the patterns have to match or otherwise the file is excluded.
+    # Supported values:
+    #   'some'               - File is included if it matches at least one pattern (default).
+    #   'every'              - File is included only if it matches all of the patterns.
+    #   'some-with-excludes' - File is included if it matches at least one pattern
+    #                          and no negated pattern (the ones prefixed with '!').
+    #
     # An example scenario where this is useful if you would like to match all
     # .ts files in a sub-directory but not .md files.
     # The filters below will match markdown files despite the exclusion syntax UNLESS
-    # you specify 'every' as the predicate-quantifier parameter. When you do that,
-    # it will only match the .ts files in the subdirectory as expected.
+    # you specify 'every' or 'some-with-excludes' as the predicate-quantifier parameter.
+    # When you do that, it will only match the .ts files in the subdirectory as expected.
     #
     # backend:
     #  - 'pkg/a/b/c/**'
@@ -197,6 +201,9 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
   - With `predicate-quantifier: 'every'`:
     - `'true'` - if **any** changed file matches **all** of the filter's rules
     - `'false'` - if **no** changed file matches **all** of the filter's rules
+  - With `predicate-quantifier: 'some-with-excludes'`:
+    - `'true'` - if **any** changed file matches **at least one** of the filter's rules and **none** of its negated rules
+    - `'false'` - if **no** changed file matches **at least one** of the filter's rules and **none** of its negated rules
 - Each filter sets an output variable with the name `${FILTER_NAME}_count` to the count of matching files.
 - If enabled, for each filter it sets an output variable with the name `${FILTER_NAME}_files`. It will contain a list of all files matching the filter.
 - `changes` - JSON array with names of all filters matching any of the changed files.
@@ -529,6 +536,32 @@ jobs:
             - 'pkg/a/b/c/**'
             - '!**/*.jpeg'
             - '!**/*.md'
+```
+
+</details>
+
+<details>
+  <summary>Detect changes in multiple unrelated paths and exclude some file extensions</summary>
+
+```yaml
+- uses: dorny/paths-filter@v4
+      id: filter
+      with:
+        # With 'some-with-excludes' a file is matched when it matches at least one pattern
+        # and none of the negated ones. The filter below therefore matches all the files
+        # in the 'mobile' folder and the workflow file, but never a markdown file or
+        # anything in 'mobile/.config'.
+        #
+        # An exclusion is final - a file excluded by one pattern can't be included back
+        # by another one. Consequently, a filter consisting of negated patterns only
+        # never matches anything.
+        predicate-quantifier: 'some-with-excludes'
+        filters: |
+          mobile:
+            - 'mobile/**'
+            - '!mobile/**/*.md'
+            - '!mobile/.config/**'
+            - '.github/workflows/test_mobile.yml'
 ```
 
 </details>

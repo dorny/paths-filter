@@ -148,6 +148,99 @@ describe('matching tests', () => {
     expect(otherPkgJpegMatch.backend).toEqual([])
   })
 
+  test('ignores exclusions when using the default predicate quantifier', () => {
+    const yaml = `
+    src:
+      - 'src/**'
+      - '!**/*.md'
+    `
+    const filter = new Filter(yaml)
+
+    // A negated pattern is just another pattern for the 'some' quantifier - a markdown file
+    // inside 'src' still matches 'src/**' and any other file matches the negated pattern.
+    const files = modified(['src/README.md', 'other/file.txt'])
+    expect(filter.match(files).src).toEqual(files)
+  })
+
+  test('matches files of every pattern when set to PredicateQuantifier.SOME_WITH_EXCLUDES', () => {
+    const yaml = `
+    mobile:
+      - 'mobile/**'
+      - '!mobile/**/*.md'
+      - '!mobile/.config/**'
+      - '.github/workflows/test_mobile.yml'
+    `
+    const filterConfig: FilterConfig = {predicateQuantifier: PredicateQuantifier.SOME_WITH_EXCLUDES}
+    const filter = new Filter(yaml, filterConfig)
+
+    const sourceFiles = modified(['mobile/main.kt', 'mobile/src/some/Activity.kt'])
+    const workflowFiles = modified(['.github/workflows/test_mobile.yml'])
+    const docsFiles = modified(['mobile/README.md', 'mobile/docs/some/page.md'])
+    const configFiles = modified(['mobile/.config/lint.json', 'mobile/.config/nested/lint.json'])
+    const otherFiles = modified(['backend/main.go', '.github/workflows/test_backend.yml'])
+
+    expect(filter.match(sourceFiles).mobile).toEqual(sourceFiles)
+    expect(filter.match(workflowFiles).mobile).toEqual(workflowFiles)
+    expect(filter.match(docsFiles).mobile).toEqual([])
+    expect(filter.match(configFiles).mobile).toEqual([])
+    expect(filter.match(otherFiles).mobile).toEqual([])
+  })
+
+  test('excludes file with PredicateQuantifier.SOME_WITH_EXCLUDES regardless of the pattern order', () => {
+    const yaml = `
+    excludeFirst:
+      - '!**/*.md'
+      - 'src/**'
+    excludeLast:
+      - 'src/**'
+      - '!**/*.md'
+    `
+    const filterConfig: FilterConfig = {predicateQuantifier: PredicateQuantifier.SOME_WITH_EXCLUDES}
+    const filter = new Filter(yaml, filterConfig)
+
+    const match = filter.match(modified(['src/index.ts', 'src/README.md']))
+    expect(match.excludeFirst).toEqual(modified(['src/index.ts']))
+    expect(match.excludeLast).toEqual(modified(['src/index.ts']))
+  })
+
+  test('keeps file excluded with PredicateQuantifier.SOME_WITH_EXCLUDES even if a later pattern includes it', () => {
+    const yaml = `
+    src:
+      - 'src/**'
+      - '!**/*.md'
+      - 'src/docs/**'
+    `
+    const filterConfig: FilterConfig = {predicateQuantifier: PredicateQuantifier.SOME_WITH_EXCLUDES}
+    const filter = new Filter(yaml, filterConfig)
+
+    const match = filter.match(modified(['src/docs/guide.md', 'src/docs/logo.png']))
+    expect(match.src).toEqual(modified(['src/docs/logo.png']))
+  })
+
+  test('matches nothing with PredicateQuantifier.SOME_WITH_EXCLUDES when there is no include pattern', () => {
+    const yaml = `
+    src:
+      - '!**/*.md'
+    `
+    const filterConfig: FilterConfig = {predicateQuantifier: PredicateQuantifier.SOME_WITH_EXCLUDES}
+    const filter = new Filter(yaml, filterConfig)
+
+    const match = filter.match(modified(['src/index.ts', 'src/README.md']))
+    expect(match.src).toEqual([])
+  })
+
+  test('treats negated extglob as an include pattern with PredicateQuantifier.SOME_WITH_EXCLUDES', () => {
+    const yaml = `
+    backend:
+      - '!(**/*.tsx|**/*.less)'
+    `
+    const filterConfig: FilterConfig = {predicateQuantifier: PredicateQuantifier.SOME_WITH_EXCLUDES}
+    const filter = new Filter(yaml, filterConfig)
+
+    expect(filter.match(modified(['src/server.py'])).backend).toEqual(modified(['src/server.py']))
+    expect(filter.match(modified(['src/ui.tsx'])).backend).toEqual([])
+  })
+
   test('matches path based on rules included using YAML anchor', () => {
     const yaml = `
     shared: &shared
@@ -195,6 +288,61 @@ describe('matching specific change status', () => {
     const files = [{status: ChangeStatus.Modified, filename: 'file.js'}]
     const match = filter.match(files)
     expect(match.addOrModify).toEqual(files)
+  })
+
+  test('respects change status of exclude patterns when set to PredicateQuantifier.SOME_WITH_EXCLUDES', () => {
+    const yaml = `
+    src:
+      - 'src/**'
+      - deleted: '!src/generated/**'
+    `
+    const filterConfig: FilterConfig = {predicateQuantifier: PredicateQuantifier.SOME_WITH_EXCLUDES}
+    const filter = new Filter(yaml, filterConfig)
+
+    const files = [
+      {status: ChangeStatus.Deleted, filename: 'src/generated/api.ts'},
+      {status: ChangeStatus.Modified, filename: 'src/generated/api.ts'}
+    ]
+    const match = filter.match(files)
+    expect(match.src).toEqual([files[1]])
+  })
+
+  test('matches multiple patterns of single change status when set to PredicateQuantifier.SOME_WITH_EXCLUDES', () => {
+    const yaml = `
+    docs: &docs
+      - '!**/*.md'
+    src:
+      - added|modified: 'src/**'
+      - added|modified: *docs
+    `
+    const filterConfig: FilterConfig = {predicateQuantifier: PredicateQuantifier.SOME_WITH_EXCLUDES}
+    const filter = new Filter(yaml, filterConfig)
+
+    const files = [
+      {status: ChangeStatus.Added, filename: 'src/index.ts'},
+      {status: ChangeStatus.Added, filename: 'src/README.md'},
+      {status: ChangeStatus.Deleted, filename: 'src/legacy.ts'}
+    ]
+    const match = filter.match(files)
+    expect(match.src).toEqual([files[0]])
+  })
+
+  test('or-es patterns of single change status when using the default predicate quantifier', () => {
+    const yaml = `
+    src:
+      - added|modified: ['src/**', '!**/*.md']
+    `
+    const filter = new Filter(yaml)
+
+    // Both patterns are OR-ed into a single rule, therefore a markdown file inside 'src'
+    // matches through 'src/**' and any other file matches through the negated pattern.
+    const files = [
+      {status: ChangeStatus.Added, filename: 'src/README.md'},
+      {status: ChangeStatus.Added, filename: 'other/file.txt'},
+      {status: ChangeStatus.Deleted, filename: 'src/index.ts'}
+    ]
+    const match = filter.match(files)
+    expect(match.src).toEqual([files[0], files[1]])
   })
 
   test('matches when using an anchor', () => {

@@ -46,7 +46,11 @@ inputs:
     default: '100'
   predicate-quantifier:
     description: |
-      allows to override the "at least one pattern" behavior to make it so that all of the patterns have to match or otherwise the file is excluded.
+      allows to override the "at least one pattern" behavior:
+        'some'                - file is included if it matches at least one pattern (default).
+        'every'               - file is included only if it matches all of the patterns.
+        'some-with-excludes'  - file is included if it matches at least one pattern
+                                and no negated pattern (the ones prefixed with '!').
     required: false
     default: 'some'
 outputs:

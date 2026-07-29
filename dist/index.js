@@ -86,6 +86,19 @@ var PredicateQuantifier;
      * specify anything as a predicate quantifier.
      */
     PredicateQuantifier["SOME"] = "some";
+    /**
+     * When choosing 'some-with-excludes' in the config it means that files will get matched if
+     * at least one of the patterns matches them and none of the negated patterns (the ones
+     * prefixed with '!') matches them.
+     *
+     * Unlike 'every' it doesn't require the file to match all the patterns, so a filter can list
+     * several unrelated paths and still exclude e.g. documentation from all of them. An exclusion
+     * is final - a file excluded by one pattern can't be included back by another one.
+     *
+     * A filter which consists of negated patterns only never matches anything,
+     * because there is no pattern which could include a file in the first place.
+     */
+    PredicateQuantifier["SOME_WITH_EXCLUDES"] = "some-with-excludes";
 })(PredicateQuantifier || (exports.PredicateQuantifier = PredicateQuantifier = {}));
 /**
  * An array of strings (at runtime) that contains the valid/accepted values for
@@ -126,15 +139,35 @@ class Filter {
         return result;
     }
     isMatch(file, patterns) {
-        var _a;
-        const aPredicate = (rule) => {
-            return (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.filename);
+        var _a, _b, _c;
+        const isStatusMatch = (rule) => {
+            return rule.status === undefined || rule.status.includes(file.status);
         };
-        if (((_a = this.filterConfig) === null || _a === void 0 ? void 0 : _a.predicateQuantifier) === 'every') {
-            return patterns.every(aPredicate);
-        }
-        else {
-            return patterns.some(aPredicate);
+        const aPredicate = (rule) => {
+            return isStatusMatch(rule) && rule.isMatch(file.filename);
+        };
+        switch ((_a = this.filterConfig) === null || _a === void 0 ? void 0 : _a.predicateQuantifier) {
+            case PredicateQuantifier.EVERY:
+                return patterns.every(aPredicate);
+            case PredicateQuantifier.SOME_WITH_EXCLUDES: {
+                let isIncluded = false;
+                for (const rule of patterns) {
+                    if (!isStatusMatch(rule)) {
+                        continue;
+                    }
+                    // Once a file is excluded it stays excluded - no other pattern can include it back.
+                    // Therefore all the patterns have to be evaluated even if the file is already included.
+                    if ((_b = rule.isExclude) === null || _b === void 0 ? void 0 : _b.call(rule, file.filename)) {
+                        return false;
+                    }
+                    if (!isIncluded && ((_c = rule.isInclude) === null || _c === void 0 ? void 0 : _c.call(rule, file.filename))) {
+                        isIncluded = true;
+                    }
+                }
+                return isIncluded;
+            }
+            default:
+                return patterns.some(aPredicate);
         }
     }
     parseFilterItemYaml(item) {
@@ -142,21 +175,19 @@ class Filter {
             return flat(item.map(i => this.parseFilterItemYaml(i)));
         }
         if (typeof item === 'string') {
-            return [{ status: undefined, isMatch: (0, picomatch_1.default)(item, MatchOptions) }];
+            return [createRuleItem(item)];
         }
         if (typeof item === 'object') {
             return Object.entries(item).map(([key, pattern]) => {
                 if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
                     this.throwInvalidFormatError(`Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${pattern}:${typeof pattern} found`);
                 }
-                return {
-                    status: key
-                        .split('|')
-                        .map(x => x.trim())
-                        .filter(x => x.length > 0)
-                        .map(x => x.toLowerCase()),
-                    isMatch: (0, picomatch_1.default)(pattern, MatchOptions)
-                };
+                const status = key
+                    .split('|')
+                    .map(x => x.trim())
+                    .filter(x => x.length > 0)
+                    .map(x => x.toLowerCase());
+                return createRuleItem(pattern, status);
             });
         }
         this.throwInvalidFormatError(`Unexpected element type '${typeof item}'`);
@@ -170,6 +201,24 @@ exports.Filter = Filter;
 // In future could be replaced by Array.prototype.flat (supported on Node.js 11+)
 function flat(arr) {
     return arr.reduce((acc, val) => acc.concat(val), []);
+}
+// Compiles filename pattern(s) of a single filter rule item into matchers.
+// Multiple patterns are OR-ed together, which is how picomatch treats an array of globs.
+// Patterns are also split by their polarity, so PredicateQuantifier.SOME_WITH_EXCLUDES
+// can tell inclusions from exclusions. Note that only a leading '!' negates the whole
+// pattern - the '!(...)' extglob is a regular pattern matching everything it doesn't enumerate.
+function createRuleItem(patterns, status) {
+    const matchers = (Array.isArray(patterns) ? patterns : [patterns]).map(pattern => (0, picomatch_1.default)(pattern, MatchOptions, true));
+    // picomatch inverts the result of a matcher created from a negated pattern.
+    // Inverting it back gives a matcher of the filenames such pattern excludes.
+    const includes = matchers.filter(matcher => !matcher.state.negated);
+    const excludes = matchers.filter(matcher => matcher.state.negated);
+    return {
+        status,
+        isMatch: str => matchers.some(matcher => matcher(str)),
+        isInclude: includes.length > 0 ? str => includes.some(matcher => matcher(str)) : undefined,
+        isExclude: excludes.length > 0 ? str => excludes.some(matcher => !matcher(str)) : undefined
+    };
 }
 
 

@@ -167,6 +167,41 @@ jobs:
       if: steps.filter.outputs.local_count != 1
       run: exit 1
 
+  test-predicate-quantifier-some-with-excludes:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: modify working tree
+      run: |
+        mkdir -p mobile/.config
+        echo "TEST" > mobile/main.kt
+        echo "TEST" > mobile/README.md
+        echo "TEST" > mobile/.config/lint.json
+        echo "TEST" > backend.go
+        git add -A
+    - uses: ./
+      id: filter
+      with:
+        base: HEAD
+        list-files: shell
+        predicate-quantifier: 'some-with-excludes'
+        filters: |
+          mobile:
+            - 'mobile/**'
+            - '!mobile/**/*.md'
+            - '!mobile/.config/**'
+          excludesOnly:
+            - '!**/*.md'
+    - name: Print 'mobile_files'
+      run: echo ${{steps.filter.outputs.mobile_files}}
+    - name: filter-test
+      if: |
+        steps.filter.outputs.mobile != 'true'
+        || steps.filter.outputs.mobile_count != 1
+        || steps.filter.outputs.mobile_files != 'mobile/main.kt'
+        || steps.filter.outputs.excludesOnly != 'false'
+      run: exit 1
+
   test-change-type:
     runs-on: ubuntu-latest
     steps:
