@@ -89,11 +89,8 @@ var PredicateQuantifier;
     /**
      * When choosing 'some-with-excludes' in the config it means that files will get matched if
      * at least one of the patterns matches them and none of the negated patterns (the ones
-     * prefixed with '!') matches them.
-     *
-     * Unlike 'every' it doesn't require the file to match all the patterns, so a filter can list
-     * several unrelated paths and still exclude e.g. documentation from all of them. An exclusion
-     * is final - a file excluded by one pattern can't be included back by another one.
+     * prefixed with '!') matches them. An exclusion is final - a file excluded by one pattern
+     * can't be included back by another one.
      *
      * A filter which consists of negated patterns only never matches anything,
      * because there is no pattern which could include a file in the first place.
