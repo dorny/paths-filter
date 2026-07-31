@@ -545,23 +545,23 @@ jobs:
 
 ```yaml
 - uses: dorny/paths-filter@v4
-      id: filter
-      with:
-        # With 'some-with-excludes' a file is matched when it matches at least one pattern
-        # and none of the negated ones. The filter below therefore matches all the files
-        # in the 'mobile' folder and the workflow file, but never a markdown file or
-        # anything in 'mobile/.config'.
-        #
-        # An exclusion is final - a file excluded by one pattern can't be included back
-        # by another one. Consequently, a filter consisting of negated patterns only
-        # never matches anything.
-        predicate-quantifier: 'some-with-excludes'
-        filters: |
-          mobile:
-            - 'mobile/**'
-            - '!mobile/**/*.md'
-            - '!mobile/.config/**'
-            - '.github/workflows/test_mobile.yml'
+  id: filter
+  with:
+    # With 'some-with-excludes' a file is matched when it matches at least one pattern
+    # and none of the negated ones. The filter below therefore matches all the files
+    # in the 'mobile' folder and the workflow file, but never a markdown file or
+    # anything in 'mobile/.config'.
+    #
+    # An exclusion is final - a file excluded by one pattern can't be included back
+    # by another one. Consequently, a filter consisting of negated patterns only
+    # never matches anything.
+    predicate-quantifier: 'some-with-excludes'
+    filters: |
+      mobile:
+        - 'mobile/**'
+        - '!mobile/**/*.md'
+        - '!mobile/.config/**'
+        - '.github/workflows/test_mobile.yml'
 ```
 
 </details>
