@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.0.3
+- [Document safe handling of file list outputs in workflows](https://github.com/dorny/paths-filter/pull/326)
+- [Escape multi-line filenames in list-files shell and csv output](https://github.com/advisories/GHSA-7hc6-8hq5-9q2m)
+- [Add 'some-with-excludes' predicate quantifier](https://github.com/dorny/paths-filter/pull/322)
+- [Add contents permission to PR example](https://github.com/dorny/paths-filter/pull/248)
+- [Scope base-ignored warning to API path](https://github.com/dorny/paths-filter/pull/319)
+- [Update outputs in readme to account for the 'every' predicate-quantifier](https://github.com/dorny/paths-filter/pull/247)
+
 ## v4.0.2
 - [Work around git dubious ownership errors in container jobs](https://github.com/dorny/paths-filter/pull/317)
 - [Use rev-parse instead of branch --show-current for older git compat](https://github.com/dorny/paths-filter/pull/303)
@@ -10,6 +18,9 @@
 
 ## v4.0.0
 - [Update action runtime to node24](https://github.com/dorny/paths-filter/pull/294)
+
+## v3.0.4
+- [Escape multi-line filenames in list-files shell and csv output](https://github.com/advisories/GHSA-7hc6-8hq5-9q2m)
 
 ## v3.0.3
 - [Add missing predicate-quantifier](https://github.com/dorny/paths-filter/pull/279)
