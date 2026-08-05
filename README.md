@@ -67,6 +67,10 @@ For more scenarios see [examples](#examples) section.
 
 ## Notes
 
+- **Security:** `${FILTER_NAME}_files` outputs contain filenames that may be attacker-influenced on pull requests.
+  Do not interpolate them directly into a `run:` script with `${{ ... }}`.
+  Pass the value through `env:` and reference the variable from the shell instead.
+  See [Custom processing of changed files](#custom-processing-of-changed-files).
 - Paths expressions are evaluated using [picomatch](https://github.com/micromatch/picomatch) library.
   Documentation for path expression format can be found on the project GitHub page.
 - Picomatch [dot](https://github.com/micromatch/picomatch#options) option is set to true.
@@ -205,7 +209,7 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     - `'true'` - if **any** changed file matches **at least one** of the filter's rules and **none** of its negated rules
     - `'false'` - if **no** changed file matches **at least one** of the filter's rules and **none** of its negated rules
 - Each filter sets an output variable with the name `${FILTER_NAME}_count` to the count of matching files.
-- If enabled, for each filter it sets an output variable with the name `${FILTER_NAME}_files`. It will contain a list of all files matching the filter.
+- If enabled, for each filter it sets an output variable with the name `${FILTER_NAME}_files`. It will contain a list of all files matching the filter. Treat these values as untrusted when filenames can come from pull requests.
 - `changes` - JSON array with names of all filters matching any of the changed files.
 
 ## Examples
@@ -589,8 +593,12 @@ jobs:
         - added|modified: '*.md'
 - name: Lint Markdown
   if: ${{ steps.filter.outputs.markdown == 'true' }}
-  run: npx textlint ${{ steps.filter.outputs.markdown_files }}
+  env:
+    MARKDOWN_FILES: ${{ steps.filter.outputs.markdown_files }}
+  run: npx textlint $MARKDOWN_FILES
 ```
+
+When passing file lists to shell commands, use `env:` as shown above. Do not write `${{ steps.filter.outputs.markdown_files }}` directly inside the `run:` script.
 
 </details>
 
@@ -616,6 +624,8 @@ jobs:
   with:
     files: ${{ steps.filter.outputs.changed_files }}
 ```
+
+The `json` and `csv` formats are intended as structured data for scripts, programs, or other actions. Passing them to an action input as above is fine. Do not interpolate `json` or `csv` outputs directly into a `run:` script.
 
 </details>
 

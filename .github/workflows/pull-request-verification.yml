@@ -193,7 +193,9 @@ jobs:
           excludesOnly:
             - '!**/*.md'
     - name: Print 'mobile_files'
-      run: echo ${{steps.filter.outputs.mobile_files}}
+      env:
+        MOBILE_FILES: ${{ steps.filter.outputs.mobile_files }}
+      run: echo "$MOBILE_FILES"
     - name: filter-test
       if: |
         steps.filter.outputs.mobile != 'true'
@@ -227,11 +229,17 @@ jobs:
           any:
             - added|deleted|modified: "*"
     - name: Print 'added_files'
-      run: echo ${{steps.filter.outputs.added_files}}
+      env:
+        ADDED_FILES: ${{ steps.filter.outputs.added_files }}
+      run: echo "$ADDED_FILES"
     - name: Print 'modified_files'
-      run: echo ${{steps.filter.outputs.modified_files}}
+      env:
+        MODIFIED_FILES: ${{ steps.filter.outputs.modified_files }}
+      run: echo "$MODIFIED_FILES"
     - name: Print 'deleted_files'
-      run: echo ${{steps.filter.outputs.deleted_files}}
+      env:
+        DELETED_FILES: ${{ steps.filter.outputs.deleted_files }}
+      run: echo "$DELETED_FILES"
     - name: filter-test
       if: |
         steps.filter.outputs.added != 'true'
