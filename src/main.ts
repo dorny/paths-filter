@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import {retry} from '@octokit/plugin-retry'
 import {GetResponseDataTypeFromEndpointMethod} from '@octokit/types'
 import {MergeGroupEvent, PullRequest, PushEvent} from '@octokit/webhooks-types'
 
@@ -204,7 +205,7 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 async function getChangedFilesFromApi(token: string, pullRequest: PullRequest): Promise<File[]> {
   core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from GitHub API`)
   try {
-    const client = github.getOctokit(token)
+    const client = github.getOctokit(token, undefined, retry)
     const per_page = 100
     const files: File[] = []
 
