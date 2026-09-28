@@ -125,11 +125,12 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
       }
 
       let depth = initialFetchDepth
-      let lastCommitCount = await getCommitCount()
+      const countedRefs = [baseRef, headRef]
+      let lastCommitCount = await getCommitCount(countedRefs)
       while (!(await hasMergeBase())) {
         depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER)
         await gitExec(['fetch', `--deepen=${depth}`, 'origin', base, head])
-        const commitCount = await getCommitCount()
+        const commitCount = await getCommitCount(countedRefs)
         if (commitCount === lastCommitCount) {
           core.info('No more commits were fetched')
           core.info('Last attempt will be to fetch full history')
@@ -236,8 +237,11 @@ async function hasCommit(ref: string): Promise<boolean> {
   return (await gitExec(['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).exitCode === 0
 }
 
-async function getCommitCount(): Promise<number> {
-  const output = (await gitExec(['rev-list', '--count', '--all'])).stdout
+// Counts commits reachable from the given refs only.
+// '--all' would also traverse unrelated refs, which fails the whole job when any of them
+// has a missing parent in a shallow clone - see https://github.com/dorny/paths-filter/issues/321
+async function getCommitCount(refs: string[]): Promise<number> {
+  const output = (await gitExec(['rev-list', '--count', ...refs])).stdout
   const count = parseInt(output)
   return isNaN(count) ? 0 : count
 }
