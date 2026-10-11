@@ -3,7 +3,6 @@ import * as core from '@actions/core'
 import {File, ChangeStatus} from './file'
 import {ensureSafeDirectory, getGitEnv, isDubiousOwnershipError} from './safe-directory'
 
-export const NULL_SHA = '0000000000000000000000000000000000000000'
 export const HEAD = 'HEAD'
 
 export async function gitExec(args: string[], options?: {ignoreReturnCode?: boolean}): Promise<ExecOutput> {
@@ -229,7 +228,11 @@ export function getShortName(ref: string): string {
 }
 
 export function isGitSha(ref: string): boolean {
-  return /^[a-z0-9]{40}$/.test(ref)
+  return /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(ref)
+}
+
+export function isGitNullSha(ref: string): boolean {
+  return isGitSha(ref) && /^0+$/.test(ref)
 }
 
 async function hasCommit(ref: string): Promise<boolean> {

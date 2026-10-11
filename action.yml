@@ -11,12 +11,13 @@ inputs:
     required: false
   ref:
     description: |
-      Git reference (e.g. branch name) from which the changes will be detected.
+      Git reference (e.g. branch name or full SHA-1/SHA-256 commit hash) from which the changes will be detected.
       This option is ignored if action is triggered by pull_request event.
     required: false
   base:
     description: |
       Git reference (e.g. branch name) against which the changes will be detected. Defaults to repository default branch (e.g. master).
+      Full SHA-1 and SHA-256 commit hashes are also supported.
       If it references same branch it was pushed to, changes are detected against the most recent commit before the push.
       This option is ignored if action is triggered by pull_request event.
     required: false

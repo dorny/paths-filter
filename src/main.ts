@@ -177,7 +177,7 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 
     // If there is no previously pushed commit,
     // we will do comparison against the default branch or return all as added
-    if (baseSha === git.NULL_SHA) {
+    if (git.isGitNullSha(baseSha)) {
       if (defaultBranch && base !== defaultBranch) {
         core.info(
           `First push of a branch detected - changes will be detected against the default branch ${defaultBranch}`

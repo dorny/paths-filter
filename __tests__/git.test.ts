@@ -27,9 +27,31 @@ describe('git utility function tests (those not invoking git)', () => {
     expect(git.getShortName('v1')).toBe('v1')
   })
 
-  test('isGitSha(ref) returns true only for 40 characters of a-z and 0-9', () => {
-    expect(git.isGitSha('8b399ed1681b9efd6b1e048ca1c5cba47edf3855')).toBeTruthy()
-    expect(git.isGitSha('This_is_very_long_name_for_a_branch_1111')).toBeFalsy()
-    expect(git.isGitSha('master')).toBeFalsy()
+  test.each([40, 64])('recognises full %i-character commit hashes and null hashes', length => {
+    expect(git.isGitSha('0123456789abcdef'.repeat(4).slice(0, length))).toBe(true)
+    expect(git.isGitSha('0'.repeat(length))).toBe(true)
+    expect(git.isGitNullSha('0'.repeat(length))).toBe(true)
+    expect(git.isGitNullSha('0'.repeat(length - 1) + '1')).toBe(false)
+  })
+
+  test.each([
+    '',
+    'master',
+    'This_is_very_long_name_for_a_branch_1111',
+    'a'.repeat(39),
+    'a'.repeat(41),
+    'a'.repeat(63),
+    'a'.repeat(65),
+    'g'.repeat(40),
+    'g'.repeat(64),
+    'A'.repeat(40),
+    'A'.repeat(64),
+    '0'.repeat(39),
+    '0'.repeat(41),
+    '0'.repeat(63),
+    '0'.repeat(65)
+  ])('rejects invalid full commit and null hashes: %s', ref => {
+    expect(git.isGitSha(ref)).toBe(false)
+    expect(git.isGitNullSha(ref)).toBe(false)
   })
 })

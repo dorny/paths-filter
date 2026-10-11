@@ -250,12 +250,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.gitExec = exports.HEAD = exports.NULL_SHA = void 0;
+exports.isGitNullSha = exports.isGitSha = exports.getShortName = exports.getCurrentRef = exports.listAllFilesAsAdded = exports.parseGitDiffOutput = exports.getChangesSinceMergeBase = exports.getChangesOnHead = exports.getChanges = exports.getChangesInLastCommit = exports.gitExec = exports.HEAD = void 0;
 const exec_1 = __nccwpck_require__(1514);
 const core = __importStar(__nccwpck_require__(2186));
 const file_1 = __nccwpck_require__(4014);
 const safe_directory_1 = __nccwpck_require__(2126);
-exports.NULL_SHA = '0000000000000000000000000000000000000000';
 exports.HEAD = 'HEAD';
 async function gitExec(args, options) {
     var _a;
@@ -465,9 +464,13 @@ function getShortName(ref) {
 }
 exports.getShortName = getShortName;
 function isGitSha(ref) {
-    return /^[a-z0-9]{40}$/.test(ref);
+    return /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(ref);
 }
 exports.isGitSha = isGitSha;
+function isGitNullSha(ref) {
+    return isGitSha(ref) && /^0+$/.test(ref);
+}
+exports.isGitNullSha = isGitNullSha;
 async function hasCommit(ref) {
     return (await gitExec(['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).exitCode === 0;
 }
@@ -770,7 +773,7 @@ async function getChangedFilesFromGit(base, head, initialFetchDepth) {
         }
         // If there is no previously pushed commit,
         // we will do comparison against the default branch or return all as added
-        if (baseSha === git.NULL_SHA) {
+        if (git.isGitNullSha(baseSha)) {
             if (defaultBranch && base !== defaultBranch) {
                 core.info(`First push of a branch detected - changes will be detected against the default branch ${defaultBranch}`);
                 return await git.getChangesSinceMergeBase(defaultBranch, head, initialFetchDepth);
