@@ -528,6 +528,7 @@ const statusMap = {
     D: file_1.ChangeStatus.Deleted,
     M: file_1.ChangeStatus.Modified,
     R: file_1.ChangeStatus.Renamed,
+    T: file_1.ChangeStatus.Modified,
     U: file_1.ChangeStatus.Unmerged
 };
 

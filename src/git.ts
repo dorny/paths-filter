@@ -301,5 +301,6 @@ const statusMap: {[char: string]: ChangeStatus} = {
   D: ChangeStatus.Deleted,
   M: ChangeStatus.Modified,
   R: ChangeStatus.Renamed,
+  T: ChangeStatus.Modified,
   U: ChangeStatus.Unmerged
 }
