@@ -100,6 +100,12 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
   try {
     baseRef = await getLocalRef(base)
     headRef = await getLocalRef(head)
+    if (baseRef !== undefined && !isGitSha(base)) {
+      // The local base ref can be outdated (e.g. on self-hosted runners that keep .git between jobs)
+      // while still sharing history with head, so always update it from origin
+      await fetchLatest(base, initialFetchDepth)
+      baseRef = await getLocalRef(base)
+    }
     if (!(await hasMergeBase())) {
       await gitExec(['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head])
       if (baseRef === undefined || headRef === undefined) {
@@ -234,6 +240,24 @@ export function isGitSha(ref: string): boolean {
 
 async function hasCommit(ref: string): Promise<boolean> {
   return (await gitExec(['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).exitCode === 0
+}
+
+async function isShallowRepository(): Promise<boolean> {
+  const output = await gitExec(['rev-parse', '--is-shallow-repository'], {ignoreReturnCode: true})
+  return output.stdout.trim() === 'true'
+}
+
+async function fetchLatest(name: string, depth: number): Promise<void> {
+  // --depth would make a full clone shallow, so only limit the depth when the repository already is
+  const args = ['fetch', '--no-tags']
+  if (await isShallowRepository()) {
+    args.push(`--depth=${depth}`)
+  }
+  args.push('origin', name)
+  const result = await gitExec(args, {ignoreReturnCode: true})
+  if (result.exitCode !== 0) {
+    core.warning(`Could not fetch ${name} from origin - change detection will use the local ref`)
+  }
 }
 
 async function getCommitCount(): Promise<number> {
