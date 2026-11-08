@@ -119,7 +119,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
       const baseSha = github.context.payload.pull_request?.base.sha
       const defaultBranch = github.context.payload.repository?.default_branch
       const currentRef = await git.getCurrentRef()
-      return await git.getChanges(base || baseSha || defaultBranch, currentRef)
+      return await git.getChanges(git.getShortName(base) || baseSha || defaultBranch, currentRef)
     }
     // To keep backward compatibility, manual inputs take precedence over
     // commits in GitHub merge queue event.
@@ -145,8 +145,8 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 
   const currentRef = await git.getCurrentRef()
 
-  head = git.getShortName(head || github.context.ref || currentRef)
-  base = git.getShortName(base || defaultBranch)
+  head = git.getShortName(head || github.context.ref) || currentRef
+  base = git.getShortName(base) || defaultBranch
 
   if (!head) {
     throw new Error(

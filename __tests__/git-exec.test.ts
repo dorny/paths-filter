@@ -1,10 +1,16 @@
 import {getExecOutput, ExecOutput} from '@actions/exec'
-import {gitExec} from '../src/git'
-import {ensureSafeDirectory, getGitEnv} from '../src/safe-directory'
+import * as core from '@actions/core'
+import {context} from '@actions/github'
+import {getChanges, gitExec} from '../src/git'
+import {ChangeStatus} from '../src/file'
+import {cleanup, ensureSafeDirectory, getGitEnv} from '../src/safe-directory'
 
 jest.mock('@actions/exec')
+jest.mock('@actions/core')
+jest.mock('@actions/github', () => ({context: {eventName: '', ref: '', payload: {}}}))
 jest.mock('../src/safe-directory', () => ({
   ...jest.requireActual('../src/safe-directory'),
+  cleanup: jest.fn(),
   ensureSafeDirectory: jest.fn(),
   getGitEnv: jest.fn()
 }))
@@ -25,6 +31,7 @@ beforeEach(() => {
   getExecOutputMock.mockReset()
   ensureSafeDirectoryMock.mockReset()
   getGitEnvMock.mockReset()
+  jest.mocked(cleanup).mockReset()
 })
 
 describe('gitExec', () => {
@@ -111,3 +118,78 @@ describe('gitExec', () => {
     expect(ensureSafeDirectoryMock).not.toHaveBeenCalled()
   })
 })
+
+test.each([
+  ['main', 'feature/topic'],
+  ['refs/heads/main', 'refs/heads/topic'],
+  ['refs/tags/main', 'refs/tags/topic'],
+  ['refs/remotes/origin/main', 'refs/remotes/origin/topic']
+])('getChanges resolves short names %s and %s', async (base, head) => {
+  const outputs: {[command: string]: string} = {
+    [`show-ref ${base}`]: `${'a'.repeat(40)} refs/remotes/origin/${base}\n`,
+    [`show-ref ${head}`]: `${'b'.repeat(40)} refs/remotes/origin/${head}\n`,
+    [`diff --no-renames --name-status -z refs/remotes/origin/${base}..refs/remotes/origin/${head}`]:
+      'M\u0000src/app.ts\u0000'
+  }
+  getExecOutputMock.mockImplementation(async (_command, args) => {
+    const stdout = outputs[args?.join(' ') ?? '']
+    if (stdout === undefined) {
+      throw new Error(`Unexpected git arguments: ${args?.join(' ')}`)
+    }
+    return {exitCode: 0, stdout, stderr: ''}
+  })
+
+  const files = await getChanges(base, head)
+
+  expect(files).toEqual([{filename: 'src/app.ts', status: ChangeStatus.Modified}])
+})
+
+test.each(['workflow_dispatch', 'pull_request'])(
+  'action preserves canonical branch fallbacks for %s',
+  async eventName => {
+    const base = 'refs/remotes/origin/main'
+    const head = 'refs/remotes/origin/topic'
+    context.eventName = eventName
+    context.ref = ''
+    context.payload = {
+      repository: {name: 'fixture', owner: {login: 'local'}, default_branch: base},
+      pull_request: {number: 1, base: {}}
+    }
+    jest.mocked(core.getInput).mockImplementation(name => (name === 'filters' ? 'src: ["src/**"]' : ''))
+
+    const baseRef = `refs/remotes/origin/${base}`
+    const headRef = `refs/remotes/origin/${head}`
+    const diff = `${baseRef}${eventName === 'pull_request' ? '..' : '...'}${headRef}`
+    const outputs: {[command: string]: string} = {
+      'rev-parse --abbrev-ref HEAD': `${head}\n`,
+      [`show-ref ${base}`]: `${'a'.repeat(40)} ${baseRef}\n`,
+      [`show-ref ${head}`]: `${'b'.repeat(40)} ${headRef}\n`,
+      [`merge-base ${baseRef} ${headRef}`]: `${'a'.repeat(40)}\n`,
+      [`diff --no-renames --name-status -z ${diff}`]: 'M\u0000src/app.ts\u0000'
+    }
+    getExecOutputMock.mockImplementation(async (_command, args) => {
+      const stdout = outputs[args?.join(' ') ?? '']
+      if (stdout === undefined) {
+        throw new Error(`Unexpected git arguments: ${args?.join(' ')}`)
+      }
+      return {exitCode: 0, stdout, stderr: ''}
+    })
+
+    const completed = new Promise<void>(resolve => {
+      jest.mocked(cleanup).mockImplementationOnce(async () => resolve())
+    })
+    await jest.isolateModulesAsync(async () => {
+      await import('../src/main')
+      await completed
+    })
+
+    expect({errors: jest.mocked(core.setFailed).mock.calls, outputs: jest.mocked(core.setOutput).mock.calls}).toEqual({
+      errors: [],
+      outputs: [
+        ['src', true],
+        ['src_count', 1],
+        ['changes', '["src"]']
+      ]
+    })
+  }
+)

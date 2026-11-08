@@ -221,9 +221,11 @@ export function getShortName(ref: string): string {
 
   const heads = 'refs/heads/'
   const tags = 'refs/tags/'
+  const origin = 'refs/remotes/origin/'
 
   if (ref.startsWith(heads)) return ref.slice(heads.length)
   if (ref.startsWith(tags)) return ref.slice(tags.length)
+  if (ref.startsWith(origin)) return ref.slice(origin.length)
 
   return ref
 }
