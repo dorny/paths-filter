@@ -457,10 +457,13 @@ function getShortName(ref) {
         return '';
     const heads = 'refs/heads/';
     const tags = 'refs/tags/';
+    const origin = 'refs/remotes/origin/';
     if (ref.startsWith(heads))
         return ref.slice(heads.length);
     if (ref.startsWith(tags))
         return ref.slice(tags.length);
+    if (ref.startsWith(origin))
+        return ref.slice(origin.length);
     return ref;
 }
 exports.getShortName = getShortName;
@@ -725,7 +728,7 @@ async function getChangedFiles(token, base, ref, initialFetchDepth) {
             const baseSha = (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.base.sha;
             const defaultBranch = (_b = github.context.payload.repository) === null || _b === void 0 ? void 0 : _b.default_branch;
             const currentRef = await git.getCurrentRef();
-            return await git.getChanges(base || baseSha || defaultBranch, currentRef);
+            return await git.getChanges(git.getShortName(base) || baseSha || defaultBranch, currentRef);
         }
         // To keep backward compatibility, manual inputs take precedence over
         // commits in GitHub merge queue event.
@@ -747,8 +750,8 @@ async function getChangedFilesFromGit(base, head, initialFetchDepth) {
     const defaultBranch = (_a = github.context.payload.repository) === null || _a === void 0 ? void 0 : _a.default_branch;
     const beforeSha = github.context.eventName === 'push' ? github.context.payload.before : null;
     const currentRef = await git.getCurrentRef();
-    head = git.getShortName(head || github.context.ref || currentRef);
-    base = git.getShortName(base || defaultBranch);
+    head = git.getShortName(head || github.context.ref) || currentRef;
+    base = git.getShortName(base) || defaultBranch;
     if (!head) {
         throw new Error("This action requires 'head' input to be configured, 'ref' to be set in the event payload or branch/tag checked out in current git repository");
     }
