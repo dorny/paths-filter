@@ -710,15 +710,25 @@ async function getChangedFiles(token, base, ref, initialFetchDepth) {
                 if (base) {
                     core.warning(`'base' input parameter is ignored when action is triggered by pull request event and 'token' is provided - set token: '' to detect changes using git diff against 'base'`);
                 }
-                return await getChangedFilesFromApi(token, pr);
+                const apiFiles = await getChangedFilesFromApi(token, pr);
+                if (apiFiles !== null) {
+                    return apiFiles;
+                }
+                // The REST API listing was incomplete: fall through to git-based detection.
             }
             if (github.context.eventName === 'pull_request_target') {
+                if (token) {
+                    throw new Error(`The GitHub API returned an incomplete list of changed files and git-based detection is not available for 'pull_request_target'. ` +
+                        `Failing instead of reporting an incomplete set of changes.`);
+                }
                 // pull_request_target is executed in context of base branch and GITHUB_SHA points to last commit in base branch
                 // Therefore it's not possible to look at changes in last commit
                 // At the same time we don't want to fetch any code from forked repository
                 throw new Error(`'token' input parameter is required if action is triggered by 'pull_request_target' event`);
             }
-            core.info('GitHub token is not available - changes will be detected using git diff');
+            if (!token) {
+                core.info('GitHub token is not available - changes will be detected using git diff');
+            }
             if (base) {
                 core.info(`Using base '${base}' instead of the pull request base`);
             }
@@ -790,12 +800,16 @@ async function getChangedFilesFromGit(base, head, initialFetchDepth) {
     return await git.getChangesSinceMergeBase(base, head, initialFetchDepth);
 }
 // Uses github REST api to get list of files changed in PR
+// The REST endpoint returns at most 3000 files per pull request and truncates silently.
+const LIST_FILES_API_CAP = 3000;
+// Returns null when the listing is known to be incomplete, so the caller can fall back to git.
 async function getChangedFilesFromApi(token, pullRequest) {
     core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from GitHub API`);
     try {
         const client = github.getOctokit(token);
         const per_page = 100;
         const files = [];
+        let rows = 0;
         core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, per_page: ${per_page})`);
         for await (const response of client.paginate.iterator(client.rest.pulls.listFiles.endpoint.merge({
             owner: github.context.repo.owner,
@@ -808,6 +822,7 @@ async function getChangedFilesFromApi(token, pullRequest) {
             }
             core.info(`Received ${response.data.length} items`);
             for (const row of response.data) {
+                rows++;
                 core.info(`[${row.status}] ${row.filename}`);
                 // There's no obvious use-case for detection of renames
                 // Therefore we treat it as if rename detection in git diff was turned off.
@@ -832,6 +847,12 @@ async function getChangedFilesFromApi(token, pullRequest) {
                     });
                 }
             }
+        }
+        const expected = pullRequest.changed_files;
+        if (rows >= LIST_FILES_API_CAP || (typeof expected === 'number' && rows < expected)) {
+            core.warning(`GitHub API listed ${rows} of ${expected !== null && expected !== void 0 ? expected : 'unknown'} changed files (listFiles returns at most ${LIST_FILES_API_CAP}). ` +
+                `The listing may be incomplete; falling back to git diff so that no change is silently ignored.`);
+            return null;
         }
         return files;
     }
